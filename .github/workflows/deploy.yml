@@ -22,6 +22,9 @@ jobs:
           password: ${{ secrets.FTP_PASSWORD }}
           server-dir: ${{ secrets.FTP_TARGET_DIR }}
           local-dir: ./
+          protocol: ftps          # ✅ 改成 FTPS（明確指定）
+          port: 21                # ✅ Hostinger FTP 預設 21
+          timeout: 60000          # ✅ 加長一點 timeout（60 秒，毫秒制）
           exclude: |
             **/.git*
             **/.github*
@@ -29,3 +32,4 @@ jobs:
             **/README.md
             **/LICENSE
           dangerous-clean-slate: false
+
