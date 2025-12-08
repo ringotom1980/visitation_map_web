@@ -27,9 +27,11 @@ jobs:
           timeout: 60000          # ✅ 加長一點 timeout（60 秒，毫秒制）
           exclude: |
             **/.git*
+            **/.git/**
             **/.github*
+            **/.github/**
             **/docs/**
             **/README.md
             **/LICENSE
+            **/.ftp-deploy-sync-state.json
           dangerous-clean-slate: false
-
