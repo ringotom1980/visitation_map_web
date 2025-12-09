@@ -1,5 +1,8 @@
 <?php
-// Public/api/common/bootstrap.php
+/**
+ * Path: Public/api/common/bootstrap.php
+ * 說明: 所有 API 共用啟動（header、DB、auth、JSON 輸出）
+ */
 
 declare(strict_types=1);
 
@@ -9,9 +12,6 @@ require_once __DIR__ . '/../../../config/app.php';
 require_once __DIR__ . '/../../../config/db.php';
 require_once __DIR__ . '/../../../config/auth.php';
 
-/**
- * 統一成功回應
- */
 function json_success($data = null): void
 {
     echo json_encode([
@@ -21,9 +21,6 @@ function json_success($data = null): void
     exit;
 }
 
-/**
- * 統一錯誤回應
- */
 function json_error(string $message, int $httpStatus = 400, $code = null): void
 {
     http_response_code($httpStatus);

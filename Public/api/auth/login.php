@@ -1,5 +1,8 @@
 <?php
-// Public/api/auth/login.php
+/**
+ * Path: Public/api/auth/login.php
+ * 說明: 使用者登入 API（POST /api/auth/login）
+ */
 
 declare(strict_types=1);
 
@@ -9,7 +12,7 @@ if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
     json_error('Method not allowed', 405);
 }
 
-// 支援 application/json 或傳統 POST
+// 支援 JSON 或 form-data
 $input = $_POST;
 if (empty($input)) {
     $raw = file_get_contents('php://input');
@@ -29,8 +32,10 @@ if ($email === '' || $password === '') {
 }
 
 $pdo = db();
-$sql = 'SELECT id, name, email, phone, org_id, role, status, password_hash 
-        FROM users WHERE email = :email LIMIT 1';
+$sql = 'SELECT id, name, email, phone, org_id, role, status, password_hash
+        FROM users
+        WHERE email = :email
+        LIMIT 1';
 $stmt = $pdo->prepare($sql);
 $stmt->execute([':email' => $email]);
 $user = $stmt->fetch();
@@ -43,7 +48,6 @@ if (($user['status'] ?? '') !== 'ACTIVE') {
     json_error('帳號尚未啟用或已停權');
 }
 
-// 驗證密碼（password_hash / password_verify）
 if (!password_verify($password, $user['password_hash'])) {
     json_error('帳號或密碼錯誤');
 }

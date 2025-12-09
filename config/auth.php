@@ -1,5 +1,8 @@
 <?php
-// config/auth.php
+/**
+ * Path: config/auth.php
+ * 說明: Session 啟動、目前使用者、登入/權限檢查
+ */
 
 declare(strict_types=1);
 
@@ -10,17 +13,11 @@ if (session_status() === PHP_SESSION_NONE) {
     session_start();
 }
 
-/**
- * 取得目前登入的 user_id（沒有則回傳 null）
- */
 function current_user_id(): ?int
 {
     return isset($_SESSION['user_id']) ? (int)$_SESSION['user_id'] : null;
 }
 
-/**
- * 取得目前登入使用者完整資料（users 表）
- */
 function current_user(): ?array
 {
     $uid = current_user_id();
@@ -36,20 +33,14 @@ function current_user(): ?array
     return $user ?: null;
 }
 
-/**
- * 確認已登入，否則導回登入頁
- */
 function require_login(): void
 {
     if (!current_user_id()) {
-        header('Location: ' . BASE_URL . '/index.php');
+        header('Location: ' . route_url('login'));
         exit;
     }
 }
 
-/**
- * 確認為 ADMIN，否則 403 或導回 /app
- */
 function require_admin(): void
 {
     $user = current_user();

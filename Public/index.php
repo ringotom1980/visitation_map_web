@@ -1,27 +1,26 @@
 <?php
-// Public/index.php = /login
+/**
+ * Path: Public/index.php
+ * 說明: 登入頁（對外路徑: /login）
+ */
 
-require_once __DIR__ . '/../config/app.php';
-
-// 若已登入，可直接導去 /app
 require_once __DIR__ . '/../config/auth.php';
+
+// 若已登入，直接導向主地圖
 if (current_user_id()) {
-    header('Location: ' . BASE_URL . '/app.php');
+    header('Location: ' . route_url('app'));
     exit;
 }
+
+$pageTitle = APP_NAME . ' - 登入';
+$pageCss   = ['assets/css/login.css'];
 ?>
 <!DOCTYPE html>
 <html lang="zh-Hant">
-<head>
-  <meta charset="UTF-8">
-  <title><?= htmlspecialchars(APP_NAME) ?> - 登入</title>
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <link rel="stylesheet" href="<?= BASE_URL ?>/assets/css/base.css">
-  <link rel="stylesheet" href="<?= BASE_URL ?>/assets/css/login.css">
-</head>
+<?php require __DIR__ . '/partials/head.php'; ?>
 <body class="login-body">
   <div class="login-wrapper">
-    <h1 class="login-title"><?= htmlspecialchars(APP_NAME) ?></h1>
+    <h1 class="login-title"><?= htmlspecialchars(APP_NAME, ENT_QUOTES, 'UTF-8') ?></h1>
 
     <form id="loginForm" class="login-form">
       <label class="form-group">
@@ -37,14 +36,17 @@ if (current_user_id()) {
       <button type="submit" class="btn-primary">登入</button>
 
       <p class="login-extra">
-        還沒有帳號？<a href="<?= BASE_URL ?>/register.php">申請帳號</a>
+        還沒有帳號？<a href="<?= route_url('register') ?>">申請帳號</a>
       </p>
 
       <p id="loginMessage" class="login-message"></p>
     </form>
   </div>
 
-  <script src="<?= BASE_URL ?>/assets/js/api.js"></script>
-  <script src="<?= BASE_URL ?>/assets/js/login.js"></script>
+<?php
+// 底部載入 JS
+$pageJs = ['assets/js/login.js'];
+require __DIR__ . '/partials/footer.php';
+?>
 </body>
 </html>

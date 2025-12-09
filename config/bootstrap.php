@@ -1,5 +1,8 @@
 <?php
-// config/bootstrap.php
+/**
+ * Path: config/bootstrap.php
+ * 說明: 載入 .env 並提供 env() 讀取環境變數
+ */
 
 declare(strict_types=1);
 
@@ -15,17 +18,15 @@ function load_env(string $path): void
     $lines = file($path, FILE_IGNORE_NEW_LINES | FILE_SKIP_EMPTY_LINES);
     foreach ($lines as $line) {
         $line = trim($line);
-        if ($line === '' || str_starts_with($line, '#')) {
+        if ($line === '' || $line[0] === '#') {
             continue;
         }
 
-        // KEY=VALUE
         [$key, $value] = array_map('trim', explode('=', $line, 2));
 
-        // 去掉頭尾引號
         if (strlen($value) >= 2 &&
-            (($value[0] === '"' && $value[-1] === '"') ||
-             ($value[0] === "'" && $value[-1] === "'"))
+            (($value[0] === '"' && $value[strlen($value)-1] === '"') ||
+             ($value[0] === "'" && $value[strlen($value)-1] === "'"))
         ) {
             $value = substr($value, 1, -1);
         }
@@ -37,7 +38,7 @@ function load_env(string $path): void
 }
 
 /**
- * 取得 env 變數，若無則回傳預設值
+ * 取得 env 變數
  */
 function env(string $key, $default = null)
 {
@@ -48,6 +49,5 @@ function env(string $key, $default = null)
     return $value;
 }
 
-// 專案根目錄的 .env
 $root = dirname(__DIR__);
 load_env($root . '/.env');
