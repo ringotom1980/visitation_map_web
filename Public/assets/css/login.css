@@ -1,41 +1,107 @@
 /**
  * Path: Public/assets/css/login.css
- * 說明: 登入頁專用樣式
+ * 說明: 登入頁專用樣式（手機優先設計）
  */
 
+/* 外層：手機先考慮上下排列 */
 .login-body {
   min-height: 100vh;
+  margin: 0;
+}
+
+.login-shell {
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+  padding: 16px 16px 12px;
+}
+
+/* 品牌列：上方 LOGO + 系統名稱 */
+.login-brand {
+  padding: 4px 4px 12px;
+}
+
+.brand-logo-wrap {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.brand-logo-mark {
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;              /* 只有 LOGO 是圓的，比較有主體 */
+  background: radial-gradient(circle at 30% 20%, #38bdf8, #1d4ed8);
   display: flex;
   align-items: center;
   justify-content: center;
+  color: #f9fafb;
+  font-weight: 700;
+  font-size: 18px;
+  box-shadow: 0 4px 10px rgba(15, 23, 42, 0.45);
 }
 
+.brand-short {
+  letter-spacing: 0.1em;
+}
+
+.brand-text {
+  display: flex;
+  flex-direction: column;
+}
+
+.brand-name {
+  font-size: 16px;
+  font-weight: 600;
+  color: #e5e7eb;
+}
+
+.brand-sub {
+  font-size: 12px;
+  color: #9ca3af;
+}
+
+/* 登入卡片：略方、不要太圓 */
 .login-wrapper {
   width: 100%;
-  max-width: 360px;
-  padding: 24px 20px 28px;
-  border-radius: 12px;
-  background: #ffffff;
-  box-shadow: 0 10px 25px rgba(15, 23, 42, 0.12);
+  max-width: 420px;   /* 手機視窗也不會太窄 */
+  margin: 12px auto 8px;
+  padding: 18px 16px 20px;
+  border-radius: 10px;                 /* 比較方的圓角 */
+  background: #f9fafb;
+  box-shadow: 0 10px 25px rgba(15, 23, 42, 0.18);
 }
 
 .login-title {
-  text-align: center;
-  margin: 0 0 20px;
-  font-size: 20px;
+  margin: 0 0 14px;
+  font-size: 18px;
+  font-weight: 600;
+  color: #111827;
 }
 
+/* 表單直排，適合手機 */
 .login-form {
   display: flex;
   flex-direction: column;
 }
 
-.login-extra {
-  margin-top: 12px;
-  font-size: 13px;
-  text-align: center;
+.btn-block {
+  width: 100%;
+  margin-top: 4px;
 }
 
+.login-extra {
+  margin-top: 10px;
+  font-size: 13px;
+  text-align: center;
+  color: #6b7280;
+}
+
+.login-extra a {
+  font-weight: 500;
+}
+
+/* 訊息 */
 .login-message {
   margin-top: 10px;
   font-size: 13px;
@@ -48,4 +114,26 @@
 
 .login-message.success {
   color: #16a34a;
+}
+
+/* 最底部版權：貼底但不搶畫面 */
+.login-footer {
+  margin-top: auto;
+  padding-top: 8px;
+  text-align: center;
+  font-size: 11px;
+  color: #6b7280;
+}
+
+/* --- 桌機（大螢幕）優化：只是加一點空間，不改核心排版 --- */
+@media (min-width: 768px) {
+  .login-shell {
+    max-width: 520px;
+    margin: 0 auto;
+    padding-top: 40px;
+  }
+
+  .login-wrapper {
+    margin-top: 20px;
+  }
 }

@@ -1,7 +1,7 @@
 <?php
 /**
  * Path: Public/partials/head.php
- * 說明: 共用 <head> 區塊（base.css + 頁面額外 CSS）
+ * 說明: 共用 <head> 區塊（base.css + 頁面額外 CSS + favicon）
  *
  * 使用方式：
  *   $pageTitle = 'xxx';
@@ -20,6 +20,9 @@ if (!isset($pageCss) || !is_array($pageCss)) {
   <meta charset="UTF-8">
   <title><?= htmlspecialchars($pageTitle, ENT_QUOTES, 'UTF-8') ?></title>
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+  <!-- 頁籤 LOGO（favicon），檔案路徑可依你實際調整 -->
+  <link rel="icon" type="image/png" href="<?= asset_url('assets/img/logo.png') ?>">
 
   <!-- 共用樣式 -->
   <link rel="stylesheet" href="<?= asset_url('assets/css/base.css') ?>">

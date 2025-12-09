@@ -1,7 +1,7 @@
 <?php
 /**
  * Path: Public/index.php
- * 說明: 登入頁（對外路徑: /login）
+ * 說明: 登入頁（對外路徑: /login，手機優先版面）
  */
 
 require_once __DIR__ . '/../config/auth.php';
@@ -19,32 +19,69 @@ $pageCss   = ['assets/css/login.css'];
 <html lang="zh-Hant">
 <?php require __DIR__ . '/partials/head.php'; ?>
 <body class="login-body">
-  <div class="login-wrapper">
-    <h1 class="login-title"><?= htmlspecialchars(APP_NAME, ENT_QUOTES, 'UTF-8') ?></h1>
+  <div class="login-shell">
+    <!-- 上方品牌區：LOGO + 系統名稱 -->
+    <header class="login-brand">
+      <div class="brand-logo-wrap">
+        <div class="brand-logo-mark">
+          <!-- 純 CSS 圓形標記；之後你有真正 logo.png 可改用 <img> -->
+          <span class="brand-short">訪</span>
+        </div>
+        <div class="brand-text">
+          <div class="brand-name"><?= htmlspecialchars(APP_NAME, ENT_QUOTES, 'UTF-8') ?></div>
+          <div class="brand-sub">遺眷親訪定位與路線規劃工具</div>
+        </div>
+      </div>
+    </header>
 
-    <form id="loginForm" class="login-form">
-      <label class="form-group">
-        <span>帳號（Email）</span>
-        <input type="email" name="email" id="email" required>
-      </label>
+    <!-- 中間登入卡片 -->
+    <main class="login-wrapper">
+      <h1 class="login-title">登入系統</h1>
 
-      <label class="form-group">
-        <span>密碼</span>
-        <input type="password" name="password" id="password" required>
-      </label>
+      <form id="loginForm" class="login-form" autocomplete="on">
+        <label class="form-group">
+          <span class="form-label">帳號（Email）</span>
+          <input
+            type="email"
+            name="email"
+            id="email"
+            required
+            inputmode="email"
+            autocomplete="username"
+            placeholder="name@example.com"
+          >
+        </label>
 
-      <button type="submit" class="btn-primary">登入</button>
+        <label class="form-group">
+          <span class="form-label">密碼</span>
+          <input
+            type="password"
+            name="password"
+            id="password"
+            required
+            autocomplete="current-password"
+            placeholder="請輸入密碼"
+          >
+        </label>
 
-      <p class="login-extra">
-        還沒有帳號？<a href="<?= route_url('register') ?>">申請帳號</a>
-      </p>
+        <button type="submit" class="btn-primary btn-block">登入</button>
 
-      <p id="loginMessage" class="login-message"></p>
-    </form>
+        <p class="login-extra">
+          還沒有帳號？
+          <a href="<?= route_url('register') ?>">申請帳號</a>
+        </p>
+
+        <p id="loginMessage" class="login-message"></p>
+      </form>
+    </main>
+
+    <!-- 底部小版權（手機優先） -->
+    <footer class="login-footer">
+      <small>© <?= date('Y') ?> <?= htmlspecialchars(APP_NAME, ENT_QUOTES, 'UTF-8') ?></small>
+    </footer>
   </div>
 
 <?php
-// 底部載入 JS
 $pageJs = ['assets/js/login.js'];
 require __DIR__ . '/partials/footer.php';
 ?>
