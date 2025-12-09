@@ -22,17 +22,15 @@ $pageCss   = ['assets/css/login.css'];
   <div class="login-shell">
     <!-- 上方品牌區：LOGO + 系統名稱 -->
     <header class="login-brand">
-      <div class="brand-logo-wrap">
-        <div class="brand-logo-mark">
-          <!-- 純 CSS 圓形標記；之後你有真正 logo.png 可改用 <img> -->
-          <span class="brand-short">訪</span>
-        </div>
-        <div class="brand-text">
-          <div class="brand-name"><?= htmlspecialchars(APP_NAME, ENT_QUOTES, 'UTF-8') ?></div>
-          <div class="brand-sub">遺眷親訪定位與路線規劃工具</div>
-        </div>
-      </div>
-    </header>
+  <div class="brand-logo-wrap">
+    <img src="<?= asset_url('assets/img/logo.png') ?>" alt="Logo" class="brand-logo-img">
+    <div class="brand-text">
+      <div class="brand-name"><?= htmlspecialchars(APP_NAME, ENT_QUOTES, 'UTF-8') ?></div>
+      <div class="brand-sub">遺眷親訪定位與路線規劃工具</div>
+    </div>
+  </div>
+</header>
+
 
     <!-- 中間登入卡片 -->
     <main class="login-wrapper">
