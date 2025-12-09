@@ -81,9 +81,8 @@ $pageCss   = ['assets/css/login.css'];
 
   </div>
 
-  <!-- ★★★ 方案 C：此頁專屬 JS「由頁面自己載入」 -->
+  <!-- 共用 JS + 此頁專屬 JS 都寫在這裡，不再透過 footer.php -->
+  <script src="<?= asset_url('assets/js/api.js') ?>"></script>
   <script src="<?= asset_url('assets/js/login.js') ?>"></script>
-
-<?php require __DIR__ . '/partials/footer.php'; ?>
 </body>
 </html>

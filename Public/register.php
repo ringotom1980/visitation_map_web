@@ -42,7 +42,7 @@ $pageCss   = ['assets/css/login.css']; // 共用登入/註冊頁樣式
     <!-- 上方品牌：沿用登入頁風格 -->
     <header class="login-brand">
       <div class="brand-logo-wrap">
-        <img src="<?= asset_url('assets/img/logo.png') ?>" alt="Logo" class="brand-logo-img">
+        <img src="<?= asset_url('assets/img/logo128.png') ?>" alt="Logo" class="brand-logo-img">
         <div class="brand-text">
           <div class="brand-name"><?= htmlspecialchars(APP_NAME, ENT_QUOTES, 'UTF-8') ?></div>
           <div class="brand-sub">遺眷親訪定位與路線規劃工具</div>
@@ -112,9 +112,8 @@ $pageCss   = ['assets/css/login.css']; // 共用登入/註冊頁樣式
     </footer>
   </div>
 
-  <!-- ★★★ 方案 C：此頁專屬 JS「由頁面自己載入」 -->
+  <!-- 共用 JS + 此頁專屬 JS 都寫在這裡 -->
+  <script src="<?= asset_url('assets/js/api.js') ?>"></script>
   <script src="<?= asset_url('assets/js/register.js') ?>"></script>
-
-<?php require __DIR__ . '/partials/footer.php'; ?>
 </body>
 </html>
