@@ -32,16 +32,19 @@ a:hover {
   align-items: center;
   justify-content: center;
   padding: 10px 16px;
-  border-radius: 6px;
+  border-radius: 8px;
   border: 0;
   font-size: 15px;
-  font-weight: 500;
+  font-weight: 600;
+  font-family: inherit; /* ★ 重點：讓按鈕字體和其他一樣 */
   cursor: pointer;
-  background: #15803d;            /* 主色：深綠 */
-  color: #f9fafb;
-  box-shadow: 0 1px 2px rgba(15, 23, 42, 0.18);
+
+  background: #4ca771 !important;
+  color: #ffffff;
+  box-shadow: 0 1px 2px rgba(15, 23, 42, 0.14);
   transition: background 0.12s ease, box-shadow 0.12s ease, transform 0.08s ease;
 }
+
 
 .btn-primary:hover {
   background: #166534;             /* hover 再深一點的綠 */
