@@ -15,9 +15,7 @@ if (current_user_id()) {
 // 讀取「所屬單位」選項（organizations）
 $orgOptions = [];
 try {
-    require_once __DIR__ . '/../config/db.php';
     $pdo = db();
-
     $sql = "SELECT id, name
             FROM organizations
             WHERE is_active = 1
@@ -25,6 +23,7 @@ try {
     $stmt = $pdo->query($sql);
     $orgOptions = $stmt->fetchAll() ?: [];
 } catch (Throwable $e) {
+    // 若出錯就顯示空清單，不要整頁炸掉
     $orgOptions = [];
 }
 
