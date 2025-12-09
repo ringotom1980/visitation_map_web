@@ -1,1 +1,48 @@
-/* TODO: Login/Register styles */
+/* Public/assets/css/login.css */
+
+.login-body {
+  min-height: 100vh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.login-wrapper {
+  width: 100%;
+  max-width: 360px;
+  padding: 24px 20px 28px;
+  border-radius: 12px;
+  background: #ffffff;
+  box-shadow: 0 10px 25px rgba(15, 23, 42, 0.12);
+}
+
+.login-title {
+  text-align: center;
+  margin: 0 0 20px;
+  font-size: 20px;
+}
+
+.login-form {
+  display: flex;
+  flex-direction: column;
+}
+
+.login-extra {
+  margin-top: 12px;
+  font-size: 13px;
+  text-align: center;
+}
+
+.login-message {
+  margin-top: 10px;
+  font-size: 13px;
+  text-align: center;
+}
+
+.login-message.error {
+  color: #dc2626;
+}
+
+.login-message.success {
+  color: #16a34a;
+}

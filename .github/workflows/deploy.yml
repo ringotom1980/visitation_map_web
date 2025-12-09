@@ -21,17 +21,22 @@ jobs:
           username: ${{ secrets.FTP_USERNAME }}
           password: ${{ secrets.FTP_PASSWORD }}
           server-dir: ${{ secrets.FTP_TARGET_DIR }}
-          local-dir: ./
-          protocol: ftps          # ✅ 改成 FTPS（明確指定）
-          port: 21                # ✅ Hostinger FTP 預設 21
-          timeout: 60000          # ✅ 加長一點 timeout（60 秒，毫秒制）
+
+          # 因為你的程式就在根目錄
+          local-dir: ./ 
+
+          protocol: ftps
+          port: 21
+          timeout: 60000
+
           exclude: |
             **/.git*
-            **/.git/**
             **/.github*
-            **/.github/**
             **/docs/**
             **/README.md
             **/LICENSE
+            **/.env
+            **/.env.*
             **/.ftp-deploy-sync-state.json
+
           dangerous-clean-slate: false

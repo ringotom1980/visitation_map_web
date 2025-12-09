@@ -1,28 +1,38 @@
 <?php
-// 路徑:Public/api/common/bootstrap.php
-// MUST include in all API entry files
+// Public/api/common/bootstrap.php
+
+declare(strict_types=1);
 
 header('Content-Type: application/json; charset=utf-8');
 
+require_once __DIR__ . '/../../../config/app.php';
+require_once __DIR__ . '/../../../config/db.php';
 require_once __DIR__ . '/../../../config/auth.php';
-$pdo = require __DIR__ . '/../../../config/db.php';
 
-function json_success($message = 'OK', $data = null) {
+/**
+ * 統一成功回應
+ */
+function json_success($data = null): void
+{
     echo json_encode([
         'success' => true,
-        'message' => $message,
-        'data' => $data,
-    ]);
+        'data'    => $data,
+    ], JSON_UNESCAPED_UNICODE);
     exit;
 }
 
-function json_error($code, $message, $http = 400) {
-    http_response_code($http);
+/**
+ * 統一錯誤回應
+ */
+function json_error(string $message, int $httpStatus = 400, $code = null): void
+{
+    http_response_code($httpStatus);
     echo json_encode([
         'success' => false,
-        'error_code' => $code,
-        'message' => $message,
-        'data' => null,
-    ]);
+        'error'   => [
+            'message' => $message,
+            'code'    => $code,
+        ],
+    ], JSON_UNESCAPED_UNICODE);
     exit;
 }
