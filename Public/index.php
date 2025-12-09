@@ -17,22 +17,24 @@ $pageCss   = ['assets/css/login.css'];
 ?>
 <!DOCTYPE html>
 <html lang="zh-Hant">
+
 <?php require __DIR__ . '/partials/head.php'; ?>
+
 <body class="login-body">
   <div class="login-shell">
-    <!-- 上方品牌區：LOGO + 系統名稱 -->
+
+    <!-- 上方品牌 LOGO -->
     <header class="login-brand">
-  <div class="brand-logo-wrap">
-    <img src="<?= asset_url('assets/img/logo128.png') ?>" alt="Logo" class="brand-logo-img">
-    <div class="brand-text">
-      <div class="brand-name"><?= htmlspecialchars(APP_NAME, ENT_QUOTES, 'UTF-8') ?></div>
-      <div class="brand-sub">遺眷親訪定位與路線規劃工具</div>
-    </div>
-  </div>
-</header>
+      <div class="brand-logo-wrap">
+        <img src="<?= asset_url('assets/img/logo128.png') ?>" alt="Logo" class="brand-logo-img">
+        <div class="brand-text">
+          <div class="brand-name"><?= htmlspecialchars(APP_NAME, ENT_QUOTES, 'UTF-8') ?></div>
+          <div class="brand-sub">遺眷親訪定位與路線規劃工具</div>
+        </div>
+      </div>
+    </header>
 
-
-    <!-- 中間登入卡片 -->
+    <!-- 登入卡片 -->
     <main class="login-wrapper">
       <h1 class="login-title">登入系統</h1>
 
@@ -73,15 +75,15 @@ $pageCss   = ['assets/css/login.css'];
       </form>
     </main>
 
-    <!-- 底部小版權（手機優先） -->
     <footer class="login-footer">
       <small>© <?= date('Y') ?> <?= htmlspecialchars(APP_NAME, ENT_QUOTES, 'UTF-8') ?></small>
     </footer>
+
   </div>
 
-<?php
-$pageJs = ['assets/js/login.js'];
-require __DIR__ . '/partials/footer.php';
-?>
+  <!-- ★★★ 方案 C：此頁專屬 JS「由頁面自己載入」 -->
+  <script src="<?= asset_url('assets/js/login.js') ?>"></script>
+
+<?php require __DIR__ . '/partials/footer.php'; ?>
 </body>
 </html>

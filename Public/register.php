@@ -25,7 +25,6 @@ try {
     $stmt = $pdo->query($sql);
     $orgOptions = $stmt->fetchAll() ?: [];
 } catch (Throwable $e) {
-    // 若無法讀取就留空，下方會顯示備註
     $orgOptions = [];
 }
 
@@ -34,9 +33,12 @@ $pageCss   = ['assets/css/login.css']; // 共用登入/註冊頁樣式
 ?>
 <!DOCTYPE html>
 <html lang="zh-Hant">
+
 <?php require __DIR__ . '/partials/head.php'; ?>
+
 <body class="login-body">
   <div class="login-shell">
+
     <!-- 上方品牌：沿用登入頁風格 -->
     <header class="login-brand">
       <div class="brand-logo-wrap">
@@ -57,51 +59,25 @@ $pageCss   = ['assets/css/login.css']; // 共用登入/註冊頁樣式
       </p>
 
       <form id="registerForm" class="login-form" autocomplete="on">
+
         <label class="form-group">
           <span class="form-label">姓名</span>
-          <input
-            type="text"
-            name="name"
-            id="name"
-            required
-            autocomplete="name"
-            placeholder="請輸入姓名"
-          >
+          <input type="text" name="name" id="name" required autocomplete="name" placeholder="請輸入姓名">
         </label>
 
         <label class="form-group">
           <span class="form-label">手機</span>
-          <input
-            type="tel"
-            name="phone"
-            id="phone"
-            required
-            inputmode="tel"
-            autocomplete="tel"
-            placeholder="例如：0912-345-678"
-          >
+          <input type="tel" name="phone" id="phone" required inputmode="tel" autocomplete="tel" placeholder="例如：0912-345-678">
         </label>
 
         <label class="form-group">
           <span class="form-label">Email（做為登入帳號）</span>
-          <input
-            type="email"
-            name="email"
-            id="email"
-            required
-            inputmode="email"
-            autocomplete="email"
-            placeholder="name@example.com"
-          >
+          <input type="email" name="email" id="email" required inputmode="email" autocomplete="email" placeholder="name@example.com">
         </label>
 
         <label class="form-group">
           <span class="form-label">所屬單位</span>
-          <select
-            name="org_id"
-            id="org_id"
-            required
-          >
+          <select name="org_id" id="org_id" required>
             <option value="">請選擇所屬單位</option>
             <?php if (!empty($orgOptions)): ?>
               <?php foreach ($orgOptions as $org): ?>
@@ -117,13 +93,7 @@ $pageCss   = ['assets/css/login.css']; // 共用登入/註冊頁樣式
 
         <label class="form-group">
           <span class="form-label">職稱</span>
-          <input
-            type="text"
-            name="title"
-            id="title"
-            autocomplete="organization-title"
-            placeholder="例如：政戰幹事"
-          >
+          <input type="text" name="title" id="title" autocomplete="organization-title" placeholder="例如：政戰幹事">
         </label>
 
         <button type="submit" class="btn-primary btn-block">送出申請</button>
@@ -133,6 +103,7 @@ $pageCss   = ['assets/css/login.css']; // 共用登入/註冊頁樣式
         </p>
 
         <p id="registerMessage" class="login-message"></p>
+
       </form>
     </main>
 
@@ -141,9 +112,9 @@ $pageCss   = ['assets/css/login.css']; // 共用登入/註冊頁樣式
     </footer>
   </div>
 
-<?php
-$pageJs = ['assets/js/register.js'];
-require __DIR__ . '/partials/footer.php';
-?>
+  <!-- ★★★ 方案 C：此頁專屬 JS「由頁面自己載入」 -->
+  <script src="<?= asset_url('assets/js/register.js') ?>"></script>
+
+<?php require __DIR__ . '/partials/footer.php'; ?>
 </body>
 </html>

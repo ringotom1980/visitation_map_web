@@ -32,10 +32,12 @@ if ($email === '' || $password === '') {
 }
 
 $pdo = db();
-$sql = 'SELECT id, name, email, phone, org_id, role, status, password_hash
+
+$sql = 'SELECT id, name, email, phone, organization_id, role, status, password_hash
         FROM users
         WHERE email = :email
         LIMIT 1';
+
 $stmt = $pdo->prepare($sql);
 $stmt->execute([':email' => $email]);
 $user = $stmt->fetch();
@@ -53,12 +55,15 @@ if (!password_verify($password, $user['password_hash'])) {
 }
 
 // 設定 Session
-$_SESSION['user_id'] = (int)$user['id'];
-$_SESSION['role']    = $user['role'];
+session_regenerate_id(true);
+$_SESSION['user_id']  = (int)$user['id'];
+$_SESSION['role']     = $user['role'];
+$_SESSION['org_id']   = (int)$user['organization_id'];
 
 json_success([
-    'id'    => (int)$user['id'],
-    'name'  => $user['name'],
-    'email' => $user['email'],
-    'role'  => $user['role'],
+    'id'              => (int)$user['id'],
+    'name'            => $user['name'],
+    'email'           => $user['email'],
+    'role'            => $user['role'],
+    'organization_id' => (int)$user['organization_id'],
 ]);
