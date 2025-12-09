@@ -23,7 +23,7 @@ $pageCss   = ['assets/css/login.css'];
     <!-- 上方品牌區：LOGO + 系統名稱 -->
     <header class="login-brand">
   <div class="brand-logo-wrap">
-    <img src="<?= asset_url('assets/img/logo.png') ?>" alt="Logo" class="brand-logo-img">
+    <img src="<?= asset_url('assets/img/logo128.png') ?>" alt="Logo" class="brand-logo-img">
     <div class="brand-text">
       <div class="brand-name"><?= htmlspecialchars(APP_NAME, ENT_QUOTES, 'UTF-8') ?></div>
       <div class="brand-sub">遺眷親訪定位與路線規劃工具</div>
