@@ -15,7 +15,9 @@ if (current_user_id()) {
 // 讀取「所屬單位」選項（organizations）
 $orgOptions = [];
 try {
+    require_once __DIR__ . '/../config/db.php';
     $pdo = db();
+
     $sql = "SELECT id, name
             FROM organizations
             WHERE is_active = 1
@@ -23,12 +25,11 @@ try {
     $stmt = $pdo->query($sql);
     $orgOptions = $stmt->fetchAll() ?: [];
 } catch (Throwable $e) {
-    // 若出錯就顯示空清單，不要整頁炸掉
     $orgOptions = [];
 }
 
 $pageTitle = APP_NAME . ' - 申請帳號';
-$pageCss   = ['assets/css/login.css']; // 共用登入/註冊頁樣式
+$pageCss   = ['assets/css/login.css']; // 先共用登入/註冊樣式
 ?>
 <!DOCTYPE html>
 <html lang="zh-Hant">
@@ -38,7 +39,7 @@ $pageCss   = ['assets/css/login.css']; // 共用登入/註冊頁樣式
 <body class="login-body">
   <div class="login-shell">
 
-    <!-- 上方品牌：沿用登入頁風格 -->
+    <!-- 上方品牌（跟登入一樣沒關係） -->
     <header class="login-brand">
       <div class="brand-logo-wrap">
         <img src="<?= asset_url('assets/img/logo128.png') ?>" alt="Logo" class="brand-logo-img">
@@ -49,7 +50,7 @@ $pageCss   = ['assets/css/login.css']; // 共用登入/註冊頁樣式
       </div>
     </header>
 
-    <!-- 申請卡片 -->
+    <!-- ✅ 這裡開始是「明顯不同於登入頁」的內容 -->
     <main class="login-wrapper">
       <h1 class="login-title">申請帳號</h1>
 
@@ -59,24 +60,55 @@ $pageCss   = ['assets/css/login.css']; // 共用登入/註冊頁樣式
 
       <form id="registerForm" class="login-form" autocomplete="on">
 
+        <!-- 姓名 -->
         <label class="form-group">
           <span class="form-label">姓名</span>
-          <input type="text" name="name" id="name" required autocomplete="name" placeholder="請輸入姓名">
+          <input
+            type="text"
+            name="name"
+            id="name"
+            required
+            autocomplete="name"
+            placeholder="請輸入姓名"
+          >
         </label>
 
+        <!-- 手機 -->
         <label class="form-group">
           <span class="form-label">手機</span>
-          <input type="tel" name="phone" id="phone" required inputmode="tel" autocomplete="tel" placeholder="例如：0912-345-678">
+          <input
+            type="tel"
+            name="phone"
+            id="phone"
+            required
+            inputmode="tel"
+            autocomplete="tel"
+            placeholder="例如：0912-345-678"
+          >
         </label>
 
+        <!-- Email -->
         <label class="form-group">
           <span class="form-label">Email（做為登入帳號）</span>
-          <input type="email" name="email" id="email" required inputmode="email" autocomplete="email" placeholder="name@example.com">
+          <input
+            type="email"
+            name="email"
+            id="email"
+            required
+            inputmode="email"
+            autocomplete="email"
+            placeholder="name@example.com"
+          >
         </label>
 
+        <!-- 所屬單位 -->
         <label class="form-group">
           <span class="form-label">所屬單位</span>
-          <select name="org_id" id="org_id" required>
+          <select
+            name="org_id"
+            id="org_id"
+            required
+          >
             <option value="">請選擇所屬單位</option>
             <?php if (!empty($orgOptions)): ?>
               <?php foreach ($orgOptions as $org): ?>
@@ -90,17 +122,27 @@ $pageCss   = ['assets/css/login.css']; // 共用登入/註冊頁樣式
           </select>
         </label>
 
+        <!-- 職稱 -->
         <label class="form-group">
           <span class="form-label">職稱</span>
-          <input type="text" name="title" id="title" autocomplete="organization-title" placeholder="例如：政戰幹事">
+          <input
+            type="text"
+            name="title"
+            id="title"
+            autocomplete="organization-title"
+            placeholder="例如：政戰幹事"
+          >
         </label>
 
+        <!-- 送出按鈕 -->
         <button type="submit" class="btn-primary btn-block">送出申請</button>
 
+        <!-- 回登入連結（這行文字也跟登入頁不一樣） -->
         <p class="login-extra">
           已有帳號？<a href="<?= route_url('login') ?>">回登入頁</a>
         </p>
 
+        <!-- 顯示申請結果訊息 -->
         <p id="registerMessage" class="login-message"></p>
 
       </form>
@@ -109,6 +151,7 @@ $pageCss   = ['assets/css/login.css']; // 共用登入/註冊頁樣式
     <footer class="login-footer">
       <small>© <?= date('Y') ?> <?= htmlspecialchars(APP_NAME, ENT_QUOTES, 'UTF-8') ?></small>
     </footer>
+
   </div>
 
   <!-- 共用 JS + 此頁專屬 JS 都寫在這裡 -->
