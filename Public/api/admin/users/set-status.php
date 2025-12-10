@@ -1,7 +1,7 @@
 <?php
 /**
  * Path: Public/api/admin/users/set-status.php
- * 說明: 設定使用者狀態（ACTIVE / DISABLED）
+ * 說明: 設定使用者狀態（ACTIVE / SUSPENDED）
  */
 
 declare(strict_types=1);
@@ -16,7 +16,7 @@ if (!current_user_id() || !is_admin()) {
     json_error('沒有權限', 403);
 }
 
-// 讀 JSON
+// 讀 JSON 或 form-data
 $input = $_POST;
 if (empty($input)) {
     $raw = file_get_contents('php://input');
@@ -31,12 +31,13 @@ if (empty($input)) {
 $userId = isset($input['user_id']) ? (int)$input['user_id'] : 0;
 $status = strtoupper(trim($input['status'] ?? ''));
 
-if ($userId <= 0 || !in_array($status, ['ACTIVE', 'DISABLED'], true)) {
+// ★ 這裡只能是 'ACTIVE' 或 'SUSPENDED'
+if ($userId <= 0 || !in_array($status, ['ACTIVE', 'SUSPENDED'], true)) {
     json_error('參數不正確');
 }
 
-// 不允許自己把自己 DISABLED 掉（避免鎖死）
-if ($userId === current_user_id() && $status === 'DISABLED') {
+// 不允許自己把自己 SUSPENDED 掉（避免鎖死所有管理者）
+if ($userId === current_user_id() && $status === 'SUSPENDED') {
     json_error('不可停用自己');
 }
 

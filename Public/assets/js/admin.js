@@ -235,7 +235,7 @@ async function toggleRole(btn) {
 async function toggleStatus(btn) {
   const id = Number(btn.dataset.id);
   const current = btn.dataset.status || 'ACTIVE';
-  const next = current === 'ACTIVE' ? 'DISABLED' : 'ACTIVE';
+  const next = current === 'ACTIVE' ? 'SUSPENDED' : 'ACTIVE';  // ★ 改這行
 
   if (!confirm(`確定將此使用者狀態改為 ${next} 嗎？`)) return;
 
@@ -249,6 +249,7 @@ async function toggleStatus(btn) {
     alert('變更狀態失敗：' + (err.message || ''));
   }
 }
+
 
 function escapeHtml(str) {
   return String(str)

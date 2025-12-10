@@ -17,7 +17,7 @@ if (!current_user_id() || !is_admin()) {
     json_error('沒有權限', 403);
 }
 
-// 讀取 JSON
+// 讀取 JSON 或 form-data
 $input = $_POST;
 if (empty($input)) {
     $raw = file_get_contents('php://input');
@@ -39,7 +39,7 @@ $pdo = db();
 try {
     $pdo->beginTransaction();
 
-    // 抓申請資料
+    // 抓申請資料（鎖定這筆 PENDING 申請）
     $sql = "SELECT *
             FROM user_applications
             WHERE id = :id AND status = 'PENDING'
@@ -53,7 +53,7 @@ try {
         json_error('申請不存在或已處理');
     }
 
-    // 確認 email 尚未建立 user
+    // 確認 email 尚未建立使用者
     $stmt = $pdo->prepare('SELECT COUNT(*) FROM users WHERE email = :email');
     $stmt->execute([':email' => $app['email']]);
     if ((int)$stmt->fetchColumn() > 0) {
@@ -61,7 +61,7 @@ try {
         json_error('此 Email 已存在使用者帳號');
     }
 
-    // 產生暫時密碼（8 碼英數）
+    // 產生暫時密碼（8 碼）
     $chars = 'ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnpqrstuvwxyz23456789';
     $len   = strlen($chars);
     $tempPassword = '';
@@ -70,7 +70,7 @@ try {
     }
     $passwordHash = password_hash($tempPassword, PASSWORD_DEFAULT);
 
-    // 建立 user
+    // 建立 users 帳號
     $sql = "INSERT INTO users
             (name, phone, email, organization_id, title, role, status, password_hash, created_at)
             VALUES
@@ -89,11 +89,13 @@ try {
     $newUserId = (int)$pdo->lastInsertId();
 
     // 更新申請狀態
+    // ★ 這裡欄位名稱改成 reviewer_user_id（對齊你的 schema）
     $sql = "UPDATE user_applications
             SET status = 'APPROVED',
-                reviewed_at = NOW(),
-                reviewed_by = :admin_id
+                reviewer_user_id = :admin_id,
+                reviewed_at = NOW()
             WHERE id = :id";
+
     $stmt = $pdo->prepare($sql);
     $stmt->execute([
         ':admin_id' => current_user_id(),
@@ -105,7 +107,7 @@ try {
     json_success([
         'user_id'       => $newUserId,
         'email'         => $app['email'],
-        'temp_password' => $tempPassword, // 顯示在後台給管理者抄下來
+        'temp_password' => $tempPassword,
     ]);
 } catch (Throwable $e) {
     if ($pdo->inTransaction()) {

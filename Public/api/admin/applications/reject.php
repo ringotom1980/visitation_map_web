@@ -17,7 +17,7 @@ if (!current_user_id() || !is_admin()) {
     json_error('沒有權限', 403);
 }
 
-// 讀取 JSON
+// 讀取 JSON 或 form-data
 $input = $_POST;
 if (empty($input)) {
     $raw = file_get_contents('php://input');
@@ -38,17 +38,18 @@ if ($appId <= 0) {
 
 $pdo = db();
 
+// ★ 欄位名稱對齊：reviewer_user_id / review_note / reviewed_at
 $sql = "UPDATE user_applications
         SET status = 'REJECTED',
-            review_note = :note,
+            reviewer_user_id = :admin_id,
             reviewed_at = NOW(),
-            reviewed_by = :admin_id
+            review_note = :note
         WHERE id = :id AND status = 'PENDING'";
 
 $stmt = $pdo->prepare($sql);
 $stmt->execute([
-    ':note'     => $reason,
     ':admin_id' => current_user_id(),
+    ':note'     => $reason !== '' ? $reason : null,
     ':id'       => $appId,
 ]);
 
