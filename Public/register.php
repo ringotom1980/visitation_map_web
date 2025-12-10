@@ -14,6 +14,8 @@ if (current_user_id()) {
 
 // 讀取「所屬單位」選項（organizations）
 $orgOptions = [];
+
+/*
 try {
     require_once __DIR__ . '/../config/db.php';
     $pdo = db();
@@ -27,6 +29,8 @@ try {
 } catch (Throwable $e) {
     $orgOptions = [];
 }
+*/
+
 
 $pageTitle = APP_NAME . ' - 申請帳號';
 $pageCss   = ['assets/css/login.css']; // 先共用登入/註冊樣式
