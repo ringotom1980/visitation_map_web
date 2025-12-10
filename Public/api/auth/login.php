@@ -56,9 +56,14 @@ if (!password_verify($password, $user['password_hash'])) {
 
 // 設定 Session
 session_regenerate_id(true);
-$_SESSION['user_id']  = (int)$user['id'];
-$_SESSION['role']     = $user['role'];
-$_SESSION['org_id']   = (int)$user['organization_id'];
+$_SESSION['user_id'] = (int)$user['id'];
+$_SESSION['role']    = $user['role'];
+$_SESSION['org_id']  = (int)$user['organization_id'];
+
+// 依角色決定導向頁面：ADMIN → /admin，其他 → /app
+$redirect = ($user['role'] === 'ADMIN')
+    ? route_url('admin')
+    : route_url('app');
 
 json_success([
     'id'              => (int)$user['id'],
@@ -66,4 +71,5 @@ json_success([
     'email'           => $user['email'],
     'role'            => $user['role'],
     'organization_id' => (int)$user['organization_id'],
+    'redirect'        => $redirect,
 ]);
