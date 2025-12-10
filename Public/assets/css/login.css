@@ -167,6 +167,15 @@
   background-color: #ffffff;
 }
 
+.login-message.info {
+  text-align: center;
+  color: #b91c1c;
+  background: rgba(255, 0, 0, 0.08);
+  padding: 10px 12px;
+  margin-top: 12px;
+  border-radius: 8px;
+}
+
 
 
 /* ---------- 桌機優化 ---------- */

@@ -17,7 +17,7 @@ $pageTitle = APP_NAME . ' - 登入';
 $pageCss   = ['assets/css/login.css'];
 $loginInfoMessage = '';
 if (isset($_GET['applied']) && $_GET['applied'] === '1') {
-  $loginInfoMessage = '已送出帳號申請，待管理者審核通過後即可登入。';
+  $loginInfoMessage = '已送出帳號申請，待管理者審核通過後即可登入';
 }
 
 ?>
@@ -83,7 +83,7 @@ if (isset($_GET['applied']) && $_GET['applied'] === '1') {
 
       </form>
       <p class="login-extra small">
-        忘記密碼請聯絡苗栗縣後備指揮部留守科協助重設。
+        忘記密碼請聯絡苗栗縣後備指揮部留守科協助重設
       </p>
 
     </main>
