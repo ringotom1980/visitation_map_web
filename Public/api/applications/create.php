@@ -3,7 +3,7 @@
  * Path: Public/api/applications/create.php
  * 說明: 新使用者帳號申請 API（POST /api/applications/create）
  * 對應資料表：user_applications
- * 輸入欄位: name, phone, email, org_id, title
+ * 輸入欄位: name, phone, email, org_id, title, password, password_confirm
  */
 
 declare(strict_types=1);
@@ -26,11 +26,13 @@ if (empty($input)) {
   }
 }
 
-$name  = trim($input['name']  ?? '');
-$phone = trim($input['phone'] ?? '');
-$email = trim($input['email'] ?? '');
-$orgId = isset($input['org_id']) ? (int)$input['org_id'] : 0;
-$title = trim($input['title'] ?? '');
+$name     = trim($input['name']  ?? '');
+$phone    = trim($input['phone'] ?? '');
+$email    = trim($input['email'] ?? '');
+$orgId    = isset($input['org_id']) ? (int)$input['org_id'] : 0;
+$title    = trim($input['title'] ?? '');
+$password = (string)($input['password'] ?? '');
+$passwordConfirm = (string)($input['password_confirm'] ?? '');
 
 if ($name === '' || $phone === '' || $email === '' || $orgId <= 0) {
   json_error('請完整填寫必填欄位。');
@@ -39,6 +41,21 @@ if ($name === '' || $phone === '' || $email === '' || $orgId <= 0) {
 if (!filter_var($email, FILTER_VALIDATE_EMAIL)) {
   json_error('Email 格式不正確。');
 }
+
+// 密碼檢查
+if ($password === '' || $passwordConfirm === '') {
+  json_error('請輸入密碼與再次確認密碼。');
+}
+
+if (strlen($password) < 8) {
+  json_error('密碼長度至少需 8 碼。');
+}
+
+if ($password !== $passwordConfirm) {
+  json_error('兩次輸入的密碼不一致。');
+}
+
+$passwordHash = password_hash($password, PASSWORD_DEFAULT);
 
 $pdo = db();
 
@@ -54,7 +71,7 @@ try {
     json_error('所屬單位不存在或已停用，請聯絡管理者。');
   }
 
-  // 檢查 users 表中是否已存在啟用帳號
+  // 檢查 users 表中是否已存在帳號
   $stmt = $pdo->prepare('SELECT COUNT(*) FROM users WHERE email = :email');
   $stmt->execute([':email' => $email]);
   if ((int)$stmt->fetchColumn() > 0) {
@@ -74,9 +91,9 @@ try {
 
   // 新增一筆申請到 user_applications
   $sql = "INSERT INTO user_applications
-          (name, phone, email, organization_id, title, status, created_at)
+          (name, phone, email, organization_id, title, password_hash, status, created_at)
           VALUES
-          (:name, :phone, :email, :organization_id, :title, 'PENDING', NOW())";
+          (:name, :phone, :email, :organization_id, :title, :password_hash, 'PENDING', NOW())";
   $stmt = $pdo->prepare($sql);
   $stmt->execute([
     ':name'            => $name,
@@ -84,6 +101,7 @@ try {
     ':email'           => $email,
     ':organization_id' => $orgId,
     ':title'           => $title,
+    ':password_hash'   => $passwordHash,
   ]);
 
   json_success(['message' => '申請已送出']);

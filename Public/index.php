@@ -1,4 +1,5 @@
 <?php
+
 /**
  * Path: Public/index.php
  * 說明: 登入頁（對外路徑: /login，手機優先版面）
@@ -8,12 +9,17 @@ require_once __DIR__ . '/../config/auth.php';
 
 // 若已登入，直接導向主地圖
 if (current_user_id()) {
-    header('Location: ' . route_url('app'));
-    exit;
+  header('Location: ' . route_url('app'));
+  exit;
 }
 
 $pageTitle = APP_NAME . ' - 登入';
 $pageCss   = ['assets/css/login.css'];
+$loginInfoMessage = '';
+if (isset($_GET['applied']) && $_GET['applied'] === '1') {
+  $loginInfoMessage = '已送出帳號申請，待管理者審核通過後即可登入。';
+}
+
 ?>
 <!DOCTYPE html>
 <html lang="zh-Hant">
@@ -48,8 +54,7 @@ $pageCss   = ['assets/css/login.css'];
             required
             inputmode="email"
             autocomplete="username"
-            placeholder="name@example.com"
-          >
+            placeholder="name@example.com">
         </label>
 
         <label class="form-group">
@@ -60,8 +65,7 @@ $pageCss   = ['assets/css/login.css'];
             id="password"
             required
             autocomplete="current-password"
-            placeholder="請輸入密碼"
-          >
+            placeholder="請輸入密碼">
         </label>
 
         <button type="submit" class="btn-primary btn-block">登入</button>
@@ -71,8 +75,17 @@ $pageCss   = ['assets/css/login.css'];
           <a href="<?= route_url('register') ?>">申請帳號</a>
         </p>
 
-        <p id="loginMessage" class="login-message"></p>
+        <p
+          id="loginMessage"
+          class="login-message<?= $loginInfoMessage !== '' ? ' info' : '' ?>">
+          <?= $loginInfoMessage !== '' ? htmlspecialchars($loginInfoMessage, ENT_QUOTES, 'UTF-8') : '' ?>
+        </p>
+
       </form>
+      <p class="login-extra small">
+        忘記密碼請聯絡苗栗縣後備指揮部留守科協助重設。
+      </p>
+
     </main>
 
     <footer class="login-footer">
@@ -85,4 +98,5 @@ $pageCss   = ['assets/css/login.css'];
   <script src="<?= asset_url('assets/js/api.js') ?>"></script>
   <script src="<?= asset_url('assets/js/login.js') ?>"></script>
 </body>
+
 </html>

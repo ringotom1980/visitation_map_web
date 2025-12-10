@@ -15,7 +15,6 @@ if (current_user_id()) {
 // 讀取「所屬單位」選項（organizations）
 $orgOptions = [];
 
-
 try {
     require_once __DIR__ . '/../config/db.php';
     $pdo = db();
@@ -29,7 +28,6 @@ try {
 } catch (Throwable $e) {
     $orgOptions = [];
 }
-
 
 $pageTitle = APP_NAME . ' - 申請帳號';
 $pageCss   = ['assets/css/login.css']; // 先共用登入/註冊樣式
@@ -86,8 +84,8 @@ $pageCss   = ['assets/css/login.css']; // 先共用登入/註冊樣式
             required
             inputmode="tel"
             autocomplete="tel"
-            placeholder="例如：0912345678"
-            maxlength="11"
+            placeholder="例如：0912-345678 或 0912345678"
+            maxlength="12"
           >
         </label>
 
@@ -102,6 +100,34 @@ $pageCss   = ['assets/css/login.css']; // 先共用登入/註冊樣式
             inputmode="email"
             autocomplete="email"
             placeholder="name@example.com"
+          >
+        </label>
+
+        <!-- 密碼 -->
+        <label class="form-group">
+          <span class="form-label">設定密碼</span>
+          <input
+            type="password"
+            name="password"
+            id="password"
+            required
+            autocomplete="new-password"
+            minlength="8"
+            placeholder="請輸入密碼（至少 8 碼）"
+          >
+        </label>
+
+        <!-- 再次輸入密碼 -->
+        <label class="form-group">
+          <span class="form-label">再次輸入密碼</span>
+          <input
+            type="password"
+            name="password_confirm"
+            id="password_confirm"
+            required
+            autocomplete="new-password"
+            minlength="8"
+            placeholder="請再輸入一次密碼"
           >
         </label>
 

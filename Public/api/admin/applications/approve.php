@@ -61,14 +61,12 @@ try {
         json_error('此 Email 已存在使用者帳號');
     }
 
-    // 產生暫時密碼（8 碼）
-    $chars = 'ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnpqrstuvwxyz23456789';
-    $len   = strlen($chars);
-    $tempPassword = '';
-    for ($i = 0; $i < 8; $i++) {
-        $tempPassword .= $chars[random_int(0, $len - 1)];
+    // 確認申請內有密碼雜湊
+    $passwordHash = $app['password_hash'] ?? '';
+    if ($passwordHash === '' || $passwordHash === null) {
+        $pdo->rollBack();
+        json_error('此申請缺少密碼資料，請請申請者重新送出申請。');
     }
-    $passwordHash = password_hash($tempPassword, PASSWORD_DEFAULT);
 
     // 建立 users 帳號
     $sql = "INSERT INTO users
@@ -89,7 +87,6 @@ try {
     $newUserId = (int)$pdo->lastInsertId();
 
     // 更新申請狀態
-    // ★ 這裡欄位名稱改成 reviewer_user_id（對齊你的 schema）
     $sql = "UPDATE user_applications
             SET status = 'APPROVED',
                 reviewer_user_id = :admin_id,
@@ -105,9 +102,8 @@ try {
     $pdo->commit();
 
     json_success([
-        'user_id'       => $newUserId,
-        'email'         => $app['email'],
-        'temp_password' => $tempPassword,
+        'user_id' => $newUserId,
+        'email'   => $app['email'],
     ]);
 } catch (Throwable $e) {
     if ($pdo->inTransaction()) {

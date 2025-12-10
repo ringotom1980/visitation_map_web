@@ -4,9 +4,9 @@
  */
 
 document.addEventListener('DOMContentLoaded', () => {
-  const form  = document.getElementById('registerForm');
-  const msgEl = document.getElementById('registerMessage');
-  const phoneInput = document.getElementById('phone');
+  const form        = document.getElementById('registerForm');
+  const msgEl       = document.getElementById('registerMessage');
+  const phoneInput  = document.getElementById('phone');
 
   // ★ 手機欄位自動加 "-"：0985-715776（4 碼 + "-" + 後面全部）
   if (phoneInput) {
@@ -17,7 +17,7 @@ document.addEventListener('DOMContentLoaded', () => {
       if (digits.length <= 4) {
         phoneInput.value = digits;
       } else {
-        // 前 4 碼 + "-" + 其餘（最多再 6 碼，避免多打）
+        // 前 4 碼 + "-" + 其餘（最多再 6 碼，避免過長）
         const head = digits.slice(0, 4);
         const tail = digits.slice(4, 10);
         phoneInput.value = head + '-' + tail;
@@ -36,15 +36,18 @@ document.addEventListener('DOMContentLoaded', () => {
 
     if (msgEl) {
       msgEl.textContent = '';
-      msgEl.classList.remove('error', 'success');
+      msgEl.classList.remove('error', 'success', 'info');
     }
 
-    const name   = document.getElementById('name').value.trim();
-    const phone  = document.getElementById('phone').value.trim();
-    const email  = document.getElementById('email').value.trim();
-    const orgId  = document.getElementById('org_id').value;
-    const title  = document.getElementById('title').value.trim();
+    const name     = document.getElementById('name').value.trim();
+    const phone    = document.getElementById('phone').value.trim();
+    const email    = document.getElementById('email').value.trim();
+    const orgId    = document.getElementById('org_id').value;
+    const title    = document.getElementById('title').value.trim();
+    const password = document.getElementById('password').value;
+    const passwordConfirm = document.getElementById('password_confirm').value;
 
+    // 必填欄位
     if (!name || !phone || !email || !orgId) {
       if (msgEl) {
         msgEl.textContent = '請完整填寫必填欄位（姓名、手機、Email、所屬單位）。';
@@ -53,10 +56,35 @@ document.addEventListener('DOMContentLoaded', () => {
       return;
     }
 
-    // 簡單 Email 格式檢查
+    // Email 格式
     if (!/^\S+@\S+\.\S+$/.test(email)) {
       if (msgEl) {
         msgEl.textContent = 'Email 格式看起來不正確，請再確認。';
+        msgEl.classList.add('error');
+      }
+      return;
+    }
+
+    // 密碼檢查
+    if (!password || !passwordConfirm) {
+      if (msgEl) {
+        msgEl.textContent = '請輸入密碼與再次確認密碼。';
+        msgEl.classList.add('error');
+      }
+      return;
+    }
+
+    if (password.length < 8) {
+      if (msgEl) {
+        msgEl.textContent = '密碼長度至少需 8 碼。';
+        msgEl.classList.add('error');
+      }
+      return;
+    }
+
+    if (password !== passwordConfirm) {
+      if (msgEl) {
+        msgEl.textContent = '兩次輸入的密碼不一致，請重新確認。';
         msgEl.classList.add('error');
       }
       return;
@@ -66,8 +94,10 @@ document.addEventListener('DOMContentLoaded', () => {
       name,
       phone,
       email,
-      org_id: orgId,  // 後端會轉成 organization_id
+      org_id: orgId,         // 後端會轉成 organization_id
       title,
+      password,
+      password_confirm: passwordConfirm,
     };
 
     const submitBtn = form.querySelector('button[type="submit"]');
@@ -75,7 +105,7 @@ document.addEventListener('DOMContentLoaded', () => {
       submitBtn.disabled = true;
     }
     if (msgEl) {
-      msgEl.textContent = '送出中，請稍候…';
+      msgEl.textContent = '申請送出中，請稍候…';
       msgEl.classList.add('info');
     }
 
@@ -93,7 +123,8 @@ document.addEventListener('DOMContentLoaded', () => {
 
       if (!res.ok || data.success === false) {
         const errMsg =
-          (data && (data.error || data.message)) ||
+          (data && data.error && (data.error.message || data.error)) ||
+          data.message ||
           '申請失敗，請稍後再試。';
         if (msgEl) {
           msgEl.textContent = errMsg;
@@ -104,12 +135,18 @@ document.addEventListener('DOMContentLoaded', () => {
       }
 
       if (msgEl) {
-        msgEl.textContent = '申請已送出，待管理者審核通過後即可使用系統。';
+        msgEl.textContent = '申請已送出，待管理者審核通過後即可登入。\n3 秒後將回登入頁。';
         msgEl.classList.remove('info');
         msgEl.classList.add('success');
       }
 
       form.reset();
+
+      // 3 秒後導回登入頁，帶上 applied=1
+      setTimeout(() => {
+        window.location.href = '/login?applied=1';
+      }, 3000);
+
     } catch (err) {
       if (msgEl) {
         msgEl.textContent = err && err.message

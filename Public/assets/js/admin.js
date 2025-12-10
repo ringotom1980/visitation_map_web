@@ -127,7 +127,11 @@ async function handleApprove(id) {
     const res = await apiRequest('/admin/applications/approve', 'POST', {
       application_id: Number(id)
     });
-    alert('已建立帳號。\nEmail: ' + res.email + '\n暫時密碼: ' + res.temp_password);
+    alert(
+      '已核准帳號申請。\n' +
+      'Email：' + (res.email || '') + '\n\n' +
+      '使用者可使用「申請時自行設定的密碼」登入系統。'
+    );
     loadPendingApplications();
     loadUsers();
   } catch (err) {
@@ -187,7 +191,7 @@ async function loadUsers() {
     const tbody = document.createElement('tbody');
 
     rows.forEach(row => {
-      const role = row.role || 'USER';
+      const role   = row.role || 'USER';
       const status = row.status || 'ACTIVE';
 
       const roleHtml =
@@ -200,10 +204,12 @@ async function loadUsers() {
           ? '<span class="badge badge-status-active">啟用</span>'
           : '<span class="badge badge-status-suspended">停權</span>';
 
+      const emailEsc = escapeHtml(row.email || '');
+
       const tr = document.createElement('tr');
       tr.innerHTML = `
         <td>${escapeHtml(row.name || '')}</td>
-        <td>${escapeHtml(row.email || '')}</td>
+        <td>${emailEsc}</td>
         <td>${escapeHtml(row.phone || '')}</td>
         <td>${escapeHtml(row.organization_name || '')}</td>
         <td>${escapeHtml(row.title || '')}</td>
@@ -220,6 +226,11 @@ async function loadUsers() {
             data-id="${row.id}"
             data-status="${status}"
           >切換啟用</button>
+          <button
+            class="action-btn action-btn--danger btn-reset"
+            data-id="${row.id}"
+            data-email="${emailEsc}"
+          >重設密碼</button>
         </td>
       `;
       tbody.appendChild(tr);
@@ -234,6 +245,9 @@ async function loadUsers() {
     });
     container.querySelectorAll('.btn-status').forEach(btn => {
       btn.addEventListener('click', () => toggleStatus(btn));
+    });
+    container.querySelectorAll('.btn-reset').forEach(btn => {
+      btn.addEventListener('click', () => handleResetPassword(btn));
     });
 
   } catch (err) {
@@ -275,6 +289,29 @@ async function toggleStatus(btn) {
     loadUsers();
   } catch (err) {
     alert('變更狀態失敗：' + (err.message || ''));
+  }
+}
+
+// ★ 後台「重設密碼」：產生暫時密碼給管理者口頭告知使用者
+async function handleResetPassword(btn) {
+  const id    = Number(btn.dataset.id);
+  const email = btn.dataset.email || '';
+
+  if (!confirm(`確定要重設此使用者的登入密碼嗎？\n\nEmail：${email}`)) return;
+
+  try {
+    const res = await apiRequest('/admin/users/reset-password', 'POST', {
+      user_id: id
+    });
+
+    alert(
+      '已重設密碼。\n\n' +
+      '帳號（Email）：' + (res.email || email) + '\n' +
+      '暫時密碼：' + (res.temp_password || '') + '\n\n' +
+      '請將上述暫時密碼告知使用者，並提醒其登入後儘快更改為個人慣用密碼。'
+    );
+  } catch (err) {
+    alert('重設密碼失敗：' + (err.message || ''));
   }
 }
 
