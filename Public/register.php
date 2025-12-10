@@ -23,7 +23,7 @@ try {
     $sql = "SELECT id, name
             FROM organizations
             WHERE is_active = 1
-            ORDER BY name ASC";
+            ORDER BY id ASC";
     $stmt = $pdo->query($sql);
     $orgOptions = $stmt->fetchAll() ?: [];
 } catch (Throwable $e) {
@@ -86,7 +86,8 @@ $pageCss   = ['assets/css/login.css']; // 先共用登入/註冊樣式
             required
             inputmode="tel"
             autocomplete="tel"
-            placeholder="例如：0912-345-678"
+            placeholder="例如：0912345678"
+            maxlength="11"
           >
         </label>
 

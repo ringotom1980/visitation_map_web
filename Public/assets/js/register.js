@@ -6,6 +6,24 @@
 document.addEventListener('DOMContentLoaded', () => {
   const form  = document.getElementById('registerForm');
   const msgEl = document.getElementById('registerMessage');
+  const phoneInput = document.getElementById('phone');
+
+  // ★ 手機欄位自動加 "-"：0985-715776（4 碼 + "-" + 後面全部）
+  if (phoneInput) {
+    phoneInput.addEventListener('input', () => {
+      // 只留數字
+      const digits = phoneInput.value.replace(/\D/g, '');
+
+      if (digits.length <= 4) {
+        phoneInput.value = digits;
+      } else {
+        // 前 4 碼 + "-" + 其餘（最多再 6 碼，避免多打）
+        const head = digits.slice(0, 4);
+        const tail = digits.slice(4, 10);
+        phoneInput.value = head + '-' + tail;
+      }
+    });
+  }
 
   if (!form) return;
 
