@@ -97,6 +97,16 @@ if (isset($_GET['applied']) && $_GET['applied'] === '1') {
   <!-- 共用 JS + 此頁專屬 JS 都寫在這裡，不再透過 footer.php -->
   <script src="<?= asset_url('assets/js/api.js') ?>"></script>
   <script src="<?= asset_url('assets/js/login.js') ?>"></script>
+  <script>
+    document.addEventListener('DOMContentLoaded', () => {
+      const url = new URL(window.location.href);
+      if (url.searchParams.has('applied')) {
+        url.searchParams.delete('applied');
+        window.history.replaceState({}, '', url.pathname);
+      }
+    });
+  </script>
+
 </body>
 
 </html>
