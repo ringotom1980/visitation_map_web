@@ -2,6 +2,7 @@
 /**
  * Path: Public/dev_logout.php
  * 說明: 強制登出工具（開一次就把目前 Session 清掉，然後導回 /login）
+ * https://ml.jinghong.pw/visitation_map_web/Public/dev_logout.php
  */
 
 declare(strict_types=1);

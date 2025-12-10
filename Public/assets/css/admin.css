@@ -1,1 +1,272 @@
-/* TODO: Admin panel styles */
+/* =========================================
+   後台管理頁面樣式（手機版優先）
+   Path: Public/assets/css/admin.css
+   ========================================= */
+
+/* -------- 全局設定（只對 admin-body 作用） -------- */
+body.admin-body {
+  margin: 0;
+  padding: 0;
+  font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI",
+               "Noto Sans TC", sans-serif;
+  background-color: #f5f5f7;
+  color: #222;
+}
+
+/* 限縮內容寬度（手機全寬，桌機適度置中） */
+.admin-main {
+  padding: 12px 12px 24px;
+  max-width: 1100px;
+  margin: 0 auto;
+}
+
+/* -------- 頂部 Header（手機友善） -------- */
+.admin-header {
+  position: sticky;
+  top: 0;
+  z-index: 20;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  padding: 10px 12px;
+  background: #ffffffcc;
+  backdrop-filter: blur(10px);
+  border-bottom: 1px solid #e0e0e0;
+}
+
+.admin-brand {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+
+.admin-app-name {
+  font-size: 15px;
+  font-weight: 600;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+  overflow: hidden;
+}
+
+.admin-sub {
+  font-size: 12px;
+  color: #777;
+}
+
+.admin-nav {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+/* -------- 通用按鈕 / 連結樣式 -------- */
+.btn-link {
+  border: none;
+  background: none;
+  padding: 6px 8px;
+  font-size: 13px;
+  color: #2563eb;
+  text-decoration: none;
+  border-radius: 999px;
+}
+
+.btn-link:hover {
+  background-color: #e5edff;
+}
+
+.btn-outline {
+  border-radius: 999px;
+  border: 1px solid #d1d5db;
+  background-color: #ffffff;
+  padding: 6px 12px;
+  font-size: 13px;
+  cursor: pointer;
+  color: #111827;
+}
+
+.btn-outline:hover {
+  background-color: #f3f4f6;
+}
+
+/* -------- Tab 區塊（手機優先） -------- */
+.admin-tabs {
+  display: flex;
+  gap: 6px;
+  margin-bottom: 10px;
+  border-radius: 999px;
+  background-color: #e5e7eb;
+  padding: 4px;
+}
+
+.admin-tab {
+  flex: 1;
+  border: none;
+  border-radius: 999px;
+  background: transparent;
+  padding: 8px 4px;
+  font-size: 13px;
+  font-weight: 500;
+  color: #4b5563;
+  cursor: pointer;
+}
+
+.admin-tab.active {
+  background-color: #ffffff;
+  color: #111827;
+  box-shadow: 0 1px 3px rgba(15, 23, 42, 0.1);
+}
+
+/* -------- Tab 面板 -------- */
+.admin-tab-panel {
+  display: none;
+  margin-top: 4px;
+}
+
+.admin-tab-panel.active {
+  display: block;
+}
+
+.admin-tab-panel h2 {
+  font-size: 15px;
+  margin: 4px 0 8px;
+  font-weight: 600;
+}
+
+/* -------- 表格容器（手機：可橫向捲動） -------- */
+.table-wrapper {
+  background-color: #ffffff;
+  border-radius: 12px;
+  box-shadow: 0 6px 18px rgba(15, 23, 42, 0.08);
+  padding: 8px;
+  overflow-x: auto;
+}
+
+/* -------- 表格（預設假設 admin.js 產出 <table>） -------- */
+.table-wrapper table {
+  width: 100%;
+  border-collapse: collapse;
+  min-width: 520px; /* 手機上可左右捲動，不會擠成一團 */
+}
+
+.table-wrapper thead {
+  background-color: #f9fafb;
+}
+
+.table-wrapper th,
+.table-wrapper td {
+  padding: 8px 10px;
+  font-size: 13px;
+  text-align: left;
+  border-bottom: 1px solid #e5e7eb;
+  vertical-align: middle;
+  white-space: nowrap;
+}
+
+.table-wrapper th {
+  font-weight: 600;
+  color: #4b5563;
+}
+
+.table-wrapper tbody tr:last-child td {
+  border-bottom: none;
+}
+
+/* 每列 hover 效果（桌機為主，但手機也 OK） */
+.table-wrapper tbody tr:hover {
+  background-color: #f9fafb;
+}
+
+/* -------- 常見狀態 / 標籤樣式（若你在 admin.js 有加 class 可使用） -------- */
+.badge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 2px 8px;
+  border-radius: 999px;
+  font-size: 11px;
+  font-weight: 500;
+  line-height: 1.4;
+}
+
+.badge-status-active {
+  background-color: #dcfce7;
+  color: #166534;
+}
+
+.badge-status-suspended {
+  background-color: #fee2e2;
+  color: #b91c1c;
+}
+
+.badge-role-admin {
+  background-color: #dbeafe;
+  color: #1d4ed8;
+}
+
+.badge-role-user {
+  background-color: #f3f4f6;
+  color: #4b5563;
+}
+
+/* 操作按鈕（表格內） */
+.action-btn {
+  border-radius: 999px;
+  border: 1px solid #d1d5db;
+  background-color: #ffffff;
+  padding: 4px 8px;
+  font-size: 12px;
+  cursor: pointer;
+  margin-right: 4px;
+}
+
+.action-btn--primary {
+  border-color: #2563eb;
+  color: #2563eb;
+}
+
+.action-btn--danger {
+  border-color: #dc2626;
+  color: #b91c1c;
+}
+
+.action-btn:disabled {
+  opacity: 0.6;
+  cursor: default;
+}
+
+/* -------- 空狀態 / 提示文字 -------- */
+.empty-hint {
+  padding: 16px 8px;
+  text-align: center;
+  font-size: 13px;
+  color: #6b7280;
+}
+
+/* -------- RWD：中大型螢幕優化 -------- */
+@media (min-width: 768px) {
+  .admin-header {
+    padding: 12px 24px;
+  }
+
+  .admin-main {
+    padding: 16px 24px 32px;
+  }
+
+  .admin-tabs {
+    max-width: 420px;
+  }
+
+  .admin-tab-panel h2 {
+    font-size: 16px;
+  }
+
+  .table-wrapper {
+    padding: 10px 12px 14px;
+  }
+
+  .table-wrapper table {
+    min-width: 700px;
+  }
+}

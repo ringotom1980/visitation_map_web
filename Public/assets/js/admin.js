@@ -1,6 +1,6 @@
 /**
  * Path: Public/assets/js/admin.js
- * 說明: 管理後台：申請審核 + 使用者管理
+ * 說明: 管理後台：申請審核 + 使用者管理（手機優先）
  */
 
 document.addEventListener('DOMContentLoaded', () => {
@@ -12,7 +12,7 @@ document.addEventListener('DOMContentLoaded', () => {
 });
 
 function setupTabs() {
-  const tabs = document.querySelectorAll('.admin-tab');
+  const tabs   = document.querySelectorAll('.admin-tab');
   const panels = document.querySelectorAll('.admin-tab-panel');
 
   tabs.forEach(tab => {
@@ -22,7 +22,8 @@ function setupTabs() {
       panels.forEach(p => p.classList.remove('active'));
 
       tab.classList.add('active');
-      document.getElementById('tab-' + target).classList.add('active');
+      const panel = document.getElementById('tab-' + target);
+      if (panel) panel.classList.add('active');
     });
   });
 }
@@ -32,10 +33,12 @@ function setupLogout() {
   if (!btn) return;
 
   btn.addEventListener('click', async () => {
+    if (!confirm('確定要登出嗎？')) return;
+
     try {
       await apiRequest('/auth/logout', 'POST', {});
     } catch (e) {
-      // ignore
+      // ignore error, still redirect to login
     } finally {
       window.location.href = '/login';
     }
@@ -48,13 +51,13 @@ async function loadPendingApplications() {
   const container = document.getElementById('applicationsContainer');
   if (!container) return;
 
-  container.textContent = '載入中…';
+  container.innerHTML = '<div class="empty-hint">載入中…</div>';
 
   try {
     const rows = await apiRequest('/admin/applications/pending', 'GET');
 
     if (!rows || rows.length === 0) {
-      container.textContent = '目前沒有待審核申請。';
+      container.innerHTML = '<div class="empty-hint">目前沒有待審核申請。</div>';
       return;
     }
 
@@ -87,8 +90,14 @@ async function loadPendingApplications() {
         <td>${escapeHtml(row.title || '')}</td>
         <td>${escapeHtml(row.created_at || '')}</td>
         <td>
-          <button class="btn-small btn-approve" data-id="${row.id}">核准</button>
-          <button class="btn-small btn-reject" data-id="${row.id}">拒絕</button>
+          <button
+            class="action-btn action-btn--primary btn-approve"
+            data-id="${row.id}"
+          >核准</button>
+          <button
+            class="action-btn action-btn--danger btn-reject"
+            data-id="${row.id}"
+          >拒絕</button>
         </td>
       `;
       tbody.appendChild(tr);
@@ -106,7 +115,8 @@ async function loadPendingApplications() {
     });
 
   } catch (err) {
-    container.textContent = '載入申請失敗：' + (err.message || '');
+    container.innerHTML =
+      '<div class="empty-hint">載入申請失敗：' + escapeHtml(err.message || '') + '</div>';
   }
 }
 
@@ -146,13 +156,13 @@ async function loadUsers() {
   const container = document.getElementById('usersContainer');
   if (!container) return;
 
-  container.textContent = '載入中…';
+  container.innerHTML = '<div class="empty-hint">載入中…</div>';
 
   try {
     const rows = await apiRequest('/admin/users/list', 'GET');
 
     if (!rows || rows.length === 0) {
-      container.textContent = '目前沒有使用者。';
+      container.innerHTML = '<div class="empty-hint">目前沒有使用者。</div>';
       return;
     }
 
@@ -177,6 +187,19 @@ async function loadUsers() {
     const tbody = document.createElement('tbody');
 
     rows.forEach(row => {
+      const role = row.role || 'USER';
+      const status = row.status || 'ACTIVE';
+
+      const roleHtml =
+        role === 'ADMIN'
+          ? '<span class="badge badge-role-admin">管理者</span>'
+          : '<span class="badge badge-role-user">一般</span>';
+
+      const statusHtml =
+        status === 'ACTIVE'
+          ? '<span class="badge badge-status-active">啟用</span>'
+          : '<span class="badge badge-status-suspended">停權</span>';
+
       const tr = document.createElement('tr');
       tr.innerHTML = `
         <td>${escapeHtml(row.name || '')}</td>
@@ -184,15 +207,19 @@ async function loadUsers() {
         <td>${escapeHtml(row.phone || '')}</td>
         <td>${escapeHtml(row.organization_name || '')}</td>
         <td>${escapeHtml(row.title || '')}</td>
-        <td>${escapeHtml(row.role || '')}</td>
-        <td>${escapeHtml(row.status || '')}</td>
+        <td>${roleHtml}</td>
+        <td>${statusHtml}</td>
         <td>
-          <button class="btn-small btn-role" data-id="${row.id}" data-role="${row.role}">
-            切換角色
-          </button>
-          <button class="btn-small btn-status" data-id="${row.id}" data-status="${row.status}">
-            切換啟用
-          </button>
+          <button
+            class="action-btn btn-role"
+            data-id="${row.id}"
+            data-role="${role}"
+          >切換角色</button>
+          <button
+            class="action-btn btn-status"
+            data-id="${row.id}"
+            data-status="${status}"
+          >切換啟用</button>
         </td>
       `;
       tbody.appendChild(tr);
@@ -210,14 +237,15 @@ async function loadUsers() {
     });
 
   } catch (err) {
-    container.textContent = '載入使用者失敗：' + (err.message || '');
+    container.innerHTML =
+      '<div class="empty-hint">載入使用者失敗：' + escapeHtml(err.message || '') + '</div>';
   }
 }
 
 async function toggleRole(btn) {
-  const id = Number(btn.dataset.id);
+  const id      = Number(btn.dataset.id);
   const current = btn.dataset.role || 'USER';
-  const next = current === 'ADMIN' ? 'USER' : 'ADMIN';
+  const next    = current === 'ADMIN' ? 'USER' : 'ADMIN';
 
   if (!confirm(`確定將此使用者角色改為 ${next} 嗎？`)) return;
 
@@ -233,9 +261,9 @@ async function toggleRole(btn) {
 }
 
 async function toggleStatus(btn) {
-  const id = Number(btn.dataset.id);
+  const id      = Number(btn.dataset.id);
   const current = btn.dataset.status || 'ACTIVE';
-  const next = current === 'ACTIVE' ? 'SUSPENDED' : 'ACTIVE';  // ★ 改這行
+  const next    = current === 'ACTIVE' ? 'SUSPENDED' : 'ACTIVE';
 
   if (!confirm(`確定將此使用者狀態改為 ${next} 嗎？`)) return;
 
@@ -249,7 +277,6 @@ async function toggleStatus(btn) {
     alert('變更狀態失敗：' + (err.message || ''));
   }
 }
-
 
 function escapeHtml(str) {
   return String(str)
