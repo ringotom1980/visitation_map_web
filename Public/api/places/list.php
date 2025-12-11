@@ -23,20 +23,23 @@ $pdo = db();
 try {
     $sql = 'SELECT
                 id,
-                soldier_name,
+                serviceman_name AS soldier_name,
                 category,
-                target_name,
-                address,
+                visit_target AS target_name,
+                visit_name,
+                address_text AS address,
+                township,
+                note,
                 lat,
                 lng,
-                note,
                 organization_id,
                 created_at,
                 updated_at
             FROM places
-            WHERE is_deleted = 0';
+            WHERE is_active = 1';
 
-    $params = [];
+    // 一定初始化（你提到的問題點）
+    $params = array();
 
     // 一般使用者只看自己單位；ADMIN 看全部
     if (($user['role'] ?? '') !== 'ADMIN') {
@@ -53,6 +56,5 @@ try {
     json_success($rows);
 
 } catch (Throwable $e) {
-    // 開發階段先讓錯誤看得到
     json_error('載入地點資料時發生錯誤：' . $e->getMessage(), 500);
 }
