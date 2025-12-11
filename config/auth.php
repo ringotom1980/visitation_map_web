@@ -127,3 +127,27 @@ function require_admin_page(): void
         exit;
     }
 }
+/**
+ * API 用：必須登入（未登入回 JSON）
+ *
+ * 用在：
+ *   - Public/api/** 所有 API
+ */
+function require_login(): void
+{
+    if (!current_user_id()) {
+        json_error('尚未登入或登入已過期', 401);
+    }
+}
+/**
+ * API 用：必須為 ADMIN（未登入或非管理員回 JSON）
+ */
+function require_admin(): void
+{
+    if (!current_user_id()) {
+        json_error('尚未登入', 401);
+    }
+    if (!is_admin()) {
+        json_error('無權限操作（需要管理者）', 403);
+    }
+}
