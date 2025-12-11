@@ -183,3 +183,4 @@ const MapModule = (function () {
     buildDirectionsUrl,
   };
 })();
+window.MapController = MapModule;
