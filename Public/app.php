@@ -252,7 +252,11 @@ $pageCss = [
 </main>
 
 <!-- Google Maps JS（從 .env 透過 config/app.php 注入 Key） -->
-<script src="https://maps.googleapis.com/maps/api/js?key=<?= htmlspecialchars(google_maps_key(), ENT_QUOTES) ?>&libraries=places"></script>
+<script
+  src="https://maps.googleapis.com/maps/api/js?key=<?= htmlspecialchars(google_maps_key(), ENT_QUOTES) ?>&libraries=places&loading=async"
+  async
+  defer
+></script>
 
 <!-- 共用前端工具（使用 asset_url 自動帶版本號） -->
 <script src="<?= asset_url('assets/js/api.js') ?>"></script>
