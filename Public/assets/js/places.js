@@ -5,7 +5,7 @@ const PlacesApi = (function () {
   const baseUrl = '/api/places';
 
   async function list() {
-    const res = await fetch(`${baseUrl}/list.php`, {
+    const res = await fetch(`${baseUrl}/list`, {
       credentials: 'include',
     });
     if (!res.ok) throw new Error('載入地點列表失敗');
