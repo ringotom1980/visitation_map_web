@@ -22,7 +22,7 @@ $pageCss = [
 <?php require __DIR__ . '/partials/flash.php'; ?>
 
 <main class="app-main">
-  <!-- 上方工具列（標題 + 搜尋列） -->
+    <!-- 上方工具列（標題 + 搜尋列） -->
   <header class="app-toolbar">
     <div class="app-toolbar__left">
       <h1 class="app-title">遺眷親訪地圖</h1>
@@ -42,9 +42,12 @@ $pageCss = [
     </div>
 
     <div class="app-toolbar__right">
-      <!-- 預留：例如之後放篩選、顯示模式等 -->
+      <button id="btn-logout" type="button" class="btn btn-outline">
+        登出
+      </button>
     </div>
   </header>
+
 
   <!-- 主內容：地圖 + 浮動按鈕 + 底部抽屜 -->
   <section class="app-content">
