@@ -240,13 +240,14 @@ require __DIR__ . '/partials/head.php';
   </section>
 </main>
 
-<!-- Google Maps JS（請依你的環境改成從設定檔取 Key） -->
-<script src="https://maps.googleapis.com/maps/api/js?key=YOUR_API_KEY_HERE&libraries=places"></script>
+<!-- Google Maps JS（從 .env 透過 config/app.php 注入 Key） -->
+<script src="https://maps.googleapis.com/maps/api/js?key=<?= htmlspecialchars(google_maps_key(), ENT_QUOTES) ?>&libraries=places"></script>
 
-<!-- 共用前端工具 -->
-<script src="/assets/js/api.js"></script>
-<script src="/assets/js/places.js"></script>
-<script src="/assets/js/map.js"></script>
-<script src="/assets/js/app.js"></script>
+
+<!-- 共用前端工具（使用 asset_url 自動帶版本號） -->
+<script src="<?= asset_url('assets/js/api.js') ?>"></script>
+<script src="<?= asset_url('assets/js/places.js') ?>"></script>
+<script src="<?= asset_url('assets/js/map.js') ?>"></script>
+<script src="<?= asset_url('assets/js/app.js') ?>"></script>
 </body>
 </html>

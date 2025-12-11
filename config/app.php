@@ -28,6 +28,9 @@ define('DB_USER', env('DB_USER', 'root'));
 define('DB_PASS', env('DB_PASS', ''));
 define('DB_CHARSET', env('DB_CHARSET', 'utf8mb4'));
 
+// ===== Google Maps API Key =====
+define('GOOGLE_MAPS_API_KEY', env('GOOGLE_MAPS_API_KEY', ''));
+
 // Session name
 session_name('visitation_map_session');
 
@@ -83,5 +86,15 @@ if (!function_exists('route_url')) {
     {
         $path = '/' . ltrim($path, '/');
         return $path;
+    }
+}
+
+if (!function_exists('google_maps_key')) {
+    /**
+     * 取得 Google Maps API Key（來自 .env）
+     */
+    function google_maps_key(): string
+    {
+        return GOOGLE_MAPS_API_KEY;
     }
 }
