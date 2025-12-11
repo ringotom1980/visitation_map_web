@@ -1,1 +1,457 @@
-/* TODO: Main map app styles */
+/* Public/assets/css/app.css */
+
+/* ========== 基本佈局 ========== */
+.app-page {
+  background: #f5f5f5;
+}
+
+.app-main {
+  display: flex;
+  flex-direction: column;
+  min-height: 100vh;
+}
+
+/* 上方工具列 */
+.app-toolbar {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  padding: 8px 16px;
+  background: #ffffff;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.06);
+  z-index: 10;
+}
+
+.app-toolbar__left,
+.app-toolbar__center,
+.app-toolbar__right {
+  display: flex;
+  align-items: center;
+}
+
+.app-toolbar__left {
+  flex: 0 0 auto;
+}
+
+.app-toolbar__center {
+  flex: 1 1 auto;
+  justify-content: center;
+}
+
+.app-toolbar__right {
+  flex: 0 0 auto;
+  gap: 8px;
+}
+
+.app-title {
+  font-size: 18px;
+  font-weight: 600;
+  margin: 0;
+}
+
+/* 搜尋列 */
+.search-bar {
+  display: flex;
+  align-items: center;
+  width: 100%;
+  max-width: 520px;
+  padding: 6px 10px;
+  border-radius: 999px;
+  background: #f3f3f3;
+  border: 1px solid #e0e0e0;
+}
+
+.search-bar__icon {
+  margin-right: 6px;
+  font-size: 14px;
+}
+
+.search-bar__input {
+  border: none;
+  background: transparent;
+  width: 100%;
+  font-size: 14px;
+  outline: none;
+}
+
+/* 主內容區域 */
+.app-content {
+  position: relative;
+  flex: 1 1 auto;
+  min-height: 0;
+}
+
+/* 地圖容器 */
+.app-map {
+  position: absolute;
+  inset: 0;
+}
+
+/* ========== 浮動按鈕（FAB） ========== */
+.fab {
+  position: absolute;
+  right: 16px;
+  width: 44px;
+  height: 44px;
+  border-radius: 50%;
+  border: none;
+  cursor: pointer;
+  font-size: 20px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.18);
+  transition: transform 0.1s ease, box-shadow 0.1s ease;
+}
+
+.fab-primary {
+  bottom: 20px;
+  background: #4ca771;
+  color: #ffffff;
+}
+
+.fab-secondary {
+  bottom: 76px;
+  background: #ffffff;
+  color: #4ca771;
+}
+
+.fab:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 6px 14px rgba(0, 0, 0, 0.22);
+}
+
+/* ========== Bottom Sheet（底部抽屜） ========== */
+.bottom-sheet {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: -100%;
+  pointer-events: none;
+  transition: bottom 0.22s ease-out;
+  z-index: 20;
+}
+
+.bottom-sheet--open {
+  bottom: 0;
+  pointer-events: auto;
+}
+
+.bottom-sheet__inner {
+  margin: 0 auto;
+  max-width: 720px;
+  background: #ffffff;
+  border-radius: 14px 14px 0 0;
+  box-shadow: 0 -4px 16px rgba(0, 0, 0, 0.12);
+  padding: 12px 16px 12px;
+}
+
+/* 資訊卡與路線抽屜共用 header/body/footer */
+.bottom-sheet__header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 8px;
+  margin-bottom: 8px;
+}
+
+.bottom-sheet__title {
+  font-size: 16px;
+  font-weight: 600;
+}
+
+.bottom-sheet__subtitle {
+  font-size: 12px;
+  color: #777777;
+}
+
+.bottom-sheet__close,
+.bottom-sheet__link {
+  border: none;
+  background: none;
+  cursor: pointer;
+  font-size: 13px;
+  color: #9e9e9e;
+}
+
+.bottom-sheet__link {
+  color: #4ca771;
+}
+
+.bottom-sheet__body {
+  max-height: 180px;
+  overflow-y: auto;
+  padding: 4px 0;
+}
+
+.bottom-sheet__footer {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding-top: 8px;
+  border-top: 1px solid #eeeeee;
+  margin-top: 4px;
+}
+
+.bottom-sheet__footer--split {
+  justify-content: space-between;
+}
+
+.bottom-sheet__footer-right {
+  display: flex;
+  gap: 8px;
+}
+
+/* field rows inside info sheet */
+.field-row {
+  display: flex;
+  padding: 6px 0;
+  border-bottom: 1px dashed #eeeeee;
+}
+
+.field-row:last-child {
+  border-bottom: none;
+}
+
+.field-label {
+  flex: 0 0 80px;
+  font-size: 13px;
+  color: #777777;
+}
+
+.field-value {
+  flex: 1 1 auto;
+  font-size: 13px;
+}
+
+/* 路線列表 */
+.route-list {
+  max-height: 220px;
+  overflow-y: auto;
+  margin-top: 4px;
+}
+
+.route-item {
+  display: flex;
+  align-items: center;
+  padding: 6px 8px;
+  border-radius: 8px;
+  margin-bottom: 4px;
+  background: #f7f7f7;
+  cursor: grab;
+}
+
+.route-item__index {
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+  background: #4ca771;
+  color: #ffffff;
+  font-size: 12px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-right: 8px;
+}
+
+.route-item__content {
+  flex: 1 1 auto;
+  font-size: 13px;
+}
+
+.route-item__handle {
+  cursor: grab;
+  font-size: 16px;
+  margin-left: 6px;
+  color: #aaaaaa;
+}
+
+.route-item__remove {
+  border: none;
+  background: none;
+  cursor: pointer;
+  font-size: 14px;
+  margin-left: 4px;
+  color: #b71c1c;
+}
+
+/* 路線摘要 */
+.route-summary {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  font-size: 12px;
+  color: #555555;
+}
+
+.bottom-sheet__footer-actions {
+  display: flex;
+  gap: 8px;
+}
+
+/* ========== Modal（新增/編輯標記） ========== */
+.modal {
+  position: fixed;
+  inset: 0;
+  display: none;
+  align-items: center;
+  justify-content: center;
+  z-index: 30;
+}
+
+.modal--open {
+  display: flex;
+}
+
+.modal__backdrop {
+  position: absolute;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.35);
+}
+
+.modal__dialog {
+  position: relative;
+  width: 100%;
+  max-width: 480px;
+  max-height: 90vh;
+  background: #ffffff;
+  border-radius: 10px;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.35);
+  display: flex;
+  flex-direction: column;
+}
+
+.modal__header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 10px 16px;
+  border-bottom: 1px solid #eeeeee;
+}
+
+.modal__title {
+  margin: 0;
+  font-size: 16px;
+  font-weight: 600;
+}
+
+.modal__close {
+  border: none;
+  background: none;
+  cursor: pointer;
+  font-size: 16px;
+  color: #9e9e9e;
+}
+
+.modal__body {
+  padding: 12px 16px;
+  overflow-y: auto;
+}
+
+.modal__footer {
+  padding: 10px 16px;
+  border-top: 1px solid #eeeeee;
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+}
+
+/* 表單 */
+.form-row {
+  display: flex;
+  flex-direction: column;
+  margin-bottom: 10px;
+}
+
+.form-row label {
+  font-size: 13px;
+  margin-bottom: 4px;
+}
+
+.form-row input,
+.form-row select,
+.form-row textarea {
+  font-size: 14px;
+  padding: 6px 8px;
+  border-radius: 4px;
+  border: 1px solid #cccccc;
+}
+
+.form-help {
+  font-size: 11px;
+  color: #888888;
+  margin-top: 2px;
+}
+
+/* ========== 按鈕（依主色 #4ca771） ========== */
+.btn {
+  padding: 6px 12px;
+  border-radius: 6px;
+  border: 1px solid transparent;
+  font-size: 13px;
+  cursor: pointer;
+}
+
+.btn-primary {
+  background: #4ca771;
+  border-color: #4ca771;
+  color: #ffffff;
+}
+
+.btn-primary:hover {
+  background: #3e8e5f;
+  border-color: #3e8e5f;
+}
+
+.btn-outline {
+  background: #ffffff;
+  border-color: #4ca771;
+  color: #4ca771;
+}
+
+.btn-outline:hover {
+  background: #ecf8f1;
+}
+
+.btn-danger {
+  background: #e53935;
+  border-color: #e53935;
+  color: #ffffff;
+}
+
+.btn-ghost {
+  background: transparent;
+  border-color: transparent;
+  color: #666666;
+}
+
+.btn-ghost:hover {
+  background: #f2f2f2;
+}
+
+/* RWD：手機上 toolbar 改成換行 */
+@media (max-width: 768px) {
+  .app-toolbar {
+    flex-wrap: wrap;
+    align-items: flex-start;
+  }
+
+  .app-toolbar__center {
+    order: 3;
+    width: 100%;
+  }
+
+  .app-toolbar__left {
+    order: 1;
+  }
+
+  .app-toolbar__right {
+    order: 2;
+  }
+
+  .bottom-sheet__inner {
+    border-radius: 10px 10px 0 0;
+    max-width: 100%;
+  }
+}
