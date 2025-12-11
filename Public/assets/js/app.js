@@ -25,7 +25,6 @@ document.addEventListener('DOMContentLoaded', function () {
 
   var routeListEl = document.getElementById('route-list');
 
-  // 登出按鈕（app.php 右上角會放這顆）
   var btnLogout = document.getElementById('btn-logout');
 
   // 防呆：MapModule 要存在
@@ -45,10 +44,10 @@ document.addEventListener('DOMContentLoaded', function () {
 
   // ========== 事件註冊 ==========
 
-  // ＋ 新增標記：只開啟「選點模式」，不立刻開表單（避免 modal 蓋住地圖）
+  // ＋ 新增標記：只開啟「選點模式」，不立刻開表單
   if (btnAddPlace) {
     btnAddPlace.addEventListener('click', function () {
-      toggleRouteMode(false);        // 關掉路線模式避免干擾
+      toggleRouteMode(false); // 關掉路線模式避免干擾
       MapModule.enableAddPlaceMode();
       alert('請在地圖上點選要新增標記的位置。');
     });
@@ -188,12 +187,10 @@ document.addEventListener('DOMContentLoaded', function () {
 
   // 地圖點擊（新增模式時由 map.js 呼叫這個）
   function handleMapClickForNewPlace(latLng) {
-    // 之後可以在這裡接 Geocoding 填地址，目前先清空
     var addrInput = document.getElementById('place-address');
     if (addrInput) {
       addrInput.value = '';
     }
-
     openPlaceFormForCreate();
   }
 
@@ -214,7 +211,7 @@ document.addEventListener('DOMContentLoaded', function () {
   }
 
   function toggleRouteMode(enabled) {
-    state.routeMode = enabled;
+    state.routeMode = !!enabled;
     MapModule.enableRouteMode(enabled);
 
     if (enabled) {

@@ -9,6 +9,7 @@ require_once __DIR__ . '/../config/app.php';
 // 頁面標題與專用 CSS
 $pageTitle = APP_NAME;
 $pageCss = [
+    'assets/css/base.css',
     'assets/css/layout.css',
     'assets/css/app.css',
 ];
@@ -22,7 +23,7 @@ $pageCss = [
 <?php require __DIR__ . '/partials/flash.php'; ?>
 
 <main class="app-main">
-    <!-- 上方工具列（標題 + 搜尋列） -->
+  <!-- 上方工具列（標題 + 搜尋列 + 登出） -->
   <header class="app-toolbar">
     <div class="app-toolbar__left">
       <h1 class="app-title">遺眷親訪地圖</h1>
@@ -48,7 +49,6 @@ $pageCss = [
     </div>
   </header>
 
-
   <!-- 主內容：地圖 + 浮動按鈕 + 底部抽屜 -->
   <section class="app-content">
     <div id="map" class="app-map"></div>
@@ -73,7 +73,7 @@ $pageCss = [
       🧭
     </button>
 
-    <!-- 底部資訊卡：顯示單一標記詳細資訊（情境 5） -->
+    <!-- 底部資訊卡：顯示單一標記詳細資訊 -->
     <div id="sheet-place" class="bottom-sheet bottom-sheet--place">
       <div class="bottom-sheet__inner">
         <header class="bottom-sheet__header">
@@ -121,7 +121,7 @@ $pageCss = [
       </div>
     </div>
 
-    <!-- 底部抽屜：路線規劃模式（情境 6） -->
+    <!-- 底部抽屜：路線規劃模式 -->
     <div id="sheet-route" class="bottom-sheet bottom-sheet--route">
       <div class="bottom-sheet__inner">
         <header class="bottom-sheet__header">
@@ -165,7 +165,7 @@ $pageCss = [
       </div>
     </div>
 
-    <!-- 新增/編輯標記表單（情境 3 / 5） -->
+    <!-- 新增/編輯標記表單 -->
     <div id="modal-place-form" class="modal" aria-hidden="true">
       <div class="modal__backdrop" data-modal-close="modal-place-form"></div>
       <div class="modal__dialog">
@@ -254,11 +254,9 @@ $pageCss = [
   </section>
 </main>
 
-<!-- Google Maps JS（從 .env 透過 config/app.php 注入 Key） -->
+<!-- Google Maps JS：**取消 async / defer**，保證先載入，再跑 map.js / app.js -->
 <script
-  src="https://maps.googleapis.com/maps/api/js?key=<?= htmlspecialchars(google_maps_key(), ENT_QUOTES) ?>&libraries=places&loading=async"
-  async
-  defer
+  src="https://maps.googleapis.com/maps/api/js?key=<?= htmlspecialchars(google_maps_key(), ENT_QUOTES) ?>&libraries=places"
 ></script>
 
 <!-- 共用前端工具（使用 asset_url 自動帶版本號） -->

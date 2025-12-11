@@ -1,50 +1,54 @@
 // Public/assets/js/map.js
+// MapModule：專責管理 Google Map / 標記 / 搜尋 / 規劃模式（不使用新語法）
 
-// MapModule：專責管理 Google Map / 標記 / 搜尋 / 規劃模式
-const MapModule = (function () {
-  let map;
-  let autocomplete;
+var MapModule = (function () {
+  var map;
+  var autocomplete;
 
   // id -> google.maps.Marker
-  const markers = new Map();
+  var markers = new Map();
 
   // 狀態
-  let routeMode = false;
-  let addPlaceMode = false;
-  let tempNewPlaceLatLng = null;
+  var routeMode = false;
+  var addPlaceMode = false;
+  var tempNewPlaceLatLng = null;
 
   function init(options) {
-    const mapEl = document.getElementById('map');
+    var mapEl = document.getElementById('map');
     if (!mapEl) return;
 
     map = new google.maps.Map(mapEl, {
       center: { lat: 23.7, lng: 120.9 }, // Taiwan center
       zoom: 7,
 
-      // ======= 重要修正 =======
-      gestureHandling: 'greedy',    // 手機可單指拖曳，雙指縮放
-      scrollwheel: true,            // 桌機滑鼠滾輪可直接縮放
-      // =========================
+      // 手機可單指拖曳 + 雙指縮放
+      gestureHandling: 'greedy',
+      scrollwheel: true,
+
+      // 調整滑鼠游標：預設箭頭，比較像一般網站，而不是永遠手掌
+      draggableCursor: 'default',
+      draggingCursor: 'move',
 
       mapTypeControl: false,
       streetViewControl: false,
-      fullscreenControl: false,
+      fullscreenControl: false
     });
 
-    setupAutocomplete(options?.onSearchPlaceSelected);
+    setupAutocomplete(options && options.onSearchPlaceSelected);
     setupMapClickHandlers(options);
   }
 
   function setupAutocomplete(onPlaceSelected) {
-    const input = document.getElementById('map-search-input');
+    var input = document.getElementById('map-search-input');
     if (!input) return;
 
+    // 這裡還是用舊的 Autocomplete，警告可以先忍受，之後再改新版 Web Component
     autocomplete = new google.maps.places.Autocomplete(input, {
-      fields: ['geometry', 'formatted_address', 'name'],
+      fields: ['geometry', 'formatted_address', 'name']
     });
 
-    autocomplete.addListener('place_changed', () => {
-      const place = autocomplete.getPlace();
+    autocomplete.addListener('place_changed', function () {
+      var place = autocomplete.getPlace();
       if (!place.geometry || !place.geometry.location) return;
 
       map.panTo(place.geometry.location);
@@ -57,29 +61,26 @@ const MapModule = (function () {
   }
 
   function setupMapClickHandlers(options) {
-    map.addListener('click', (evt) => {
-      // 新增模式
+    map.addListener('click', function (evt) {
+      // 新增模式：點一下地圖，記住座標，叫外面開表單
       if (addPlaceMode) {
         tempNewPlaceLatLng = evt.latLng;
 
-        if (typeof options?.onMapClickForNewPlace === 'function') {
+        if (options && typeof options.onMapClickForNewPlace === 'function') {
           options.onMapClickForNewPlace(evt.latLng);
         }
 
-        // 新增後不自動關閉，讓使用者點錯可以再選
-        // 若你要一次後關閉，把下一行打開
-        // addPlaceMode = false;
-
+        // 不自動關閉新增模式，使用者可以重點一次覆蓋
         return;
       }
 
-      // 路線規劃模式：點地圖本身不做事
+      // 路線規劃模式：點地圖本身不做事（點 marker 另有 handler）
       if (routeMode) return;
     });
   }
 
   function enableRouteMode(enabled) {
-    routeMode = enabled;
+    routeMode = !!enabled;
   }
 
   function enableAddPlaceMode() {
@@ -92,22 +93,28 @@ const MapModule = (function () {
   }
 
   function setPlaces(placeList, onMarkerClick, onMarkerRouteSelect) {
-    markers.forEach((m) => m.setMap(null));
+    // 清掉舊 marker
+    markers.forEach(function (m) {
+      m.setMap(null);
+    });
     markers.clear();
 
-    placeList.forEach((p) => {
-      const lat = parseFloat(p.lat);
-      const lng = parseFloat(p.lng);
-      if (!Number.isFinite(lat) || !Number.isFinite(lng)) return;
+    if (!Array.isArray(placeList)) return;
 
-      const marker = new google.maps.Marker({
-        map,
-        position: { lat, lng },
+    placeList.forEach(function (p) {
+      var lat = parseFloat(p.lat);
+      var lng = parseFloat(p.lng);
+      if (!isFinite(lat) || !isFinite(lng)) return;
+
+      // 仍然使用 google.maps.Marker，警告可先忽略
+      var marker = new google.maps.Marker({
+        map: map,
+        position: { lat: lat, lng: lng },
         title: p.soldier_name || '',
-        icon: chooseMarkerIcon(p),
+        icon: chooseMarkerIcon(p)
       });
 
-      marker.addListener('click', () => {
+      marker.addListener('click', function () {
         if (routeMode) {
           if (typeof onMarkerRouteSelect === 'function') {
             onMarkerRouteSelect(p);
@@ -130,43 +137,51 @@ const MapModule = (function () {
       fillColor: '#4ca771',
       fillOpacity: 1,
       strokeColor: '#ffffff',
-      strokeWeight: 2,
+      strokeWeight: 2
     };
   }
 
   function focusPlace(place) {
-    const lat = parseFloat(place.lat);
-    const lng = parseFloat(place.lng);
-    if (!Number.isFinite(lat) || !Number.isFinite(lng)) return;
+    var lat = parseFloat(place.lat);
+    var lng = parseFloat(place.lng);
+    if (!isFinite(lat) || !isFinite(lng)) return;
 
-    const pos = { lat, lng };
+    var pos = { lat: lat, lng: lng };
     map.panTo(pos);
     map.setZoom(16);
 
-    const m = markers.get(place.id);
+    var m = markers.get(place.id);
     if (m) {
       m.setAnimation(google.maps.Animation.BOUNCE);
-      setTimeout(() => m.setAnimation(null), 700);
+      setTimeout(function () {
+        m.setAnimation(null);
+      }, 700);
     }
   }
 
   function buildDirectionsUrl(routePlaces) {
     if (!routePlaces || routePlaces.length < 2) return null;
 
-    const origin = `${routePlaces[0].lat},${routePlaces[0].lng}`;
-    const destination =
-      `${routePlaces[routePlaces.length - 1].lat},${routePlaces[routePlaces.length - 1].lng}`;
-    const waypoints = routePlaces
+    var origin =
+      routePlaces[0].lat + ',' + routePlaces[0].lng;
+    var last = routePlaces[routePlaces.length - 1];
+    var destination = last.lat + ',' + last.lng;
+
+    var waypoints = routePlaces
       .slice(1, -1)
-      .map((p) => `${p.lat},${p.lng}`)
+      .map(function (p) {
+        return p.lat + ',' + p.lng;
+      })
       .join('|');
 
-    let url = `https://www.google.com/maps/dir/?api=1&origin=${encodeURIComponent(
-      origin
-    )}&destination=${encodeURIComponent(destination)}`;
+    var url =
+      'https://www.google.com/maps/dir/?api=1&origin=' +
+      encodeURIComponent(origin) +
+      '&destination=' +
+      encodeURIComponent(destination);
 
     if (waypoints) {
-      url += `&waypoints=${encodeURIComponent(waypoints)}`;
+      url += '&waypoints=' + encodeURIComponent(waypoints);
     }
     url += '&travelmode=driving';
 
@@ -174,13 +189,15 @@ const MapModule = (function () {
   }
 
   return {
-    init,
-    setPlaces,
-    focusPlace,
-    enableRouteMode,
-    enableAddPlaceMode,
-    getTempNewPlaceLatLng,
-    buildDirectionsUrl,
+    init: init,
+    setPlaces: setPlaces,
+    focusPlace: focusPlace,
+    enableRouteMode: enableRouteMode,
+    enableAddPlaceMode: enableAddPlaceMode,
+    getTempNewPlaceLatLng: getTempNewPlaceLatLng,
+    buildDirectionsUrl: buildDirectionsUrl
   };
 })();
+
+// 讓 app.js 可以透過 window.MapController 使用
 window.MapController = MapModule;
