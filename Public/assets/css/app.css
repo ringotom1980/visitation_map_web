@@ -455,3 +455,35 @@
     max-width: 100%;
   }
 }
+/* ================= 修正地圖高度 ================= */
+.app-map {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  height: 100%;
+  min-height: 300px; /* 手機必備 */
+}
+
+/* ================= 修正 Bottom Sheet 遮罩問題 ================= */
+
+/* 關閉時不攔截事件，不佔版面 */
+.bottom-sheet:not(.bottom-sheet--open) .bottom-sheet__inner {
+  pointer-events: none;
+  transform: translateY(100%);
+}
+
+/* 開啟時恢復可操作 */
+.bottom-sheet.bottom-sheet--open .bottom-sheet__inner {
+  pointer-events: auto;
+  transform: translateY(0);
+}
+
+/* 讓 bottom-sheet 不影響 layout（避免蓋地圖） */
+.bottom-sheet__inner {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 0;
+}
