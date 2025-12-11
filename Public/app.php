@@ -1,10 +1,18 @@
 <?php
-// Public/app.php
+// Path: Public/app.php
+// 說明: 主地圖頁（搜尋 + 地圖 + 底部資訊卡 + 路線規劃抽屜）
 declare(strict_types=1);
 
-require __DIR__ . '/partials/head.php';
-// 建議在 head.php 裡已經載入 base.css、layout.css 等共用資源
+// 頁面標題與此頁專用 CSS（head.php 會用到）
+$pageTitle = APP_NAME;
+$pageCss = [
+    'assets/css/layout.css',
+    'assets/css/app.css',
+];
 ?>
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<?php require __DIR__ . '/partials/head.php'; ?>
 
 <body class="app-page">
 <?php require __DIR__ . '/partials/navbar.php'; ?>
@@ -242,7 +250,6 @@ require __DIR__ . '/partials/head.php';
 
 <!-- Google Maps JS（從 .env 透過 config/app.php 注入 Key） -->
 <script src="https://maps.googleapis.com/maps/api/js?key=<?= htmlspecialchars(google_maps_key(), ENT_QUOTES) ?>&libraries=places"></script>
-
 
 <!-- 共用前端工具（使用 asset_url 自動帶版本號） -->
 <script src="<?= asset_url('assets/js/api.js') ?>"></script>
