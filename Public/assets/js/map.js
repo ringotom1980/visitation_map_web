@@ -8,9 +8,6 @@ const MapModule = (function () {
   // id -> google.maps.Marker
   const markers = new Map();
 
-  // 路線規劃模式下選取的地點順序（存 place 物件或 id）
-  const routeSelection = [];
-
   // 狀態
   let routeMode = false;
   let addPlaceMode = false;
@@ -21,8 +18,14 @@ const MapModule = (function () {
     if (!mapEl) return;
 
     map = new google.maps.Map(mapEl, {
-      center: { lat: 23.7, lng: 120.9 }, // 台灣中間
+      center: { lat: 23.7, lng: 120.9 }, // Taiwan center
       zoom: 7,
+
+      // ======= 重要修正 =======
+      gestureHandling: 'greedy',    // 手機可單指拖曳，雙指縮放
+      scrollwheel: true,            // 桌機滑鼠滾輪可直接縮放
+      // =========================
+
       mapTypeControl: false,
       streetViewControl: false,
       fullscreenControl: false,
@@ -55,25 +58,28 @@ const MapModule = (function () {
 
   function setupMapClickHandlers(options) {
     map.addListener('click', (evt) => {
+      // 新增模式
       if (addPlaceMode) {
         tempNewPlaceLatLng = evt.latLng;
+
         if (typeof options?.onMapClickForNewPlace === 'function') {
           options.onMapClickForNewPlace(evt.latLng);
         }
-        // 新增一次就關閉 addPlaceMode（或看你之後想不想保持）
-        addPlaceMode = false;
-      } else if (routeMode) {
-        // 規劃模式下，點圖上空白不做事。點 marker 由 marker 點擊事件處理
+
+        // 新增後不自動關閉，讓使用者點錯可以再選
+        // 若你要一次後關閉，把下一行打開
+        // addPlaceMode = false;
+
+        return;
       }
+
+      // 路線規劃模式：點地圖本身不做事
+      if (routeMode) return;
     });
   }
 
   function enableRouteMode(enabled) {
     routeMode = enabled;
-    if (!enabled) {
-      routeSelection.length = 0;
-    }
-    // 這裡可加上 marker icon 視覺變化（例如加邊框）
   }
 
   function enableAddPlaceMode() {
@@ -86,7 +92,6 @@ const MapModule = (function () {
   }
 
   function setPlaces(placeList, onMarkerClick, onMarkerRouteSelect) {
-    // 清除舊 marker
     markers.forEach((m) => m.setMap(null));
     markers.clear();
 
@@ -104,12 +109,10 @@ const MapModule = (function () {
 
       marker.addListener('click', () => {
         if (routeMode) {
-          // 規劃模式：加入路線
           if (typeof onMarkerRouteSelect === 'function') {
             onMarkerRouteSelect(p);
           }
         } else {
-          // 一般模式：顯示資訊卡
           if (typeof onMarkerClick === 'function') {
             onMarkerClick(p);
           }
@@ -121,8 +124,6 @@ const MapModule = (function () {
   }
 
   function chooseMarkerIcon(place) {
-    // 根據 place 狀態決定顏色，可之後接資料庫欄位
-    // 先全部用 #4ca771 主色
     return {
       path: google.maps.SymbolPath.CIRCLE,
       scale: 7,
@@ -144,20 +145,17 @@ const MapModule = (function () {
 
     const m = markers.get(place.id);
     if (m) {
-      // 做一個小 bounce 動畫
       m.setAnimation(google.maps.Animation.BOUNCE);
       setTimeout(() => m.setAnimation(null), 700);
     }
   }
 
   function buildDirectionsUrl(routePlaces) {
-    // routePlaces: [{ lat, lng }, ...]
     if (!routePlaces || routePlaces.length < 2) return null;
 
     const origin = `${routePlaces[0].lat},${routePlaces[0].lng}`;
     const destination =
-      `${routePlaces[routePlaces.length - 1].lat},` +
-      `${routePlaces[routePlaces.length - 1].lng}`;
+      `${routePlaces[routePlaces.length - 1].lat},${routePlaces[routePlaces.length - 1].lng}`;
     const waypoints = routePlaces
       .slice(1, -1)
       .map((p) => `${p.lat},${p.lng}`)
