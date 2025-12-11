@@ -3,7 +3,10 @@
 // 說明: 主地圖頁（搜尋 + 地圖 + 底部資訊卡 + 路線規劃抽屜）
 declare(strict_types=1);
 
-// 頁面標題與此頁專用 CSS（head.php 會用到）
+// 先載入設定與 helper
+require_once __DIR__ . '/../config/app.php';
+
+// 頁面標題與專用 CSS
 $pageTitle = APP_NAME;
 $pageCss = [
     'assets/css/layout.css',
