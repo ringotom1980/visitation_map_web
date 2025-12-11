@@ -6,12 +6,15 @@
 /* ========== 基本佈局 ========== */
 .app-page {
   background: #f5f5f5;
+  min-height: 100vh;
 }
 
 .app-main {
   display: flex;
   flex-direction: column;
   min-height: 100vh;
+  height: 100vh;
+  overflow: hidden; /* 整個主框架不捲動 */
 }
 
 /* 上方工具列 */
@@ -84,7 +87,7 @@
   min-height: 0;
 }
 
-/* 地圖容器（修正手機地圖高度） */
+/* 地圖容器（手機高度 + 不出現外層捲動條） */
 .app-map {
   position: absolute;
   top: 0;
@@ -92,24 +95,25 @@
   right: 0;
   bottom: 0;
   height: 100%;
-  min-height: 300px; /* 手機至少有高度 */
+  min-height: 300px;
 }
 
-/* ========== 浮動按鈕（FAB） ========== */
+/* ========== 浮動按鈕（FAB）改為文字 Pill ========== */
 .fab {
   position: absolute;
   right: 16px;
-  width: 44px;
-  height: 44px;
-  border-radius: 50%;
+  min-width: 90px;
+  height: 40px;
+  padding: 0 14px;
+  border-radius: 999px;
   border: none;
   cursor: pointer;
-  font-size: 20px;
+  font-size: 14px;
   display: flex;
   align-items: center;
   justify-content: center;
   box-shadow: 0 4px 10px rgba(0, 0, 0, 0.18);
-  transition: transform 0.1s ease, box-shadow 0.1s ease;
+  transition: transform 0.1s ease, box-shadow 0.1s ease, background 0.1s ease;
 }
 
 .fab-primary {
@@ -119,9 +123,10 @@
 }
 
 .fab-secondary {
-  bottom: 76px;
+  bottom: 72px;
   background: #ffffff;
   color: #4ca771;
+  border: 1px solid #4ca771;
 }
 
 .fab:hover {
@@ -129,11 +134,15 @@
   box-shadow: 0 6px 14px rgba(0, 0, 0, 0.22);
 }
 
+.fab--active {
+  background: #256f46;
+  color: #ffffff;
+}
+
 /* =========================================
-   Bottom Sheet（底部抽屜）— 已合併 / 修正遮罩問題
+   Bottom Sheet（底部抽屜）— 避開手機底部工具列
    ========================================= */
 
-/* 外層：預設不攔截事件，不擋地圖點擊 */
 .bottom-sheet {
   position: absolute;
   left: 0;
@@ -153,14 +162,16 @@
   position: absolute;
   left: 0;
   right: 0;
-  bottom: 0;
+
+  /* 避開 iOS / Android 底部系統列：多留一點空間 */
+  bottom: env(safe-area-inset-bottom, 20px);
 
   margin: 0 auto;
   max-width: 720px;
   background: #ffffff;
   border-radius: 14px 14px 0 0;
   box-shadow: 0 -4px 16px rgba(0, 0, 0, 0.12);
-  padding: 12px 16px 12px;
+  padding: 12px 16px calc(16px + env(safe-area-inset-bottom, 12px));
 
   transform: translateY(100%);
   transition: transform 0.22s ease-out;
@@ -384,7 +395,7 @@
   gap: 8px;
 }
 
-/* 表單 */
+/* 表單：為避免 iOS 自動放大，輸入框字體 >= 16px */
 .form-row {
   display: flex;
   flex-direction: column;
@@ -399,7 +410,7 @@
 .form-row input,
 .form-row select,
 .form-row textarea {
-  font-size: 14px;
+  font-size: 16px; /* ★ 關鍵：避免 iOS 點了自動放大頁面 */
   padding: 6px 8px;
   border-radius: 4px;
   border: 1px solid #cccccc;
@@ -479,6 +490,5 @@
 
   .bottom-sheet__inner {
     max-width: 100%;
-    border-radius: 10px 10px 0 0;
   }
 }

@@ -50,17 +50,17 @@ $pageCss = [
   </header>
 
   <!-- 主內容：地圖 + 浮動按鈕 + 底部抽屜 -->
-  <section class="app-content">
+    <section class="app-content">
     <div id="map" class="app-map"></div>
 
-    <!-- 右下角浮動按鈕：新增標記 -->
+    <!-- 右下角浮動按鈕：目前位置 -->
     <button
-      id="btn-add-place"
+      id="btn-my-location"
       class="fab fab-primary"
       type="button"
-      title="新增標記（點選後在地圖點位置）"
+      title="移到我現在的位置"
     >
-      ＋
+      目前位置
     </button>
 
     <!-- 右下角第二顆 FAB：進入/退出路線規劃模式 -->
@@ -68,10 +68,11 @@ $pageCss = [
       id="btn-route-mode"
       class="fab fab-secondary"
       type="button"
-      title="路線規劃模式"
+      title="路線規劃模式（可從目前位置出發）"
     >
-      🧭
+      路線規劃
     </button>
+
 
     <!-- 底部資訊卡：顯示單一標記詳細資訊 -->
     <div id="sheet-place" class="bottom-sheet bottom-sheet--place">

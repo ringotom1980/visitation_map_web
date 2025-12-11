@@ -1,31 +1,39 @@
 // Public/assets/js/map.js
-// MapModule：專責管理 Google Map / 標記 / 搜尋 / 規劃模式（不使用新語法）
+// MapModule：專責管理 Google Map / 標記 / 搜尋 / 規劃模式
 
 var MapModule = (function () {
   var map;
   var autocomplete;
+  var geocoder;
 
   // id -> google.maps.Marker
   var markers = new Map();
+  var nameInfoWindows = [];
+
+  // 目前位置 marker
+  var myLocationMarker = null;
 
   // 狀態
   var routeMode = false;
-  var addPlaceMode = false;
   var tempNewPlaceLatLng = null;
+
+  // 長按偵測
+  var lastPointerDown = 0;
+  var LONG_PRESS_MS = 600; // 至少 0.6 秒視為長按
 
   function init(options) {
     var mapEl = document.getElementById('map');
     if (!mapEl) return;
 
     map = new google.maps.Map(mapEl, {
-      center: { lat: 23.7, lng: 120.9 }, // Taiwan center
+      center: { lat: 23.7, lng: 120.9 }, // Taiwan
       zoom: 7,
 
-      // 手機可單指拖曳 + 雙指縮放
+      // 手機：單指拖曳、雙指縮放
       gestureHandling: 'greedy',
       scrollwheel: true,
 
-      // 調整滑鼠游標：預設箭頭，比較像一般網站，而不是永遠手掌
+      // 桌機滑鼠游標：預設箭頭、拖曳時變 move
       draggableCursor: 'default',
       draggingCursor: 'move',
 
@@ -34,15 +42,39 @@ var MapModule = (function () {
       fullscreenControl: false
     });
 
+    geocoder = new google.maps.Geocoder();
+
+    setupLongPressDetector();
     setupAutocomplete(options && options.onSearchPlaceSelected);
     setupMapClickHandlers(options);
   }
 
+  /* ---------- 長按偵測：透過地圖 div 的事件量測按住時間 ---------- */
+  function setupLongPressDetector() {
+    if (!map) return;
+    var mapDiv = map.getDiv();
+
+    function onDown() {
+      lastPointerDown = Date.now();
+    }
+
+    mapDiv.addEventListener('mousedown', onDown);
+    mapDiv.addEventListener('touchstart', onDown, { passive: true });
+  }
+
+  function wasLongPress() {
+    if (!lastPointerDown) return false;
+    var diff = Date.now() - lastPointerDown;
+    lastPointerDown = 0; // 用過就清掉
+    return diff >= LONG_PRESS_MS;
+  }
+
+  /* ---------- 搜尋框 Autocomplete ---------- */
   function setupAutocomplete(onPlaceSelected) {
     var input = document.getElementById('map-search-input');
     if (!input) return;
 
-    // 這裡還是用舊的 Autocomplete，警告可以先忍受，之後再改新版 Web Component
+    // 目前仍沿用舊版 Autocomplete，警告先忽略即可
     autocomplete = new google.maps.places.Autocomplete(input, {
       fields: ['geometry', 'formatted_address', 'name']
     });
@@ -60,44 +92,90 @@ var MapModule = (function () {
     });
   }
 
+  /* ---------- 地圖點擊（含長按新增標記） ---------- */
   function setupMapClickHandlers(options) {
+    var newPlaceCb =
+      options &&
+      (options.onMapLongPressForNewPlace || options.onMapClickForNewPlace);
+
     map.addListener('click', function (evt) {
-      // 新增模式：點一下地圖，記住座標，叫外面開表單
-      if (addPlaceMode) {
-        tempNewPlaceLatLng = evt.latLng;
-
-        if (options && typeof options.onMapClickForNewPlace === 'function') {
-          options.onMapClickForNewPlace(evt.latLng);
-        }
-
-        // 不自動關閉新增模式，使用者可以重點一次覆蓋
-        return;
-      }
-
-      // 路線規劃模式：點地圖本身不做事（點 marker 另有 handler）
+      // 路線模式：點地圖本身不處理
       if (routeMode) return;
+
+      // 不是長按就忽略（避免一點就跳視窗）
+      if (!wasLongPress()) return;
+
+      tempNewPlaceLatLng = evt.latLng;
+
+      // 先反查地址，再回呼出去開表單
+      if (geocoder) {
+        geocoder.geocode({ location: evt.latLng }, function (results, status) {
+          var addr = '';
+          if (status === 'OK' && results && results[0]) {
+            addr = results[0].formatted_address || '';
+          }
+
+          if (typeof newPlaceCb === 'function') {
+            newPlaceCb(evt.latLng, addr);
+          }
+        });
+      } else {
+        if (typeof newPlaceCb === 'function') {
+          newPlaceCb(evt.latLng, '');
+        }
+      }
     });
   }
 
+  /* ---------- 對外狀態控制 ---------- */
   function enableRouteMode(enabled) {
     routeMode = !!enabled;
-  }
-
-  function enableAddPlaceMode() {
-    addPlaceMode = true;
-    tempNewPlaceLatLng = null;
   }
 
   function getTempNewPlaceLatLng() {
     return tempNewPlaceLatLng;
   }
 
+  /* ---------- 顯示「目前位置」 ---------- */
+  function showMyLocation(lat, lng) {
+    if (!map) return;
+    var pos = { lat: lat, lng: lng };
+
+    if (myLocationMarker) {
+      myLocationMarker.setMap(null);
+    }
+
+    myLocationMarker = new google.maps.Marker({
+      map: map,
+      position: pos,
+      title: '目前位置',
+      icon: {
+        path: google.maps.SymbolPath.CIRCLE,
+        scale: 6,
+        fillColor: '#1976d2',
+        fillOpacity: 1,
+        strokeColor: '#ffffff',
+        strokeWeight: 2
+      }
+    });
+
+    map.panTo(pos);
+    map.setZoom(15);
+  }
+
+  /* ---------- 載入標記 ---------- */
   function setPlaces(placeList, onMarkerClick, onMarkerRouteSelect) {
-    // 清掉舊 marker
+    // 清舊 marker
     markers.forEach(function (m) {
       m.setMap(null);
     });
     markers.clear();
+
+    // 清舊「姓名」泡泡
+    nameInfoWindows.forEach(function (iw) {
+      iw.close();
+    });
+    nameInfoWindows = [];
 
     if (!Array.isArray(placeList)) return;
 
@@ -106,12 +184,18 @@ var MapModule = (function () {
       var lng = parseFloat(p.lng);
       if (!isFinite(lat) || !isFinite(lng)) return;
 
-      // 仍然使用 google.maps.Marker，警告可先忽略
       var marker = new google.maps.Marker({
         map: map,
         position: { lat: lat, lng: lng },
         title: p.soldier_name || '',
-        icon: chooseMarkerIcon(p)
+        icon: {
+          path: google.maps.SymbolPath.CIRCLE,
+          scale: 7,
+          fillColor: '#4ca771',
+          fillOpacity: 1,
+          strokeColor: '#ffffff',
+          strokeWeight: 2
+        }
       });
 
       marker.addListener('click', function () {
@@ -126,21 +210,25 @@ var MapModule = (function () {
         }
       });
 
+      // 在旁邊顯示姓名（小泡泡）
+      if (p.soldier_name) {
+        var iw = new google.maps.InfoWindow({
+          content:
+            '<div style="font-size:12px;white-space:nowrap;">' +
+            escapeHtml(p.soldier_name) +
+            '</div>',
+          position: { lat: lat, lng: lng },
+          disableAutoPan: true
+        });
+        iw.open(map);
+        nameInfoWindows.push(iw);
+      }
+
       markers.set(p.id, marker);
     });
   }
 
-  function chooseMarkerIcon(place) {
-    return {
-      path: google.maps.SymbolPath.CIRCLE,
-      scale: 7,
-      fillColor: '#4ca771',
-      fillOpacity: 1,
-      strokeColor: '#ffffff',
-      strokeWeight: 2
-    };
-  }
-
+  /* ---------- 聚焦某個地點 ---------- */
   function focusPlace(place) {
     var lat = parseFloat(place.lat);
     var lng = parseFloat(place.lng);
@@ -159,6 +247,7 @@ var MapModule = (function () {
     }
   }
 
+  /* ---------- 組 Google 導航 URL ---------- */
   function buildDirectionsUrl(routePlaces) {
     if (!routePlaces || routePlaces.length < 2) return null;
 
@@ -188,16 +277,23 @@ var MapModule = (function () {
     return url;
   }
 
+  /* ---------- 小工具：escape HTML ---------- */
+  function escapeHtml(str) {
+    return String(str)
+      .replace(/&/g, '&amp;')
+      .replace(/</g, '&lt;')
+      .replace(/>/g, '&gt;');
+  }
+
   return {
     init: init,
     setPlaces: setPlaces,
     focusPlace: focusPlace,
     enableRouteMode: enableRouteMode,
-    enableAddPlaceMode: enableAddPlaceMode,
     getTempNewPlaceLatLng: getTempNewPlaceLatLng,
-    buildDirectionsUrl: buildDirectionsUrl
+    buildDirectionsUrl: buildDirectionsUrl,
+    showMyLocation: showMyLocation
   };
 })();
 
-// 讓 app.js 可以透過 window.MapController 使用
 window.MapController = MapModule;

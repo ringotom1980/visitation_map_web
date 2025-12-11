@@ -4,8 +4,10 @@ document.addEventListener('DOMContentLoaded', function () {
   var state = {
     routeMode: false,
     currentPlace: null,
-    routePlaces: [] // 用 place 物件陣列記順序
+    routePlaces: [] // place 物件陣列
   };
+
+  var myLocationPlace = null;
 
   // 主要 DOM
   var sheetPlace = document.getElementById('sheet-place');
@@ -13,7 +15,7 @@ document.addEventListener('DOMContentLoaded', function () {
   var modalPlaceForm = document.getElementById('modal-place-form');
   var placeForm = document.getElementById('place-form');
 
-  var btnAddPlace = document.getElementById('btn-add-place');
+  var btnMyLocation = document.getElementById('btn-my-location');
   var btnRouteMode = document.getElementById('btn-route-mode');
   var btnRouteExit = document.getElementById('btn-route-exit');
   var btnRouteCommit = document.getElementById('btn-route-commit');
@@ -24,32 +26,63 @@ document.addEventListener('DOMContentLoaded', function () {
   var btnPlaceDelete = document.getElementById('btn-place-delete');
 
   var routeListEl = document.getElementById('route-list');
-
   var btnLogout = document.getElementById('btn-logout');
 
-  // 防呆：MapModule 要存在
   if (typeof MapModule === 'undefined') {
     console.error('MapModule 未定義，請確認 map.js 是否有正確載入。');
     return;
   }
 
-  // 初始化地圖
+  // 初始化地圖：改用「長按新增」 callback
   MapModule.init({
     onSearchPlaceSelected: handleSearchPlaceSelected,
-    onMapClickForNewPlace: handleMapClickForNewPlace
+    onMapLongPressForNewPlace: handleMapLongPressForNewPlace
   });
 
-  // 先載入地點列表並顯示於地圖
+  // 先載入地點列表
   refreshPlaces();
 
-  // ========== 事件註冊 ==========
+  /* ========== 事件綁定 ========== */
 
-  // ＋ 新增標記：只開啟「選點模式」，不立刻開表單
-  if (btnAddPlace) {
-    btnAddPlace.addEventListener('click', function () {
-      toggleRouteMode(false); // 關掉路線模式避免干擾
-      MapModule.enableAddPlaceMode();
-      alert('請在地圖上點選要新增標記的位置。');
+  // 目前位置：移動畫面，路線模式下當起點
+  if (btnMyLocation) {
+    btnMyLocation.addEventListener('click', function () {
+      if (!navigator.geolocation) {
+        alert('此裝置不支援定位功能。');
+        return;
+      }
+      navigator.geolocation.getCurrentPosition(
+        function (pos) {
+          var lat = pos.coords.latitude;
+          var lng = pos.coords.longitude;
+
+          myLocationPlace = {
+            id: '__me',
+            soldier_name: '目前位置',
+            category: 'CURRENT',
+            target_name: '',
+            address: '',
+            note: '',
+            lat: lat,
+            lng: lng
+          };
+
+          MapModule.showMyLocation(lat, lng);
+
+          if (state.routeMode) {
+            var exists = state.routePlaces.some(function (p) {
+              return p.id === '__me';
+            });
+            if (!exists) {
+              state.routePlaces.unshift(myLocationPlace);
+              renderRouteList();
+            }
+          }
+        },
+        function (err) {
+          alert('無法取得目前位置：' + err.message);
+        }
+      );
     });
   }
 
@@ -68,17 +101,17 @@ document.addEventListener('DOMContentLoaded', function () {
   if (btnRouteCommit) {
     btnRouteCommit.addEventListener('click', function () {
       if (state.routePlaces.length < 2) {
-        alert('請至少選擇兩個拜訪地點。');
+        alert('請至少選擇兩個拜訪地點（含目前位置）。');
         return;
       }
-      alert('這裡之後會接 Directions API 計算距離/時間。');
+      alert('這裡之後可接 Directions API 計算距離/時間。');
     });
   }
 
   if (btnRouteOpenGmaps) {
     btnRouteOpenGmaps.addEventListener('click', function () {
       if (state.routePlaces.length < 2) {
-        alert('請至少選擇兩個拜訪地點。');
+        alert('請至少選擇兩個拜訪地點（含目前位置）。');
         return;
       }
       var url = MapModule.buildDirectionsUrl(state.routePlaces);
@@ -88,7 +121,6 @@ document.addEventListener('DOMContentLoaded', function () {
     });
   }
 
-  // 標記資訊卡的操作
   if (btnPlaceSave) {
     btnPlaceSave.addEventListener('click', handlePlaceSave);
   }
@@ -104,17 +136,18 @@ document.addEventListener('DOMContentLoaded', function () {
     btnPlaceDelete.addEventListener('click', handlePlaceDelete);
   }
 
-  // 登出按鈕
   if (btnLogout) {
     btnLogout.addEventListener('click', function () {
       fetch('/api/auth/logout', {
         method: 'POST',
         credentials: 'same-origin'
-      }).catch(function (err) {
-        console.error('logout error:', err);
-      }).finally(function () {
-        window.location.href = '/login';
-      });
+      })
+        .catch(function (err) {
+          console.error('logout error:', err);
+        })
+        .finally(function () {
+          window.location.href = '/login';
+        });
     });
   }
 
@@ -122,7 +155,6 @@ document.addEventListener('DOMContentLoaded', function () {
   document.body.addEventListener('click', function (evt) {
     var target = evt.target;
 
-    // 關閉 modal
     if (
       target.matches('[data-modal-close]') ||
       target.matches('.modal__backdrop')
@@ -131,7 +163,6 @@ document.addEventListener('DOMContentLoaded', function () {
       closeModal(id);
     }
 
-    // 關閉 bottom-sheet
     if (target.matches('[data-sheet-close]')) {
       var sid = target.getAttribute('data-sheet-close');
       closeSheet(sid);
@@ -145,9 +176,7 @@ document.addEventListener('DOMContentLoaded', function () {
       credentials: 'same-origin'
     })
       .then(function (res) {
-        if (!res.ok) {
-          throw new Error('HTTP ' + res.status);
-        }
+        if (!res.ok) throw new Error('HTTP ' + res.status);
         return res.json();
       })
       .then(function (json) {
@@ -162,7 +191,6 @@ document.addEventListener('DOMContentLoaded', function () {
 
         var places = Array.isArray(json.data) ? json.data : [];
 
-        // 把 marker click 的 callback 傳進 MapModule
         if (window.MapController && typeof window.MapController.setPlaces === 'function') {
           window.MapController.setPlaces(
             places,
@@ -182,16 +210,24 @@ document.addEventListener('DOMContentLoaded', function () {
   }
 
   function handleSearchPlaceSelected(place) {
-    console.log('搜尋定位結果：', place.formatted_address || place.name);
+    console.log('搜尋定位結果：', place.formatted_address || place.name || '');
   }
 
-  // 地圖點擊（新增模式時由 map.js 呼叫這個）
-  function handleMapClickForNewPlace(latLng) {
-    var addrInput = document.getElementById('place-address');
-    if (addrInput) {
-      addrInput.value = '';
+  // 地圖「長按」後，由 map.js 呼叫過來
+  function handleMapLongPressForNewPlace(latLng, address) {
+    if (placeForm && placeForm.reset) {
+      placeForm.reset();
     }
-    openPlaceFormForCreate();
+
+    var idInput = document.getElementById('place-id');
+    var addrInput = document.getElementById('place-address');
+    var titleEl = document.getElementById('modal-place-title');
+
+    if (idInput) idInput.value = '';
+    if (addrInput) addrInput.value = address || '';
+    if (titleEl) titleEl.textContent = '新增標記';
+
+    openModal('modal-place-form');
   }
 
   function handleMarkerClickInNormalMode(place) {
@@ -205,7 +241,6 @@ document.addEventListener('DOMContentLoaded', function () {
       return p.id === place.id;
     });
     if (exist) return;
-
     state.routePlaces.push(place);
     renderRouteList();
   }
@@ -216,6 +251,11 @@ document.addEventListener('DOMContentLoaded', function () {
 
     if (enabled) {
       state.routePlaces = [];
+      // 如果已經抓到目前位置，當第一個點
+      if (myLocationPlace) {
+        state.routePlaces.push(myLocationPlace);
+      }
+      renderRouteList();
       openSheet('sheet-route');
       if (btnRouteMode) btnRouteMode.classList.add('fab--active');
     } else {
@@ -249,14 +289,18 @@ document.addEventListener('DOMContentLoaded', function () {
       el.className = 'route-item';
       el.dataset.id = p.id;
 
+      var title = p.soldier_name || (p.id === '__me' ? '目前位置' : '未命名');
+
       el.innerHTML =
         '<div class="route-item__index">' + (index + 1) + '</div>' +
         '<div class="route-item__content">' +
-        '  <div>' + (p.soldier_name || '未命名') + '</div>' +
+        '  <div>' + title + '</div>' +
         '  <div style="font-size:11px;color:#777;">' + (p.address || '') + '</div>' +
         '</div>' +
         '<div class="route-item__handle">≡</div>' +
-        '<button type="button" class="route-item__remove">✕</button>';
+        (p.id === '__me'
+          ? ''
+          : '<button type="button" class="route-item__remove">✕</button>');
 
       var btnRemove = el.querySelector('.route-item__remove');
       if (btnRemove) {
@@ -298,20 +342,6 @@ document.addEventListener('DOMContentLoaded', function () {
     el.setAttribute('aria-hidden', 'true');
   }
 
-  function openPlaceFormForCreate() {
-    if (placeForm && placeForm.reset) {
-      placeForm.reset();
-    }
-
-    var idInput = document.getElementById('place-id');
-    var titleEl = document.getElementById('modal-place-title');
-
-    if (idInput) idInput.value = '';
-    if (titleEl) titleEl.textContent = '新增標記';
-
-    openModal('modal-place-form');
-  }
-
   function openPlaceFormForEdit(place) {
     var idInput = document.getElementById('place-id');
     var nameInput = document.getElementById('place-soldier-name');
@@ -347,7 +377,7 @@ document.addEventListener('DOMContentLoaded', function () {
 
     var latLng = MapModule.getTempNewPlaceLatLng();
     if (!id && !latLng) {
-      alert('請在地圖上點選位置後再儲存。');
+      alert('請在地圖上長按選擇位置後再儲存。');
       return;
     }
     if (latLng) {
