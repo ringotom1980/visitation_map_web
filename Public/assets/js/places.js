@@ -13,14 +13,14 @@ const PlacesApi = (function () {
   }
 
   async function get(id) {
-    const url = `${baseUrl}/get.php?id=${encodeURIComponent(id)}`;
+    const url = `${baseUrl}/get?id=${encodeURIComponent(id)}`;
     const res = await fetch(url, { credentials: 'include' });
     if (!res.ok) throw new Error('取得地點資料失敗');
     return res.json();
   }
 
   async function create(payload) {
-    const res = await fetch(`${baseUrl}/create.php`, {
+    const res = await fetch(`${baseUrl}/create`, {
       method: 'POST',
       credentials: 'include',
       headers: { 'Content-Type': 'application/json' },
@@ -34,7 +34,7 @@ const PlacesApi = (function () {
   }
 
   async function update(id, payload) {
-    const res = await fetch(`${baseUrl}/update.php`, {
+    const res = await fetch(`${baseUrl}/update`, {
       method: 'POST',
       credentials: 'include',
       headers: { 'Content-Type': 'application/json' },
@@ -48,7 +48,7 @@ const PlacesApi = (function () {
   }
 
   async function remove(id) {
-    const res = await fetch(`${baseUrl}/delete.php`, {
+    const res = await fetch(`${baseUrl}/delete`, {
       method: 'POST',
       credentials: 'include',
       headers: { 'Content-Type': 'application/json' },
