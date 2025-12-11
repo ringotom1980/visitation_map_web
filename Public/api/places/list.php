@@ -25,9 +25,9 @@ try {
                 id,
                 serviceman_name AS soldier_name,
                 category,
-                visit_target AS target_name,
+                visit_target   AS target_name,
                 visit_name,
-                address_text AS address,
+                address_text   AS address,
                 township,
                 note,
                 lat,
@@ -38,7 +38,7 @@ try {
             FROM places
             WHERE is_active = 1';
 
-    // 一定初始化（你提到的問題點）
+    // 一定初始化
     $params = array();
 
     // 一般使用者只看自己單位；ADMIN 看全部

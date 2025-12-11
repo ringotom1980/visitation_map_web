@@ -1,40 +1,69 @@
 <?php
 /**
  * Path: Public/api/places/delete.php
- * 說明: 邏輯刪除一筆地點（is_deleted = 1）。
+ * 說明: 刪除標記（軟刪除，將 is_active 設為 0）
  */
 
 declare(strict_types=1);
 
-require __DIR__ . '/../common/bootstrap.php';
+require_once __DIR__ . '/../common/bootstrap.php';
 
-require_login();
+if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
+    json_error('Method not allowed', 405);
+}
 
-/** @var PDO $pdo */
-global $pdo;
+$user = current_user();
+if (!$user) {
+    json_error('尚未登入', 401);
+}
 
-$raw = file_get_contents('php://input');
-$data = json_decode($raw, true);
+// 支援 JSON 與 form-data
+$input = $_POST;
+if (empty($input)) {
+    $raw = file_get_contents('php://input');
+    if ($raw) {
+        $json = json_decode($raw, true);
+        if (is_array($json)) {
+            $input = $json;
+        }
+    }
+}
 
-if (!is_array($data)) json_error('請以 JSON 傳送資料');
+$id = isset($input['id']) ? (int)$input['id'] : 0;
+if ($id <= 0) {
+    json_error('參數錯誤：缺少 id', 400);
+}
 
-$id = (int)($data['id'] ?? 0);
-if ($id <= 0) json_error('缺少 id');
+$pdo = db();
 
 try {
-    $sql = "UPDATE places
-            SET is_deleted = 1, updated_at = NOW()
-            WHERE id = :id AND is_deleted = 0";
+    // 先抓原始資料，做權限檢查
+    $sqlOrig = 'SELECT id, organization_id, is_active FROM places WHERE id = :id';
+    $stmtOrig = $pdo->prepare($sqlOrig);
+    $stmtOrig->execute(array(':id' => $id));
+    $orig = $stmtOrig->fetch();
 
-    $stmt = $pdo->prepare($sql);
-    $stmt->execute([':id' => $id]);
-
-    if ($stmt->rowCount() === 0) {
-        json_error('找不到要刪除的資料', 404);
+    if (!$orig || (int)$orig['is_active'] !== 1) {
+        json_error('標記不存在或已刪除', 404);
     }
 
-    json_success(['id' => $id]);
+    if (($user['role'] ?? '') !== 'ADMIN'
+        && (int)$orig['organization_id'] !== (int)$user['organization_id']
+    ) {
+        json_error('無權限刪除此標記', 403);
+    }
+
+    // 軟刪除
+    $sqlDel = 'UPDATE places
+               SET is_active = 0,
+                   updated_at = NOW()
+               WHERE id = :id';
+
+    $stmtDel = $pdo->prepare($sqlDel);
+    $stmtDel->execute(array(':id' => $id));
+
+    json_success(array('id' => $id, 'deleted' => true));
 
 } catch (Throwable $e) {
-    json_error('刪除失敗：' . $e->getMessage(), 500);
+    json_error('刪除標記時發生錯誤：' . $e->getMessage(), 500);
 }
