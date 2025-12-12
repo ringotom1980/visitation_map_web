@@ -305,11 +305,13 @@ document.addEventListener('DOMContentLoaded', function () {
   function showRouteActions() {
     if (!routeActionsEl) return;
     routeActionsEl.setAttribute('aria-hidden', 'false');
+    document.body.classList.add('has-route-actions');
   }
 
   function hideRouteActions() {
     if (!routeActionsEl) return;
     routeActionsEl.setAttribute('aria-hidden', 'true');
+    document.body.classList.remove('has-route-actions');
   }
 
   function initMyLocationNonBlocking() {

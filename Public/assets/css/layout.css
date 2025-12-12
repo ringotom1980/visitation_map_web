@@ -1,90 +1,24 @@
 /**
  * Path: Public/assets/css/layout.css
- * 說明: 版面布局骨架（全站通用）
- *       - 負責：滿高、外層不捲動、讓頁面容器可用 flex 撐滿高度
- *       - 不負責：字體/背景/顏色（交給 base.css 與各頁 app.css）
+ * 說明: 只放全站骨架，不放頁面元件樣式
  */
-
-html,
-body {
+html, body {
   margin: 0;
   padding: 0;
   height: 100%;
-  overflow: hidden; /* ★ 外層不要捲動（地圖頁避免雙捲軸） */
+  overflow: hidden;
 }
 
-/* 讓 body 允許 flex 佈局高度傳遞給內容區 */
 body {
   display: flex;
   flex-direction: column;
   min-height: 100vh;
 }
 
-/* 頁面容器：負責把內容撐到滿高 */
 .page-container,
 .app-page {
   display: flex;
   flex-direction: column;
   min-height: 100vh;
-  min-height: 100dvh; /* 行動裝置新視窗高度（支援者優先） */
-}
-
-:root{
-  --toolbar-h: 64px; /* 若你 header 高度不是 64，改成實際值 */
-  --safe-bottom: env(safe-area-inset-bottom, 0px);
-}
-
-/* 1) 外層不要裁切掉 fixed 元件 */
-html, body {
-  height: 100%;
-}
-
-.app-page {
-  min-height: 100vh;
-}
-
-/* 如果你原本有 overflow:hidden，先拿掉或改成只限制 X */
-.app-main,
-.app-content {
-  overflow-x: hidden;
-  overflow-y: visible; /* 關鍵：不要把 bottom-sheet 裁切 */
-}
-
-/* 2) bottom-sheet 固定在視窗底部，且不會被容器高度裁切 */
-.bottom-sheet {
-  position: fixed;
-  left: 50%;
-  transform: translateX(-50%);
-  bottom: calc(12px + var(--safe-bottom));
-  width: min(980px, calc(100vw - 24px));
-  z-index: 1200;
-}
-
-/* 3) 抽屜內容最大高度：視窗高度 - header - 邊距 */
-.bottom-sheet__inner {
-  max-height: calc(100vh - var(--toolbar-h) - 24px - var(--safe-bottom));
-  overflow: auto;
-  padding-bottom: calc(12px + var(--safe-bottom));
-}
-
-/* 4) 你 S3 的底部按鈕列也要固定，避免被切 */
-.route-actions {
-  position: fixed;
-  left: 50%;
-  transform: translateX(-50%);
-  bottom: calc(12px + var(--safe-bottom));
-  width: min(980px, calc(100vw - 24px));
-  z-index: 1250;
-}
-
-/* 5) FAB（右下角按鈕）也要抬高，避免與底部列互相遮住 */
-.fab {
-  bottom: calc(18px + var(--safe-bottom));
-  z-index: 1300;
-}
-
-/* 若路線動作列顯示時，FAB 再往上（你可依實際高度調整 72px） */
-.route-actions[aria-hidden="false"] ~ .fab,
-.route-actions[aria-hidden="false"] + .fab {
-  bottom: calc(90px + var(--safe-bottom));
+  min-height: 100dvh;
 }
