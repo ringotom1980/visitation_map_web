@@ -1,19 +1,21 @@
 // Path: Public/assets/js/map.js
 // 說明: Google 地圖模組 — 標註顯示/隱藏策略（S1/S2/S3）、長按新增（僅 S1）、目前位置、路線線條（polyline 簡版）
-//      ★S1：紅框白圓點 + 綠框內嵌 roc_logo.png + 右側姓名（正黑體/#ca02a9/白色陰影）
-//      ★S2：只顯示已加入路線點（編號），其他完全隱藏
-//      ★S3：顯示全部標註 + 路線線條
 //      ★補齊 tempNewPlaceLatLng 暫存 + getter，供 app.js 新增/編輯存檔使用
+//      ★B2/B3/B4：自訂標註 icon（紅框白底+綠框+roc_logo.png）＋OverlayView 姓名 label（含白色陰影由 CSS 控制）
+//      ★S2 只顯示加入路線的點並顯示編號（起點不算；第一個拜訪點=1）
 
 var MapModule = (function () {
   var map;
   var autocomplete;
   var geocoder;
 
-  // id -> { marker, place, kind: 'adv'|'classic' }
+  // id -> google.maps.Marker
   var markers = new Map();
 
-  // 目前位置 marker（維持 classic marker 即可）
+  // id -> NameLabelOverlay
+  var labelOverlays = new Map();
+
+  // 目前位置 marker
   var myLocationMarker = null;
 
   // 路線 polyline（簡版：依 routePoints 順序連線）
@@ -32,9 +34,10 @@ var MapModule = (function () {
   // ★暫存「長按新增」的點位（提供 app.js 取用）
   var tempNewPlaceLatLng = null;
 
-  // ★請確認你的檔案實際路徑（很重要）
-  // 你說的 roc_logo.png：建議放在 Public/assets/img/roc_logo.png
-  var ROC_LOGO_URL = '/assets/img/roc_logo.png';
+  // ★自訂 ROC icon dataURL 快取
+  var rocMarkerIconUrl = null;
+  var rocMarkerIconReady = false;
+  var rocMarkerIconWaiters = [];
 
   function init(options) {
     var mapEl = document.getElementById('map');
@@ -57,6 +60,9 @@ var MapModule = (function () {
     setupLongPressDetector();
     setupAutocomplete(options && options.onSearchPlaceSelected);
     setupMapClickHandlers(options);
+
+    // 預先啟動 icon 生成（不阻塞）
+    ensureRocIcon(function () {});
   }
 
   /* ---------- 對外：切換模式 + 顯示策略 ---------- */
@@ -190,291 +196,282 @@ var MapModule = (function () {
   }
 
   /* =========================================================
-     Marker 建立：優先用 AdvancedMarkerElement（可放 DOM + img）
+     B2：姓名 Label Overlay（不用 InfoWindow / 不用 Marker label）
+     - 由 CSS .map-name-label 負責字型、顏色、陰影
      ========================================================= */
-
-  function hasAdvancedMarker() {
-    // 需要 Maps JS 有載入 marker library 才會有 google.maps.marker.AdvancedMarkerElement
-    return !!(google && google.maps && google.maps.marker && google.maps.marker.AdvancedMarkerElement);
+  function NameLabelOverlay(mapRef, latLng, text) {
+    this.map = mapRef;
+    this.latLng = latLng;
+    this.text = text || '';
+    this.div = null;
+    this.setMap(mapRef);
   }
+  NameLabelOverlay.prototype = Object.create(google.maps.OverlayView.prototype);
 
-  function buildS1MarkerContent(placeName) {
-    // S1：紅框白圓點 + 綠框內嵌 logo + 右側姓名（正黑體/#ca02a9/白陰影）
-    var root = document.createElement('div');
-    root.style.display = 'inline-flex';
-    root.style.alignItems = 'center';
-    root.style.transform = 'translate(-8px, -8px)'; // 讓「點」落在座標上
-    root.style.pointerEvents = 'auto';
+  NameLabelOverlay.prototype.onAdd = function () {
+    var div = document.createElement('div');
+    div.className = 'map-name-label';
+    div.textContent = this.text;
+    this.div = div;
 
-    var dot = document.createElement('div');
-    dot.style.width = '16px';
-    dot.style.height = '16px';
-    dot.style.borderRadius = '999px';
-    dot.style.background = '#ffffff';
-    dot.style.border = '3px solid #e53935'; // 紅框
-    dot.style.boxSizing = 'border-box';
-    dot.style.display = 'flex';
-    dot.style.alignItems = 'center';
-    dot.style.justifyContent = 'center';
+    // overlayMouseTarget：可跟著地圖縮放移動；pointer-events 由 CSS 控制為 none
+    var panes = this.getPanes();
+    panes.overlayMouseTarget.appendChild(div);
+  };
 
-    var inner = document.createElement('div');
-    inner.style.width = '12px';
-    inner.style.height = '12px';
-    inner.style.borderRadius = '999px';
-    inner.style.border = '2px solid #2e7d32'; // 綠框
-    inner.style.boxSizing = 'border-box';
-    inner.style.background = '#ffffff';
-    inner.style.display = 'flex';
-    inner.style.alignItems = 'center';
-    inner.style.justifyContent = 'center';
-    inner.style.overflow = 'hidden';
+  NameLabelOverlay.prototype.draw = function () {
+    if (!this.div) return;
+    var proj = this.getProjection();
+    if (!proj) return;
 
-    var img = document.createElement('img');
-    img.src = ROC_LOGO_URL;
-    img.alt = '';
-    img.style.width = '10px';
-    img.style.height = '10px';
-    img.style.objectFit = 'contain';
-    img.style.display = 'block';
+    var pos = proj.fromLatLngToDivPixel(this.latLng);
+    if (!pos) return;
 
-    inner.appendChild(img);
-    dot.appendChild(inner);
+    this.div.style.left = pos.x + 'px';
+    this.div.style.top = pos.y + 'px';
+  };
 
-    var label = document.createElement('div');
-    label.textContent = placeName || '';
-    label.style.marginLeft = '6px';
-    label.style.whiteSpace = 'nowrap';
-    label.style.fontFamily = '"Microsoft JhengHei","Noto Sans TC",sans-serif';
-    label.style.fontSize = '16px';
-    label.style.fontWeight = '700';
-    label.style.color = '#ca02a9';
-    // 白色陰影（像 Google 地名那種可讀性）
-    label.style.textShadow = '0 1px 0 #ffffff, 0 0 2px #ffffff, 0 2px 6px rgba(255,255,255,.9)';
+  NameLabelOverlay.prototype.onRemove = function () {
+    if (this.div && this.div.parentNode) this.div.parentNode.removeChild(this.div);
+    this.div = null;
+  };
 
-    root.appendChild(dot);
-    if (placeName) root.appendChild(label);
+  NameLabelOverlay.prototype.setText = function (t) {
+    this.text = t || '';
+    if (this.div) this.div.textContent = this.text;
+  };
 
-    return root;
-  }
+  NameLabelOverlay.prototype.setLatLng = function (latLng) {
+    this.latLng = latLng;
+    this.draw();
+  };
 
-  function buildS2MarkerContent(indexNumber) {
-    // S2：綠底白字編號圓點（只顯示已加入路線）
-    var root = document.createElement('div');
-    root.style.transform = 'translate(-10px, -10px)';
-    root.style.pointerEvents = 'auto';
+  NameLabelOverlay.prototype.setVisible = function (v) {
+    if (this.div) this.div.style.display = v ? 'block' : 'none';
+  };
 
-    var dot = document.createElement('div');
-    dot.style.width = '20px';
-    dot.style.height = '20px';
-    dot.style.borderRadius = '999px';
-    dot.style.background = '#4ca771';
-    dot.style.border = '2px solid #ffffff';
-    dot.style.boxShadow = '0 2px 8px rgba(0,0,0,.18)';
-    dot.style.display = 'flex';
-    dot.style.alignItems = 'center';
-    dot.style.justifyContent = 'center';
-    dot.style.boxSizing = 'border-box';
+  /* =========================================================
+     B2：ROC Icon（紅框白底圓點 + 綠框 + 置中 roc_logo.png）
+     - 只生成一次 dataURL，全 marker 共用
+     ========================================================= */
+  function ensureRocIcon(cb) {
+    if (rocMarkerIconReady) {
+      if (typeof cb === 'function') cb(rocMarkerIconUrl);
+      return;
+    }
 
-    var t = document.createElement('div');
-    t.textContent = String(indexNumber || '');
-    t.style.color = '#ffffff';
-    t.style.fontSize = '12px';
-    t.style.fontWeight = '800';
-    t.style.fontFamily = '"Microsoft JhengHei","Noto Sans TC",sans-serif';
-    t.style.lineHeight = '1';
+    if (typeof cb === 'function') rocMarkerIconWaiters.push(cb);
+    if (rocMarkerIconWaiters.length > 1) return; // 已在生成中
 
-    dot.appendChild(t);
-    root.appendChild(dot);
-    return root;
-  }
+    var img = new Image();
+    img.onload = function () {
+      try {
+        var size = 46;
+        var cx = size / 2;
+        var cy = size / 2;
 
-  function createMarkerForPlace(p, onMarkerClick, onMarkerRouteSelect) {
-    var lat = parseFloat(p.lat);
-    var lng = parseFloat(p.lng);
-    if (!isFinite(lat) || !isFinite(lng)) return null;
+        var canvas = document.createElement('canvas');
+        canvas.width = size;
+        canvas.height = size;
 
-    var pos = { lat: lat, lng: lng };
+        var ctx = canvas.getContext('2d');
 
-    // click handler（依模式分流）
-    function handleClick() {
-      if (mode === 'ROUTE_PLANNING') {
-        if (typeof onMarkerRouteSelect === 'function') onMarkerRouteSelect(p);
-      } else if (mode === 'BROWSE') {
-        if (typeof onMarkerClick === 'function') onMarkerClick(p);
-      } else {
-        // ROUTE_READY：規格禁止直接加入路線（不做事）
+        // 外圈：白底 + 紅框
+        ctx.beginPath();
+        ctx.arc(cx, cy, 18, 0, Math.PI * 2);
+        ctx.fillStyle = '#ffffff';
+        ctx.fill();
+        ctx.lineWidth = 4;
+        ctx.strokeStyle = '#d32f2f';
+        ctx.stroke();
+
+        // 內圈：白底 + 綠框
+        ctx.beginPath();
+        ctx.arc(cx, cy, 12, 0, Math.PI * 2);
+        ctx.fillStyle = '#ffffff';
+        ctx.fill();
+        ctx.lineWidth = 3;
+        ctx.strokeStyle = '#2e7d32';
+        ctx.stroke();
+
+        // logo（置中縮放 18x18）
+        ctx.drawImage(img, cx - 9, cy - 9, 18, 18);
+
+        rocMarkerIconUrl = canvas.toDataURL('image/png');
+      } catch (e) {
+        rocMarkerIconUrl = null;
       }
-    }
 
-    if (hasAdvancedMarker()) {
-      var content = buildS1MarkerContent(p.soldier_name ? String(p.soldier_name) : '');
-      var adv = new google.maps.marker.AdvancedMarkerElement({
-        map: map,
-        position: pos,
-        content: content,
-        title: p.soldier_name || ''
-      });
+      rocMarkerIconReady = true;
+      flushRocIconWaiters();
+    };
 
-      adv.addListener('gmp-click', function () {
-        handleClick();
-      });
+    img.onerror = function () {
+      rocMarkerIconUrl = null;
+      rocMarkerIconReady = true;
+      flushRocIconWaiters();
+    };
 
-      return { marker: adv, kind: 'adv' };
-    }
+    img.src = '/assets/img/roc_logo.png';
+  }
 
-    // fallback：classic marker（做不到 logo 內嵌，只能退回）
-    var marker = new google.maps.Marker({
-      map: map,
-      position: pos,
-      title: p.soldier_name || '',
-      icon: {
+  function flushRocIconWaiters() {
+    var list = rocMarkerIconWaiters.slice();
+    rocMarkerIconWaiters = [];
+    list.forEach(function (fn) {
+      try { fn(rocMarkerIconUrl); } catch (e) {}
+    });
+  }
+
+  function buildRocMarkerIcon() {
+    // 若 icon 還沒好，暫用 fallback（之後不補更新，以簡化；通常 init 時就已生成）
+    if (!rocMarkerIconUrl) {
+      return {
         path: google.maps.SymbolPath.CIRCLE,
         scale: 7,
         fillColor: '#ffffff',
         fillOpacity: 1,
-        strokeColor: '#e53935',
+        strokeColor: '#d32f2f',
         strokeWeight: 3
-      },
-      label: (p.soldier_name ? {
-        text: String(p.soldier_name),
-        color: '#ca02a9',
-        fontSize: '16px',
-        fontWeight: '700',
-        fontFamily: '"Microsoft JhengHei","Noto Sans TC",sans-serif'
-      } : null)
-    });
+      };
+    }
 
-    marker.addListener('click', handleClick);
-    return { marker: marker, kind: 'classic' };
+    return {
+      url: rocMarkerIconUrl,
+      scaledSize: new google.maps.Size(34, 34),
+      anchor: new google.maps.Point(17, 17)
+    };
   }
 
-  /* ---------- 載入標記（不使用 InfoWindow） ---------- */
+  function buildRouteNumberIcon() {
+    // S2：編號點（用綠色圓點即可，避免 icon 過於花）
+    return {
+      path: google.maps.SymbolPath.CIRCLE,
+      scale: 9,
+      fillColor: '#4ca771',
+      fillOpacity: 1,
+      strokeColor: '#ffffff',
+      strokeWeight: 2
+    };
+  }
+
+  /* ---------- 載入標記（不使用 InfoWindow；S1/S3 用 Overlay label 呈現姓名） ---------- */
   function setPlaces(placeList, onMarkerClick, onMarkerRouteSelect) {
     // 清舊 marker
-    markers.forEach(function (wrap) {
-      if (!wrap || !wrap.marker) return;
-      if (wrap.kind === 'adv') {
-        wrap.marker.map = null;
-      } else {
-        wrap.marker.setMap(null);
-      }
-    });
+    markers.forEach(function (m) { m.setMap(null); });
     markers.clear();
+
+    // 清舊 overlay
+    labelOverlays.forEach(function (ov) { if (ov) ov.setMap(null); });
+    labelOverlays.clear();
 
     placesCache = Array.isArray(placeList) ? placeList : [];
 
-    placesCache.forEach(function (p) {
-      var wrap = createMarkerForPlace(p, onMarkerClick, onMarkerRouteSelect);
-      if (!wrap) return;
-      markers.set(p.id, { marker: wrap.marker, kind: wrap.kind, place: p });
-    });
+    // 確保 icon ready 後再建立 marker（避免一開始 iconUrl 還沒生成）
+    ensureRocIcon(function () {
+      placesCache.forEach(function (p) {
+        var lat = parseFloat(p.lat);
+        var lng = parseFloat(p.lng);
+        if (!isFinite(lat) || !isFinite(lng)) return;
 
-    // 依目前 mode 立即套用顯示策略
-    applyMarkersByMode([]);
+        var pos = new google.maps.LatLng(lat, lng);
+
+        var marker = new google.maps.Marker({
+          map: map,
+          position: { lat: lat, lng: lng },
+          title: p.soldier_name || '',
+          icon: buildRocMarkerIcon(),
+          label: null
+        });
+
+        marker.addListener('click', function () {
+          if (mode === 'ROUTE_PLANNING') {
+            if (typeof onMarkerRouteSelect === 'function') onMarkerRouteSelect(p);
+          } else if (mode === 'BROWSE') {
+            if (typeof onMarkerClick === 'function') onMarkerClick(p);
+          } else {
+            // ROUTE_READY：規格禁止直接加入路線（不做事）
+          }
+        });
+
+        markers.set(p.id, marker);
+
+        // 姓名 overlay（S1/S3 才顯示；S2 會全部隱藏）
+        if (p.soldier_name) {
+          var ov = new NameLabelOverlay(map, pos, String(p.soldier_name));
+          ov.setVisible(false); // 交給 applyMarkersByMode 控制
+          labelOverlays.set(p.id, ov);
+        }
+      });
+
+      // 建完立即套用一次目前狀態（避免首次不顯示）
+      applyMarkersByMode([]);
+    });
   }
 
   /* ---------- 依模式調整標註顯示 ---------- */
   function applyMarkersByMode(routePoints) {
-    // helper：顯示/隱藏
-    function setVisible(wrap, visible) {
-      if (!wrap || !wrap.marker) return;
-      if (wrap.kind === 'adv') {
-        wrap.marker.map = visible ? map : null;
-      } else {
-        wrap.marker.setVisible(!!visible);
-      }
-    }
+    // 先全部隱藏 marker
+    markers.forEach(function (m) { m.setVisible(false); });
 
-    // helper：更新外觀（adv / classic）
-    function setS1Style(wrap) {
-      if (!wrap || !wrap.marker) return;
-      var p = wrap.place || {};
-      var name = p.soldier_name ? String(p.soldier_name) : '';
-
-      if (wrap.kind === 'adv') {
-        wrap.marker.content = buildS1MarkerContent(name);
-      } else {
-        // classic fallback
-        wrap.marker.setIcon({
-          path: google.maps.SymbolPath.CIRCLE,
-          scale: 7,
-          fillColor: '#ffffff',
-          fillOpacity: 1,
-          strokeColor: '#e53935',
-          strokeWeight: 3
-        });
-        wrap.marker.setLabel(name ? {
-          text: name,
-          color: '#ca02a9',
-          fontSize: '16px',
-          fontWeight: '700',
-          fontFamily: '"Microsoft JhengHei","Noto Sans TC",sans-serif'
-        } : null);
-      }
-    }
-
-    function setS2Style(wrap, idxNumber) {
-      if (!wrap || !wrap.marker) return;
-      if (wrap.kind === 'adv') {
-        wrap.marker.content = buildS2MarkerContent(idxNumber);
-      } else {
-        wrap.marker.setLabel({
-          text: String(idxNumber || ''),
-          color: '#ffffff',
-          fontSize: '12px',
-          fontWeight: '800'
-        });
-        wrap.marker.setIcon({
-          path: google.maps.SymbolPath.CIRCLE,
-          scale: 10,
-          fillColor: '#4ca771',
-          fillOpacity: 1,
-          strokeColor: '#ffffff',
-          strokeWeight: 2
-        });
-      }
-    }
-
-    // 先全部隱藏
-    markers.forEach(function (wrap) {
-      setVisible(wrap, false);
-    });
+    // 先全部隱藏 overlay
+    labelOverlays.forEach(function (ov) { if (ov) ov.setVisible(false); });
 
     if (mode === 'BROWSE') {
-      // S1：顯示全部標註（Google 感：點 + 姓名）
-      markers.forEach(function (wrap) {
-        setVisible(wrap, true);
-        setS1Style(wrap);
+      // S1：顯示所有標註（ROC icon + 姓名 overlay）
+      markers.forEach(function (m, id) {
+        m.setVisible(true);
+        m.setLabel(null);
+        m.setIcon(buildRocMarkerIcon());
+
+        var ov = labelOverlays.get(id);
+        if (ov) ov.setVisible(true);
       });
       return;
     }
 
     if (mode === 'ROUTE_PLANNING') {
-      // S2：只顯示已加入路線的點（編號），其他完全不顯示
+      // S2：只顯示已加入路線的點（編號），其他完全不顯示；姓名 overlay 全隱藏
       var ids = new Set();
       (routePoints || []).forEach(function (p) {
         if (p && p.id && p.id !== '__me') ids.add(p.id);
       });
 
       ids.forEach(function (id) {
-        var wrap = markers.get(id);
-        if (!wrap) return;
-        setVisible(wrap, true);
+        var m = markers.get(id);
+        if (!m) return;
 
+        m.setVisible(true);
+
+        // routePoints 內 index=0 是 __me 起點
+        // 第一個拜訪點 index=1 要顯示 "1"
         var idx = findRouteIndex(routePoints, id);
-        var numberText = idx >= 0 ? (idx + 1) : '';
-        setS2Style(wrap, numberText);
+        var numberText = (idx >= 1) ? String(idx) : '';
+
+        m.setLabel(numberText ? {
+          text: numberText,
+          color: '#ffffff',
+          fontSize: '12px',
+          fontWeight: '700'
+        } : null);
+
+        m.setIcon(buildRouteNumberIcon());
       });
 
       return;
     }
 
     if (mode === 'ROUTE_READY') {
-      // S3：顯示全部標註（同 S1 樣式）
-      markers.forEach(function (wrap) {
-        setVisible(wrap, true);
-        setS1Style(wrap);
+      // S3：顯示所有標註（ROC icon + 姓名 overlay）＋ polyline（由 setMode 控制）
+      markers.forEach(function (m, id) {
+        m.setVisible(true);
+        m.setLabel(null);
+        m.setIcon(buildRocMarkerIcon());
+
+        var ov = labelOverlays.get(id);
+        if (ov) ov.setVisible(true);
       });
+
       return;
     }
   }
@@ -543,11 +540,10 @@ var MapModule = (function () {
     map.panTo(pos);
     map.setZoom(16);
 
-    var wrap = markers.get(place.id);
-    if (wrap && wrap.kind !== 'adv') {
-      // classic marker 才能 bounce（adv 沒這個動畫）
-      wrap.marker.setAnimation(google.maps.Animation.BOUNCE);
-      setTimeout(function () { wrap.marker.setAnimation(null); }, 700);
+    var m = markers.get(place.id);
+    if (m) {
+      m.setAnimation(google.maps.Animation.BOUNCE);
+      setTimeout(function () { m.setAnimation(null); }, 700);
     }
   }
 
