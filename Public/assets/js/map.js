@@ -263,9 +263,10 @@ var MapModule = (function () {
           if (typeof onMarkerRouteSelect === 'function') onMarkerRouteSelect(p);
         } else if (mode === 'BROWSE') {
           if (typeof onMarkerClick === 'function') onMarkerClick(p);
-        } else {
-          // ROUTE_READY：不做事
+        } else if (mode === 'ROUTE_READY') {
+          if (typeof onMarkerClick === 'function') onMarkerClick(p);
         }
+
       });
 
       markers.set(p.id, { marker: marker, nameOv: nameOv, data: p });
@@ -506,4 +507,5 @@ var MapModule = (function () {
   };
 })();
 
-window.MapController = MapModule;
+window.MapModule = MapModule;
+

@@ -84,13 +84,6 @@ document.addEventListener('DOMContentLoaded', function () {
   initMyLocationNonBlocking();
   applyMode(Mode.BROWSE);
 
-  // S2：路線規劃模式下，點地圖空白處要收起抽屜
-  document.addEventListener('map:blankClick', function () {
-    if (state.mode === Mode.ROUTE_PLANNING) {
-      closeSheet('sheet-route'); // 只收起，不退出模式
-    }
-  });
-
   if (btnMyLocation) {
     btnMyLocation.addEventListener('click', function () {
       requestMyLocation(true);
@@ -223,6 +216,13 @@ document.addEventListener('DOMContentLoaded', function () {
       closeSheet(sid);
     }
   });
+
+  // S2：路線規劃模式下點地圖空白 → 收起抽屜（點標註點除外）
+  document.addEventListener('map:blankClick', function () {
+    if (state.mode !== Mode.ROUTE_PLANNING) return;
+    closeSheet('sheet-route');
+  });
+
 
   function loadMeNonBlocking() {
     apiRequest('/auth/me', 'GET')
