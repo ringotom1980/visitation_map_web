@@ -1,6 +1,8 @@
 // Path: Public/assets/js/map.js
 // 說明: Google 地圖模組 — 標註顯示/隱藏策略（S1/S2/S3）、長按新增（僅 S1）、目前位置、路線線條（polyline 簡版）
 //      ★補齊 tempNewPlaceLatLng 暫存 + getter，供 app.js 新增/編輯存檔使用
+//      ★B2/B3/B4：自訂標註 icon（紅框白底+綠框+roc_logo.png）＋OverlayView 姓名 label（含白色陰影由 CSS 控制）
+//      ★S2 只顯示加入路線的點並顯示編號（起點不算；第一個拜訪點=1）
 
 var MapModule = (function () {
   var map;
@@ -9,6 +11,9 @@ var MapModule = (function () {
 
   // id -> google.maps.Marker
   var markers = new Map();
+
+  // id -> NameLabelOverlay
+  var labelOverlays = new Map();
 
   // 目前位置 marker
   var myLocationMarker = null;
@@ -28,6 +33,11 @@ var MapModule = (function () {
 
   // ★暫存「長按新增」的點位（提供 app.js 取用）
   var tempNewPlaceLatLng = null;
+
+  // ★自訂 ROC icon dataURL 快取
+  var rocMarkerIconUrl = null;
+  var rocMarkerIconReady = false;
+  var rocMarkerIconWaiters = [];
 
   function init(options) {
     var mapEl = document.getElementById('map');
@@ -50,6 +60,9 @@ var MapModule = (function () {
     setupLongPressDetector();
     setupAutocomplete(options && options.onSearchPlaceSelected);
     setupMapClickHandlers(options);
+
+    // 預先啟動 icon 生成（不阻塞）
+    ensureRocIcon(function () {});
   }
 
   /* ---------- 對外：切換模式 + 顯示策略 ---------- */
@@ -182,90 +195,243 @@ var MapModule = (function () {
     map.setZoom(15);
   }
 
-  /* ---------- 載入標記（不使用 InfoWindow；用 marker label 呈現姓名） ---------- */
+  /* =========================================================
+     B2：姓名 Label Overlay（不用 InfoWindow / 不用 Marker label）
+     - 由 CSS .map-name-label 負責字型、顏色、陰影
+     ========================================================= */
+  function NameLabelOverlay(mapRef, latLng, text) {
+    this.map = mapRef;
+    this.latLng = latLng;
+    this.text = text || '';
+    this.div = null;
+    this.setMap(mapRef);
+  }
+  NameLabelOverlay.prototype = Object.create(google.maps.OverlayView.prototype);
+
+  NameLabelOverlay.prototype.onAdd = function () {
+    var div = document.createElement('div');
+    div.className = 'map-name-label';
+    div.textContent = this.text;
+    this.div = div;
+
+    // overlayMouseTarget：可跟著地圖縮放移動；pointer-events 由 CSS 控制為 none
+    var panes = this.getPanes();
+    panes.overlayMouseTarget.appendChild(div);
+  };
+
+  NameLabelOverlay.prototype.draw = function () {
+    if (!this.div) return;
+    var proj = this.getProjection();
+    if (!proj) return;
+
+    var pos = proj.fromLatLngToDivPixel(this.latLng);
+    if (!pos) return;
+
+    this.div.style.left = pos.x + 'px';
+    this.div.style.top = pos.y + 'px';
+  };
+
+  NameLabelOverlay.prototype.onRemove = function () {
+    if (this.div && this.div.parentNode) this.div.parentNode.removeChild(this.div);
+    this.div = null;
+  };
+
+  NameLabelOverlay.prototype.setText = function (t) {
+    this.text = t || '';
+    if (this.div) this.div.textContent = this.text;
+  };
+
+  NameLabelOverlay.prototype.setLatLng = function (latLng) {
+    this.latLng = latLng;
+    this.draw();
+  };
+
+  NameLabelOverlay.prototype.setVisible = function (v) {
+    if (this.div) this.div.style.display = v ? 'block' : 'none';
+  };
+
+  /* =========================================================
+     B2：ROC Icon（紅框白底圓點 + 綠框 + 置中 roc_logo.png）
+     - 只生成一次 dataURL，全 marker 共用
+     ========================================================= */
+  function ensureRocIcon(cb) {
+    if (rocMarkerIconReady) {
+      if (typeof cb === 'function') cb(rocMarkerIconUrl);
+      return;
+    }
+
+    if (typeof cb === 'function') rocMarkerIconWaiters.push(cb);
+    if (rocMarkerIconWaiters.length > 1) return; // 已在生成中
+
+    var img = new Image();
+    img.onload = function () {
+      try {
+        var size = 46;
+        var cx = size / 2;
+        var cy = size / 2;
+
+        var canvas = document.createElement('canvas');
+        canvas.width = size;
+        canvas.height = size;
+
+        var ctx = canvas.getContext('2d');
+
+        // 外圈：白底 + 紅框
+        ctx.beginPath();
+        ctx.arc(cx, cy, 18, 0, Math.PI * 2);
+        ctx.fillStyle = '#ffffff';
+        ctx.fill();
+        ctx.lineWidth = 4;
+        ctx.strokeStyle = '#d32f2f';
+        ctx.stroke();
+
+        // 內圈：白底 + 綠框
+        ctx.beginPath();
+        ctx.arc(cx, cy, 12, 0, Math.PI * 2);
+        ctx.fillStyle = '#ffffff';
+        ctx.fill();
+        ctx.lineWidth = 3;
+        ctx.strokeStyle = '#2e7d32';
+        ctx.stroke();
+
+        // logo（置中縮放 18x18）
+        ctx.drawImage(img, cx - 9, cy - 9, 18, 18);
+
+        rocMarkerIconUrl = canvas.toDataURL('image/png');
+      } catch (e) {
+        rocMarkerIconUrl = null;
+      }
+
+      rocMarkerIconReady = true;
+      flushRocIconWaiters();
+    };
+
+    img.onerror = function () {
+      rocMarkerIconUrl = null;
+      rocMarkerIconReady = true;
+      flushRocIconWaiters();
+    };
+
+    img.src = '/assets/img/roc_logo.png';
+  }
+
+  function flushRocIconWaiters() {
+    var list = rocMarkerIconWaiters.slice();
+    rocMarkerIconWaiters = [];
+    list.forEach(function (fn) {
+      try { fn(rocMarkerIconUrl); } catch (e) {}
+    });
+  }
+
+  function buildRocMarkerIcon() {
+    // 若 icon 還沒好，暫用 fallback（之後不補更新，以簡化；通常 init 時就已生成）
+    if (!rocMarkerIconUrl) {
+      return {
+        path: google.maps.SymbolPath.CIRCLE,
+        scale: 7,
+        fillColor: '#ffffff',
+        fillOpacity: 1,
+        strokeColor: '#d32f2f',
+        strokeWeight: 3
+      };
+    }
+
+    return {
+      url: rocMarkerIconUrl,
+      scaledSize: new google.maps.Size(34, 34),
+      anchor: new google.maps.Point(17, 17)
+    };
+  }
+
+  function buildRouteNumberIcon() {
+    // S2：編號點（用綠色圓點即可，避免 icon 過於花）
+    return {
+      path: google.maps.SymbolPath.CIRCLE,
+      scale: 9,
+      fillColor: '#4ca771',
+      fillOpacity: 1,
+      strokeColor: '#ffffff',
+      strokeWeight: 2
+    };
+  }
+
+  /* ---------- 載入標記（不使用 InfoWindow；S1/S3 用 Overlay label 呈現姓名） ---------- */
   function setPlaces(placeList, onMarkerClick, onMarkerRouteSelect) {
     // 清舊 marker
     markers.forEach(function (m) { m.setMap(null); });
     markers.clear();
 
+    // 清舊 overlay
+    labelOverlays.forEach(function (ov) { if (ov) ov.setMap(null); });
+    labelOverlays.clear();
+
     placesCache = Array.isArray(placeList) ? placeList : [];
 
-    placesCache.forEach(function (p) {
-      var lat = parseFloat(p.lat);
-      var lng = parseFloat(p.lng);
-      if (!isFinite(lat) || !isFinite(lng)) return;
+    // 確保 icon ready 後再建立 marker（避免一開始 iconUrl 還沒生成）
+    ensureRocIcon(function () {
+      placesCache.forEach(function (p) {
+        var lat = parseFloat(p.lat);
+        var lng = parseFloat(p.lng);
+        if (!isFinite(lat) || !isFinite(lng)) return;
 
-      var marker = new google.maps.Marker({
-        map: map,
-        position: { lat: lat, lng: lng },
-        title: p.soldier_name || '',
-        icon: {
-          path: google.maps.SymbolPath.CIRCLE,
-          scale: 7,
-          fillColor: '#4ca771',
-          fillOpacity: 1,
-          strokeColor: '#ffffff',
-          strokeWeight: 2
-        },
-        // S1：姓名以 label 顯示（無框、無底色）
-        label: (p.soldier_name ? {
-          text: String(p.soldier_name),
-          color: '#1f2937',
-          fontSize: '13px',
-          fontWeight: '600'
-        } : null)
-      });
+        var pos = new google.maps.LatLng(lat, lng);
 
-      marker.addListener('click', function () {
-        if (mode === 'ROUTE_PLANNING') {
-          if (typeof onMarkerRouteSelect === 'function') onMarkerRouteSelect(p);
-        } else if (mode === 'BROWSE') {
-          if (typeof onMarkerClick === 'function') onMarkerClick(p);
-        } else {
-          // ROUTE_READY：規格禁止直接加入路線（不做事）
+        var marker = new google.maps.Marker({
+          map: map,
+          position: { lat: lat, lng: lng },
+          title: p.soldier_name || '',
+          icon: buildRocMarkerIcon(),
+          label: null
+        });
+
+        marker.addListener('click', function () {
+          if (mode === 'ROUTE_PLANNING') {
+            if (typeof onMarkerRouteSelect === 'function') onMarkerRouteSelect(p);
+          } else if (mode === 'BROWSE') {
+            if (typeof onMarkerClick === 'function') onMarkerClick(p);
+          } else {
+            // ROUTE_READY：規格禁止直接加入路線（不做事）
+          }
+        });
+
+        markers.set(p.id, marker);
+
+        // 姓名 overlay（S1/S3 才顯示；S2 會全部隱藏）
+        if (p.soldier_name) {
+          var ov = new NameLabelOverlay(map, pos, String(p.soldier_name));
+          ov.setVisible(false); // 交給 applyMarkersByMode 控制
+          labelOverlays.set(p.id, ov);
         }
       });
 
-      markers.set(p.id, marker);
+      // 建完立即套用一次目前狀態（避免首次不顯示）
+      applyMarkersByMode([]);
     });
   }
 
   /* ---------- 依模式調整標註顯示 ---------- */
   function applyMarkersByMode(routePoints) {
-    // 先全部隱藏
+    // 先全部隱藏 marker
     markers.forEach(function (m) { m.setVisible(false); });
 
+    // 先全部隱藏 overlay
+    labelOverlays.forEach(function (ov) { if (ov) ov.setVisible(false); });
+
     if (mode === 'BROWSE') {
-      // S1：顯示所有標註（圓點+姓名 label）
-      markers.forEach(function (m) { m.setVisible(true); });
+      // S1：顯示所有標註（ROC icon + 姓名 overlay）
+      markers.forEach(function (m, id) {
+        m.setVisible(true);
+        m.setLabel(null);
+        m.setIcon(buildRocMarkerIcon());
 
-      markers.forEach(function (m) {
-        var t = m.getTitle() || '';
-        if (t) {
-          m.setLabel({
-            text: t,
-            color: '#1f2937',
-            fontSize: '13px',
-            fontWeight: '600'
-          });
-        } else {
-          m.setLabel(null);
-        }
-        m.setIcon({
-          path: google.maps.SymbolPath.CIRCLE,
-          scale: 7,
-          fillColor: '#4ca771',
-          fillOpacity: 1,
-          strokeColor: '#ffffff',
-          strokeWeight: 2
-        });
+        var ov = labelOverlays.get(id);
+        if (ov) ov.setVisible(true);
       });
-
       return;
     }
 
     if (mode === 'ROUTE_PLANNING') {
-      // S2：只顯示已加入路線的點（編號），其他完全不顯示
+      // S2：只顯示已加入路線的點（編號），其他完全不顯示；姓名 overlay 全隱藏
       var ids = new Set();
       (routePoints || []).forEach(function (p) {
         if (p && p.id && p.id !== '__me') ids.add(p.id);
@@ -274,52 +440,36 @@ var MapModule = (function () {
       ids.forEach(function (id) {
         var m = markers.get(id);
         if (!m) return;
+
         m.setVisible(true);
 
+        // routePoints 內 index=0 是 __me 起點
+        // 第一個拜訪點 index=1 要顯示 "1"
         var idx = findRouteIndex(routePoints, id);
-        var numberText = idx >= 0 ? String(idx + 1) : '';
+        var numberText = (idx >= 1) ? String(idx) : '';
 
-        m.setLabel({
+        m.setLabel(numberText ? {
           text: numberText,
           color: '#ffffff',
           fontSize: '12px',
           fontWeight: '700'
-        });
+        } : null);
 
-        m.setIcon({
-          path: google.maps.SymbolPath.CIRCLE,
-          scale: 9,
-          fillColor: '#4ca771',
-          fillOpacity: 1,
-          strokeColor: '#ffffff',
-          strokeWeight: 2
-        });
+        m.setIcon(buildRouteNumberIcon());
       });
 
       return;
     }
 
     if (mode === 'ROUTE_READY') {
-      // S3：顯示所有標註（姓名 label）
-      markers.forEach(function (m) { m.setVisible(true); });
+      // S3：顯示所有標註（ROC icon + 姓名 overlay）＋ polyline（由 setMode 控制）
+      markers.forEach(function (m, id) {
+        m.setVisible(true);
+        m.setLabel(null);
+        m.setIcon(buildRocMarkerIcon());
 
-      markers.forEach(function (m) {
-        var t2 = m.getTitle() || '';
-        m.setLabel(t2 ? {
-          text: t2,
-          color: '#1f2937',
-          fontSize: '13px',
-          fontWeight: '600'
-        } : null);
-
-        m.setIcon({
-          path: google.maps.SymbolPath.CIRCLE,
-          scale: 7,
-          fillColor: '#4ca771',
-          fillOpacity: 1,
-          strokeColor: '#ffffff',
-          strokeWeight: 2
-        });
+        var ov = labelOverlays.get(id);
+        if (ov) ov.setVisible(true);
       });
 
       return;
