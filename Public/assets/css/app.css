@@ -516,11 +516,22 @@
 
 /* 手機：用 safe-area；桌機：另外給固定保留距離 */
 :root{
-  --safe-bottom: env(safe-area-inset-bottom, 0px);
-  --desktop-bottom: 0px;
-  --mobile-ui-bottom: 0px;
-  --ui-bottom: calc(var(--safe-bottom) + var(--desktop-bottom));
+  --toolbar-h: 64px; /* 預設值，JS 會覆蓋 */
+  --safe-top: env(safe-area-inset-top, 0px);
+  --fab-gap: 12px;
+  --fab-step: 52px; /* 一顆 FAB 高度+間距(40+12) */
 }
+
+.fab-primary{
+  top: calc(var(--safe-top) + var(--toolbar-h) + var(--fab-gap));
+  bottom: auto;
+}
+
+.fab-secondary{
+  top: calc(var(--safe-top) + var(--toolbar-h) + var(--fab-gap) + var(--fab-step));
+  bottom: auto;
+}
+
 
 /* 桌機（滑鼠/精準指標）：預留工作列空間，避免被吃掉 */
 @media (hover: hover) and (pointer: fine) {
@@ -577,16 +588,4 @@
   display: flex;
   justify-content: center;
   gap: 10px;
-}
-
-/* 右上角第一顆（上） */
-.fab-primary{
-  top: calc(64px + 12px);   /* 64 = toolbar 高度 */
-  bottom: auto;
-}
-
-/* 右上角第二顆（下） */
-.fab-secondary{
-  top: calc(64px + 12px + 52px); /* 52 = 一顆 FAB 高度 + 間距 */
-  bottom: auto;
 }

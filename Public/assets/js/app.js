@@ -47,6 +47,23 @@ document.addEventListener('DOMContentLoaded', function () {
 
   var navUserNameEl = document.getElementById('nav-user-name');
 
+  // ====== FIX: 動態設定 toolbar 高度，給 FAB 定位用 ======
+  (function syncToolbarHeight() {
+    var toolbar = document.querySelector('.app-toolbar');
+    if (!toolbar) return;
+
+    function apply() {
+      var h = toolbar.getBoundingClientRect().height || toolbar.offsetHeight || 64;
+      document.documentElement.style.setProperty('--toolbar-h', Math.ceil(h) + 'px');
+    }
+
+    apply();
+    window.addEventListener('resize', apply, { passive: true });
+    window.addEventListener('orientationchange', apply, { passive: true });
+    // 有些手機字型/載入會延後改高度，補一次
+    setTimeout(apply, 250);
+  })();
+
   if (typeof MapModule === 'undefined') {
     console.error('MapModule 未定義，請確認 map.js 是否有正確載入。');
     return;
