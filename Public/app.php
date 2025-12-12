@@ -1,15 +1,17 @@
 <?php
 /**
  * Path: Public/app.php
- * 說明: 主地圖頁（S1 瀏覽 / S2 路線規劃 / S3 路線完成）— 地圖 + FAB + 底部抽屜 + S3 底部操作條
+ * 說明: 主地圖頁（S1 瀏覽 / S2 路線規劃 / S3 路線完成）
  */
 
 declare(strict_types=1);
 
-// 先載入設定與 helper
 require_once __DIR__ . '/../config/app.php';
+require_once __DIR__ . '/../config/auth.php';
 
-// 頁面標題與專用 CSS
+// A2/A3：主頁必須登入
+require_login_page();
+
 $pageTitle = APP_NAME;
 $pageCss = [
     'assets/css/layout.css',
@@ -25,37 +27,9 @@ $pageCss = [
 <?php require __DIR__ . '/partials/flash.php'; ?>
 
 <main class="app-main">
-  <!-- 上方工具列（標題 + 搜尋列 + 登出） -->
-  <header class="app-toolbar">
-    <div class="app-toolbar__left">
-      <h1 class="app-title">遺眷親訪地圖</h1>
-    </div>
-
-    <div class="app-toolbar__center">
-      <div class="search-bar">
-        <span class="search-bar__icon">🔍</span>
-        <input
-          id="map-search-input"
-          type="text"
-          class="search-bar__input"
-          placeholder="搜尋地址或地標（僅定位，不自動新增標記）"
-          autocomplete="off"
-        />
-      </div>
-    </div>
-
-    <div class="app-toolbar__right">
-      <button id="btn-logout" type="button" class="btn btn-outline">
-        登出
-      </button>
-    </div>
-  </header>
-
-  <!-- 主內容：地圖 + 浮動按鈕 + 底部抽屜 -->
   <section class="app-content">
     <div id="map" class="app-map"></div>
 
-    <!-- 右下角浮動按鈕：目前位置 -->
     <button
       id="btn-my-location"
       class="fab fab-primary"
@@ -65,7 +39,6 @@ $pageCss = [
       目前位置
     </button>
 
-    <!-- 右下角第二顆 FAB：進入路線規劃模式（S2） -->
     <button
       id="btn-route-mode"
       class="fab fab-secondary"
@@ -76,7 +49,7 @@ $pageCss = [
       <span id="route-badge" class="fab-badge" aria-hidden="true">0</span>
     </button>
 
-    <!-- 底部資訊卡：S1（一般瀏覽模式）專屬 -->
+    <!-- S1 資訊抽屜 -->
     <div id="sheet-place" class="bottom-sheet bottom-sheet--place">
       <div class="bottom-sheet__inner">
         <header class="bottom-sheet__header">
@@ -124,7 +97,7 @@ $pageCss = [
       </div>
     </div>
 
-    <!-- 底部抽屜：S2（路線規劃模式）固定存在 -->
+    <!-- S2 路線規劃抽屜 -->
     <div id="sheet-route" class="bottom-sheet bottom-sheet--route">
       <div class="bottom-sheet__inner">
         <header class="bottom-sheet__header">
@@ -139,9 +112,7 @@ $pageCss = [
           </button>
         </header>
 
-        <div id="route-list" class="route-list">
-          <!-- 由 JS 動態產生每一個路線點 -->
-        </div>
+        <div id="route-list" class="route-list"></div>
 
         <footer class="bottom-sheet__footer">
           <div class="route-summary">
@@ -162,7 +133,7 @@ $pageCss = [
       </div>
     </div>
 
-    <!-- S3（路線完成／執行模式）底部固定操作區：Google 導航 / 重新規劃 -->
+    <!-- S3 底部操作 -->
     <div id="route-actions" class="route-actions" aria-hidden="true">
       <button id="btn-route-open-gmaps" type="button" class="btn btn-primary">
         用 Google 地圖導航
@@ -172,19 +143,13 @@ $pageCss = [
       </button>
     </div>
 
-    <!-- 新增/編輯標記表單 -->
+    <!-- 新增/編輯標記 -->
     <div id="modal-place-form" class="modal" aria-hidden="true">
       <div class="modal__backdrop" data-modal-close="modal-place-form"></div>
       <div class="modal__dialog">
         <header class="modal__header">
           <h2 id="modal-place-title" class="modal__title">新增標記</h2>
-          <button
-            type="button"
-            class="modal__close"
-            data-modal-close="modal-place-form"
-          >
-            ✕
-          </button>
+          <button type="button" class="modal__close" data-modal-close="modal-place-form">✕</button>
         </header>
 
         <div class="modal__body">
@@ -193,12 +158,7 @@ $pageCss = [
 
             <div class="form-row">
               <label for="place-soldier-name">官兵姓名（必填）</label>
-              <input
-                id="place-soldier-name"
-                name="soldier_name"
-                type="text"
-                required
-              />
+              <input id="place-soldier-name" name="soldier_name" type="text" required />
             </div>
 
             <div class="form-row">
@@ -213,60 +173,33 @@ $pageCss = [
 
             <div class="form-row">
               <label for="place-target-name">訪問對象</label>
-              <input
-                id="place-target-name"
-                name="target_name"
-                type="text"
-              />
+              <input id="place-target-name" name="target_name" type="text" />
             </div>
 
             <div class="form-row">
               <label for="place-address">地址</label>
-              <input
-                id="place-address"
-                name="address"
-                type="text"
-                readonly
-              />
-              <small class="form-help">
-                會自動帶入你在地圖上點選的位置（可之後再提供手動修正）。
-              </small>
+              <input id="place-address" name="address" type="text" readonly />
+              <small class="form-help">會自動帶入你在地圖上點選的位置（可之後再提供手動修正）。</small>
             </div>
 
             <div class="form-row">
               <label for="place-note">備註</label>
-              <textarea
-                id="place-note"
-                name="note"
-                rows="3"
-              ></textarea>
+              <textarea id="place-note" name="note" rows="3"></textarea>
             </div>
           </form>
         </div>
 
         <footer class="modal__footer">
-          <button
-            type="button"
-            class="btn btn-ghost"
-            data-modal-close="modal-place-form"
-          >
-            取消
-          </button>
-          <button id="btn-place-save" type="button" class="btn btn-primary">
-            儲存
-          </button>
+          <button type="button" class="btn btn-ghost" data-modal-close="modal-place-form">取消</button>
+          <button id="btn-place-save" type="button" class="btn btn-primary">儲存</button>
         </footer>
       </div>
     </div>
   </section>
 </main>
 
-<!-- Google Maps JS：取消 async / defer，確保先載入，再跑 map.js / app.js -->
-<script
-  src="https://maps.googleapis.com/maps/api/js?key=<?= htmlspecialchars(google_maps_key(), ENT_QUOTES) ?>&libraries=places"
-></script>
+<script src="https://maps.googleapis.com/maps/api/js?key=<?= htmlspecialchars(google_maps_key(), ENT_QUOTES) ?>&libraries=places"></script>
 
-<!-- 共用前端工具（使用 asset_url 自動帶版本號） -->
 <script src="<?= asset_url('assets/js/api.js') ?>"></script>
 <script src="<?= asset_url('assets/js/places.js') ?>"></script>
 <script src="<?= asset_url('assets/js/map.js') ?>"></script>

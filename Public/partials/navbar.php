@@ -1,3 +1,42 @@
 <?php
-// TODO: Navigation bar
+/**
+ * Path: Public/partials/navbar.php
+ * 說明: 固定 Header（A3）
+ * - Logo
+ * - 系統名稱
+ * - 目前登入：使用者姓名（由 app.js 取得 /api/auth/me 後填入）
+ * - 登出
+ */
 ?>
+<header class="app-toolbar">
+  <div class="app-toolbar__left">
+    <img
+      src="<?= asset_url('assets/img/logo.png') ?>"
+      alt="Logo"
+      style="width:28px;height:28px;border-radius:6px;object-fit:contain;"
+    />
+    <h1 class="app-title" style="margin-left:10px;"><?= htmlspecialchars(APP_NAME, ENT_QUOTES, 'UTF-8') ?></h1>
+  </div>
+
+  <div class="app-toolbar__center">
+    <div class="search-bar">
+      <span class="search-bar__icon">🔍</span>
+      <input
+        id="map-search-input"
+        type="text"
+        class="search-bar__input"
+        placeholder="搜尋地址或地標（僅定位，不自動新增標記）"
+        autocomplete="off"
+      />
+    </div>
+  </div>
+
+  <div class="app-toolbar__right">
+    <div id="nav-user" style="font-size:13px;color:#374151;white-space:nowrap;">
+      目前登入：<span id="nav-user-name">—</span>
+    </div>
+    <button id="btn-logout" type="button" class="btn btn-outline">
+      登出
+    </button>
+  </div>
+</header>
