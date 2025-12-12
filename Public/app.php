@@ -141,9 +141,10 @@ $pageCss = [
                 已進入路線規劃模式，請依順序點選要拜訪的地點（點已加入可移除）。
               </div>
             </div>
-            <button id="btn-route-exit" type="button" class="bottom-sheet__link">
-              退出規劃
+            <button id="btn-route-close" type="button" class="bottom-sheet__close">
+              ✕
             </button>
+
           </header>
 
           <div id="route-list" class="route-list"></div>
@@ -154,6 +155,13 @@ $pageCss = [
               <span id="route-duration">時間：—</span>
             </div>
             <div class="bottom-sheet__footer-actions">
+              <button
+                id="btn-route-exit"
+                type="button"
+                class="btn btn-danger">
+                退出規劃
+              </button>
+
               <button
                 id="btn-route-commit"
                 type="button"

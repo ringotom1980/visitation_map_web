@@ -163,6 +163,9 @@ var MapModule = (function () {
       (options.onMapLongPressForNewPlace || options.onMapClickForNewPlace);
 
     map.addListener('click', function (evt) {
+      if (mode === 'ROUTE_PLANNING') {
+        document.dispatchEvent(new CustomEvent('map:blankClick'));
+      }
       // 規格：S2/S3 點地圖空白不做行為；這裡也不做新增
       if (mode !== 'BROWSE') return;
 

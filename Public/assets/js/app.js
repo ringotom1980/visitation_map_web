@@ -84,6 +84,13 @@ document.addEventListener('DOMContentLoaded', function () {
   initMyLocationNonBlocking();
   applyMode(Mode.BROWSE);
 
+  // S2：路線規劃模式下，點地圖空白處要收起抽屜
+  document.addEventListener('map:blankClick', function () {
+    if (state.mode === Mode.ROUTE_PLANNING) {
+      closeSheet('sheet-route'); // 只收起，不退出模式
+    }
+  });
+
   if (btnMyLocation) {
     btnMyLocation.addEventListener('click', function () {
       requestMyLocation(true);
@@ -167,7 +174,13 @@ document.addEventListener('DOMContentLoaded', function () {
       // S2：你要求 S2 不應從資訊抽屜操作（而且 S2 也不會開 sheet-place）
       if (state.mode !== Mode.BROWSE) return;
 
-      addPlaceToRouteAndEnterPlanning(state.currentPlace);
+      var action = btnPlaceAddRoute.dataset.action || 'add';
+      if (action === 'remove') {
+        removePlaceFromRoute(state.currentPlace.id);
+      } else {
+        addPlaceToRouteAndEnterPlanning(state.currentPlace);
+      }
+
     });
   }
 
@@ -496,7 +509,7 @@ document.addEventListener('DOMContentLoaded', function () {
     updateRouteBadge();
   }
 
-    function addPlaceToRouteAndEnterPlanning(place) {
+  function addPlaceToRouteAndEnterPlanning(place) {
     ensureStartPoint();
 
     // 已在路線就不重複加入
@@ -506,6 +519,26 @@ document.addEventListener('DOMContentLoaded', function () {
     }
 
     // ✅ 需求：加入後不自動切換到 S2，只要收起抽屜並更新樣式/徽章
+    closeSheet('sheet-place');
+    state.currentPlace = null;
+    collapsePlaceDetails(true);
+
+    MapModule.setMode(state.mode, state.routePoints);
+    updateCommitState();
+    updateRouteBadge();
+  }
+
+  function removePlaceFromRoute(placeId) {
+    ensureStartPoint();
+
+    // 不移除起點
+    if (placeId === '__me') return;
+
+    state.routePoints = state.routePoints.filter(function (p) {
+      return p && p.id !== placeId;
+    });
+
+    // 收起抽屜、更新地圖與徽章（S1 行為）
     closeSheet('sheet-place');
     state.currentPlace = null;
     collapsePlaceDetails(true);
@@ -545,6 +578,24 @@ document.addEventListener('DOMContentLoaded', function () {
     var lat = (place.lat !== undefined && place.lat !== null) ? String(place.lat) : '';
     var lng = (place.lng !== undefined && place.lng !== null) ? String(place.lng) : '';
     setText('sheet-place-latlng', (lat && lng) ? (lat + ', ' + lng) : '—');
+    // S1：抽屜內按鈕要依是否已加入路線切換：加入路線 / 取消路線
+    var btnAdd = document.getElementById('btn-place-add-route');
+    if (btnAdd) {
+      var inRoute = indexOfRoutePoint(place.id) >= 0;
+
+      if (inRoute) {
+        btnAdd.textContent = '取消路線';
+        btnAdd.classList.remove('btn-primary');
+        btnAdd.classList.add('btn-danger');
+        btnAdd.dataset.action = 'remove';
+      } else {
+        btnAdd.textContent = '加入路線';
+        btnAdd.classList.remove('btn-danger');
+        btnAdd.classList.add('btn-primary');
+        btnAdd.dataset.action = 'add';
+      }
+    }
+
   }
 
   function setText(id, text) {
@@ -827,9 +878,12 @@ document.addEventListener('DOMContentLoaded', function () {
   function closeSheet(id) {
     var el = document.getElementById(id);
     if (!el) return;
-    if (id === 'sheet-route' && state.mode === Mode.ROUTE_PLANNING) return;
+
+    // ✅允許在 S2 也能用 X 收起「路線規劃抽屜」
+    // （收起不等於退出模式；退出模式走 btnRouteExit 的流程）
     el.classList.remove('bottom-sheet--open');
   }
+
 
   function openModal(id) {
     var el = document.getElementById(id);

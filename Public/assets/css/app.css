@@ -632,3 +632,9 @@
 .place-details.is-expanded{
   display: block;
 }
+
+.btn-danger {
+  background: #e53935;
+  border-color: #e53935;
+  color: #ffffff;
+}
