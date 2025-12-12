@@ -2,7 +2,8 @@
  * Path: Public/assets/css/app.css
  * 說明: 主地圖介面（S1 瀏覽 / S2 路線規劃 / S3 路線完成）
  *       - Bottom Sheet / Modal / FAB / S3 底部操作條（route-actions）
- *       - 修正：新增 route-badge 與 route-actions 樣式（不影響既有布局）
+ *       - 含 route-badge 樣式
+ *       - 補齊 S2 路線清單拖曳排序 UI（route-item--fixed / --dragging / --over）
  */
 
 /* =========================================
@@ -301,6 +302,7 @@
   margin-bottom: 4px;
   background: #f7f7f7;
   cursor: grab;
+  user-select: none;
 }
 
 .route-item__index {
@@ -321,13 +323,6 @@
   font-size: 13px;
 }
 
-.route-item__handle {
-  cursor: grab;
-  font-size: 16px;
-  margin-left: 6px;
-  color: #aaaaaa;
-}
-
 .route-item__remove {
   border: none;
   background: none;
@@ -335,6 +330,29 @@
   font-size: 14px;
   margin-left: 4px;
   color: #b71c1c;
+}
+
+/* ====== 補齊：S2 拖曳排序視覺狀態 ====== */
+/* 起點固定列 */
+.route-item--fixed {
+  cursor: default;
+  opacity: 0.92;
+  background: #f2f7f4;
+}
+
+.route-item--fixed .route-item__remove {
+  display: none;
+}
+
+/* 拖曳中 */
+.route-item--dragging {
+  opacity: 0.55;
+}
+
+/* 拖曳 hover 目標 */
+.route-item--over {
+  outline: 2px dashed rgba(76, 167, 113, 0.55);
+  outline-offset: 2px;
 }
 
 /* 路線摘要 */

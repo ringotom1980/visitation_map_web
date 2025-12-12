@@ -1,21 +1,23 @@
-/*layout.css*/
+/**
+ * Path: Public/assets/css/layout.css
+ * 說明: 版面布局骨架（全站通用）
+ *       - 負責：滿高、外層不捲動、讓頁面容器可用 flex 撐滿高度
+ *       - 不負責：字體/背景/顏色（交給 base.css 與各頁 app.css）
+ */
 
 html,
 body {
   margin: 0;
   padding: 0;
   height: 100%;
-  font-family: "Noto Sans TC", "Microsoft JhengHei", sans-serif;
-  -webkit-font-smoothing: antialiased;
-  overflow: hidden; /* ★ 外層不要捲動 */
+  overflow: hidden; /* ★ 外層不要捲動（地圖頁避免雙捲軸） */
 }
 
-/* 讓 body 允許 flex 佈局高度傳遞給地圖 */
+/* 讓 body 允許 flex 佈局高度傳遞給內容區 */
 body {
   display: flex;
   flex-direction: column;
   min-height: 100vh;
-  background: #f5f5f5;
 }
 
 /* 頁面容器：負責把內容撐到滿高 */
@@ -24,4 +26,5 @@ body {
   display: flex;
   flex-direction: column;
   min-height: 100vh;
+  min-height: 100dvh; /* 行動裝置新視窗高度（支援者優先） */
 }
