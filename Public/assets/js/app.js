@@ -217,12 +217,10 @@ document.addEventListener('DOMContentLoaded', function () {
     }
   });
 
-  // S2：路線規劃模式下點地圖空白 → 收起抽屜（點標註點除外）
+  // S2：路線規劃模式下點地圖空白 → 離開規劃（保留清單、不詢問）
   document.addEventListener('map:blankClick', function () {
-    if (state.mode !== Mode.ROUTE_PLANNING) return;
-    closeSheet('sheet-route');
+    exitPlanningSilent();
   });
-
 
   function loadMeNonBlocking() {
     apiRequest('/auth/me', 'GET')
@@ -314,6 +312,28 @@ document.addEventListener('DOMContentLoaded', function () {
 
     updateRouteBadge();
   }
+
+  // 離開路線規劃模式（不詢問、保留已加入點）
+  function exitPlanningSilent() {
+    if (state.mode !== Mode.ROUTE_PLANNING) return;
+
+    // 關抽屜（如果是開著）
+    // 注意：你原本 closeSheet('sheet-route') 在規劃模式會被擋，所以這裡先不要靠 closeSheet
+    // 直接移除 class 才能真的收起來
+    var el = document.getElementById('sheet-route');
+    if (el) el.classList.remove('bottom-sheet--open');
+
+    applyMode(Mode.BROWSE); // 回到 S1，保留 state.routePoints 不動
+  }
+
+  const btnRouteClose = document.getElementById('btn-route-close');
+
+  if (btnRouteClose) {
+    btnRouteClose.addEventListener('click', function () {
+      exitPlanningSilent();
+    });
+  }
+
 
   function applyModeGuards() {
     var isBrowse = (state.mode === Mode.BROWSE);
