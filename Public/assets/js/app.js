@@ -1,9 +1,9 @@
 // Path: Public/assets/js/app.js
 // 說明: 主地圖頁前端控制器 — 三態狀態機（S1/S2/S3）、抽屜/Modal、路線點管理、Google 導航與重新規劃
-// A1/A2/A3(部分)：
-// - A1：模式防呆（S2 禁止資訊抽屜/編輯刪除；S3 禁止加入路線）
-// - A2：登入後立即定位（GPS -> fallback 使用者縣市中心）
-// - A3：Header 顯示登入者姓名（透過 /api/auth/me）
+// C｜S1 資訊抽屜：
+// - C1：點 marker 打開抽屜（簡略資訊）
+// - C2：詳細資訊展開/收合（不跳頁）
+// - C3：抽屜動作：加入路線/編輯/刪除（S2 禁止 edit/delete，S3 禁止加入路線）
 
 document.addEventListener('DOMContentLoaded', function () {
   var Mode = {
@@ -17,8 +17,8 @@ document.addEventListener('DOMContentLoaded', function () {
     currentPlace: null,
     placesCache: [],
     routePoints: [],
-    me: null,                 // 由 /api/auth/me 取得
-    fallbackCenter: null       // {lat,lng}：縣市中心
+    me: null,
+    fallbackCenter: null
   };
 
   var myLocationPoint = null;
@@ -39,6 +39,9 @@ document.addEventListener('DOMContentLoaded', function () {
   var btnPlaceSave = document.getElementById('btn-place-save');
   var btnPlaceEdit = document.getElementById('btn-place-edit');
   var btnPlaceDelete = document.getElementById('btn-place-delete');
+  var btnPlaceAddRoute = document.getElementById('btn-place-add-route');
+  var btnPlaceDetail = document.getElementById('btn-place-detail');
+
   var btnLogout = document.getElementById('btn-logout');
 
   var routeListEl = document.getElementById('route-list');
@@ -46,6 +49,9 @@ document.addEventListener('DOMContentLoaded', function () {
   var routeActionsEl = document.getElementById('route-actions');
 
   var navUserNameEl = document.getElementById('nav-user-name');
+
+  // 詳細區 DOM
+  var detailsWrap = document.getElementById('sheet-place-details');
 
   // ====== FIX: 動態設定 toolbar 高度，給 FAB 定位用 ======
   (function syncToolbarHeight() {
@@ -60,7 +66,6 @@ document.addEventListener('DOMContentLoaded', function () {
     apply();
     window.addEventListener('resize', apply, { passive: true });
     window.addEventListener('orientationchange', apply, { passive: true });
-    // 有些手機字型/載入會延後改高度，補一次
     setTimeout(apply, 250);
   })();
 
@@ -74,9 +79,7 @@ document.addEventListener('DOMContentLoaded', function () {
     onMapLongPressForNewPlace: handleMapLongPressForNewPlace
   });
 
-  // A2/A3：先載入 me（非阻塞 UI），再初始化定位 fallback
   loadMeNonBlocking();
-
   refreshPlaces();
   initMyLocationNonBlocking();
   applyMode(Mode.BROWSE);
@@ -140,7 +143,6 @@ document.addEventListener('DOMContentLoaded', function () {
 
   if (btnPlaceEdit) {
     btnPlaceEdit.addEventListener('click', function () {
-      // A1：S2 禁止編輯/刪除
       if (state.mode !== Mode.BROWSE) return;
       if (!state.currentPlace) return;
       openPlaceFormForEdit(state.currentPlace);
@@ -149,9 +151,31 @@ document.addEventListener('DOMContentLoaded', function () {
 
   if (btnPlaceDelete) {
     btnPlaceDelete.addEventListener('click', function () {
-      // A1：S2 禁止編輯/刪除
       if (state.mode !== Mode.BROWSE) return;
       handlePlaceDelete();
+    });
+  }
+
+  // C3：加入路線（從 S1 抽屜）
+  if (btnPlaceAddRoute) {
+    btnPlaceAddRoute.addEventListener('click', function () {
+      if (!state.currentPlace) return;
+
+      // S3：禁止加入路線（避免完成後又改）
+      if (state.mode === Mode.ROUTE_READY) return;
+
+      // S2：你要求 S2 不應從資訊抽屜操作（而且 S2 也不會開 sheet-place）
+      if (state.mode !== Mode.BROWSE) return;
+
+      addPlaceToRouteAndEnterPlanning(state.currentPlace);
+    });
+  }
+
+  // C2：詳細展開/收合（不跳頁）
+  if (btnPlaceDetail) {
+    btnPlaceDetail.addEventListener('click', function () {
+      if (state.mode !== Mode.BROWSE) return;
+      togglePlaceDetails();
     });
   }
 
@@ -177,22 +201,17 @@ document.addEventListener('DOMContentLoaded', function () {
     if (target && (target.matches('[data-modal-close]') || target.matches('.modal__backdrop'))) {
       var id = target.getAttribute('data-modal-close') || 'modal-place-form';
       closeModal(id);
-
       if (MapModule.clearTempNewPlaceLatLng) MapModule.clearTempNewPlaceLatLng();
     }
 
     if (target && target.matches('[data-sheet-close]')) {
       var sid = target.getAttribute('data-sheet-close');
-
-      // A1：S2 規格「抽屜不會因點空白而關閉」，且 route 抽屜不允許用 X 關（只允許退出規劃按鈕）
       if (sid === 'sheet-route') return;
-
       closeSheet(sid);
     }
   });
 
   function loadMeNonBlocking() {
-    // 只拿來：A2 fallback 中心點、A3 header 姓名
     apiRequest('/auth/me', 'GET')
       .then(function (me) {
         state.me = me || null;
@@ -201,12 +220,8 @@ document.addEventListener('DOMContentLoaded', function () {
           navUserNameEl.textContent = me.name;
         }
 
-        // A2：桌機 / GPS 失敗 fallback
         if (me && isFinite(me.county_center_lat) && isFinite(me.county_center_lng)) {
           state.fallbackCenter = { lat: Number(me.county_center_lat), lng: Number(me.county_center_lng) };
-
-          // 若目前還沒定位到，且還沒產生 myLocationPoint，先用縣市中心做「不阻塞」置中
-          // 注意：這不是把起點固定成縣市中心；起點仍以 GPS 為主，這只是畫面初始化用。
           if (!myLocationPoint && MapModule && MapModule.showMyLocation) {
             MapModule.showMyLocation(state.fallbackCenter.lat, state.fallbackCenter.lng);
           }
@@ -238,7 +253,6 @@ document.addEventListener('DOMContentLoaded', function () {
         );
 
         MapModule.setMode(state.mode, state.routePoints);
-
         updateRouteBadge();
       })
       .catch(function (err) {
@@ -250,7 +264,6 @@ document.addEventListener('DOMContentLoaded', function () {
   function applyMode(nextMode) {
     state.mode = nextMode;
 
-    // A1：模式進出時 UI 防呆（哪些按鈕可用）
     applyModeGuards();
 
     if (state.mode === Mode.BROWSE) {
@@ -262,7 +275,7 @@ document.addEventListener('DOMContentLoaded', function () {
       setCommitEnabled(false);
 
     } else if (state.mode === Mode.ROUTE_PLANNING) {
-      closeSheet('sheet-place');        // A1：S2 禁止資訊抽屜
+      closeSheet('sheet-place');
       openSheet('sheet-route');
       hideRouteActions();
 
@@ -290,18 +303,19 @@ document.addEventListener('DOMContentLoaded', function () {
   }
 
   function applyModeGuards() {
-    // A1：S2 禁止資訊抽屜的操作鈕（編輯/刪除/詳細）
-    var detailBtn = document.getElementById('btn-place-detail');
     var isBrowse = (state.mode === Mode.BROWSE);
 
     if (btnPlaceEdit) btnPlaceEdit.disabled = !isBrowse;
     if (btnPlaceDelete) btnPlaceDelete.disabled = !isBrowse;
-    if (detailBtn) detailBtn.disabled = !isBrowse;
+    if (btnPlaceDetail) btnPlaceDetail.disabled = !isBrowse;
 
-    // A1：S2/S3 期間不要開 place sheet（若已開，直接關）
+    // C3：加入路線在 S1 才能按；S3 也禁用
+    if (btnPlaceAddRoute) btnPlaceAddRoute.disabled = !(state.mode === Mode.BROWSE);
+
     if (!isBrowse) {
       closeSheet('sheet-place');
       state.currentPlace = null;
+      collapsePlaceDetails(true);
     }
   }
 
@@ -336,9 +350,7 @@ document.addEventListener('DOMContentLoaded', function () {
   }
 
   function requestMyLocation(panTo) {
-    // 手機 GPS：優先
     if (!navigator.geolocation) {
-      // A2：不支援定位 -> fallback
       panToFallbackIfNeeded();
       return;
     }
@@ -367,21 +379,12 @@ document.addEventListener('DOMContentLoaded', function () {
           MapModule.setMode(state.mode, state.routePoints);
           updateCommitState();
         }
-
-        if (panTo) {
-          // showMyLocation 已 panTo
-        }
       },
       function (err) {
         console.warn('geolocation fail:', err && err.message ? err.message : err);
-        // A2：定位失敗 -> fallback
         panToFallbackIfNeeded();
       },
-      {
-        enableHighAccuracy: true,
-        timeout: 6000,
-        maximumAge: 30000
-      }
+      { enableHighAccuracy: true, timeout: 6000, maximumAge: 30000 }
     );
   }
 
@@ -393,7 +396,6 @@ document.addEventListener('DOMContentLoaded', function () {
 
   function ensureStartPoint() {
     if (!myLocationPoint) {
-      // 若尚未 GPS，但有縣市中心，起點顯示「未定位」且用縣市中心座標（可畫線、可導航）
       if (state.fallbackCenter && isFinite(state.fallbackCenter.lat) && isFinite(state.fallbackCenter.lng)) {
         myLocationPoint = {
           id: '__me',
@@ -445,12 +447,10 @@ document.addEventListener('DOMContentLoaded', function () {
   }
 
   function handleSearchPlaceSelected(place) {
-    // 這裡暫時只做定位；後續 G1 再補搜尋清單/高亮
     console.log('搜尋定位結果：', place.formatted_address || place.name || '');
   }
 
   function handleMapLongPressForNewPlace(latLng, address) {
-    // A1：只有 S1 允許新增
     if (state.mode !== Mode.BROWSE) return;
 
     if (placeForm && placeForm.reset) placeForm.reset();
@@ -467,16 +467,17 @@ document.addEventListener('DOMContentLoaded', function () {
   }
 
   function handleMarkerClickInBrowseMode(place) {
-    // A1：S1 專屬
     if (state.mode !== Mode.BROWSE) return;
 
     state.currentPlace = place;
+
     fillPlaceSheet(place);
+    collapsePlaceDetails(true);
+
     openSheet('sheet-place');
   }
 
   function handleMarkerClickInRoutePlanningMode(place) {
-    // A1：S2 專屬
     if (state.mode !== Mode.ROUTE_PLANNING) return;
 
     ensureStartPoint();
@@ -493,6 +494,28 @@ document.addEventListener('DOMContentLoaded', function () {
     MapModule.setMode(state.mode, state.routePoints);
     updateCommitState();
     updateRouteBadge();
+  }
+
+  function addPlaceToRouteAndEnterPlanning(place) {
+    ensureStartPoint();
+
+    // 已在路線就不重複加入
+    var idx = indexOfRoutePoint(place.id);
+    if (idx < 0) {
+      state.routePoints.push(place);
+    }
+
+    // 進入 S2（保留既有點）
+    applyMode(Mode.ROUTE_PLANNING);
+
+    // 讓路線清單立即刷新（applyMode 內已 render，但保險起見）
+    renderRouteList();
+    MapModule.setMode(state.mode, state.routePoints);
+    updateCommitState();
+    updateRouteBadge();
+
+    // 規格：加入後不留在 S1 抽屜
+    closeSheet('sheet-place');
   }
 
   function indexOfRoutePoint(id) {
@@ -514,6 +537,59 @@ document.addEventListener('DOMContentLoaded', function () {
     if (elAddr) elAddr.textContent = place.address || '—';
     if (elTarget) elTarget.textContent = place.target_name || '—';
     if (elNote) elNote.textContent = place.note || '—';
+
+    // C2 詳細欄位（place 可能沒有某些欄位，沒有就顯示 —）
+    setText('sheet-place-visit-name', place.visit_name || '—');
+    setText('sheet-place-township', place.township || '—');
+    setText('sheet-place-created-at', formatDateTime(place.created_at) || '—');
+    setText('sheet-place-updated-at', formatDateTime(place.updated_at) || '—');
+
+    var lat = (place.lat !== undefined && place.lat !== null) ? String(place.lat) : '';
+    var lng = (place.lng !== undefined && place.lng !== null) ? String(place.lng) : '';
+    setText('sheet-place-latlng', (lat && lng) ? (lat + ', ' + lng) : '—');
+  }
+
+  function setText(id, text) {
+    var el = document.getElementById(id);
+    if (!el) return;
+    el.textContent = (text === undefined || text === null || text === '') ? '—' : String(text);
+  }
+
+  function formatDateTime(v) {
+    if (!v) return '';
+    // 後端可能是 "YYYY-MM-DD HH:mm:ss"；直接顯示即可（避免時區誤轉）
+    return String(v);
+  }
+
+  // ===== C2：詳細展開/收合 =====
+  function togglePlaceDetails() {
+    if (!detailsWrap) return;
+
+    var collapsed = detailsWrap.classList.contains('is-collapsed');
+    if (collapsed) {
+      expandPlaceDetails();
+    } else {
+      collapsePlaceDetails(false);
+    }
+  }
+
+  function expandPlaceDetails() {
+    if (!detailsWrap) return;
+    detailsWrap.classList.remove('is-collapsed');
+    detailsWrap.classList.add('is-expanded');
+    detailsWrap.setAttribute('aria-hidden', 'false');
+
+    if (btnPlaceDetail) btnPlaceDetail.textContent = '收合';
+  }
+
+  function collapsePlaceDetails(force) {
+    if (!detailsWrap) return;
+
+    detailsWrap.classList.remove('is-expanded');
+    detailsWrap.classList.add('is-collapsed');
+    detailsWrap.setAttribute('aria-hidden', 'true');
+
+    if (btnPlaceDetail) btnPlaceDetail.textContent = '詳細';
   }
 
   function renderRouteList() {
@@ -672,8 +748,6 @@ document.addEventListener('DOMContentLoaded', function () {
 
   async function handlePlaceSave() {
     if (!placeForm) return;
-
-    // A1：只有 S1 允許儲存（避免 S2/S3 誤觸）
     if (state.mode !== Mode.BROWSE) return;
 
     var formData = new FormData(placeForm);
@@ -748,20 +822,14 @@ document.addEventListener('DOMContentLoaded', function () {
   function openSheet(id) {
     var el = document.getElementById(id);
     if (!el) return;
-
-    // A1：S2 禁止打開 place 抽屜
     if (id === 'sheet-place' && state.mode !== Mode.BROWSE) return;
-
     el.classList.add('bottom-sheet--open');
   }
 
   function closeSheet(id) {
     var el = document.getElementById(id);
     if (!el) return;
-
-    // A1：S2 route 抽屜只能用「退出規劃」流程關（避免點 X 或外部關掉造成狀態錯亂）
     if (id === 'sheet-route' && state.mode === Mode.ROUTE_PLANNING) return;
-
     el.classList.remove('bottom-sheet--open');
   }
 

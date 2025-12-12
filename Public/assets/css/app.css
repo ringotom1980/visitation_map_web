@@ -614,3 +614,21 @@
   border: none;
   pointer-events: none;
 }
+
+/* ===============================
+   C2：S1 抽屜「詳細」展開/收合
+   =============================== */
+
+.place-details__divider{
+  height: 1px;
+  background: #eeeeee;
+  margin: 10px 0;
+}
+
+.place-details.is-collapsed{
+  display: none;
+}
+
+.place-details.is-expanded{
+  display: block;
+}
