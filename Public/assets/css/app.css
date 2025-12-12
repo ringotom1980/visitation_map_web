@@ -106,8 +106,8 @@
 }
 
 /* ========== 浮動按鈕（FAB）改為文字 Pill ========== */
-.fab {
-  position: absolute;
+.fab{
+  position: fixed;          /* ★ 由 absolute 改 fixed：不會被地圖容器/高度裁切 */
   right: 16px;
   min-width: 90px;
   height: 40px;
@@ -121,6 +121,7 @@
   justify-content: center;
   box-shadow: 0 4px 10px rgba(0, 0, 0, 0.18);
   transition: transform 0.1s ease, box-shadow 0.1s ease, background 0.1s ease;
+  z-index: 1300;            /* ★ 一定要高於 Google Map */
 }
 
 .fab:hover {
@@ -517,6 +518,7 @@
 :root{
   --safe-bottom: env(safe-area-inset-bottom, 0px);
   --desktop-bottom: 0px;
+  --mobile-ui-bottom: 0px;
   --ui-bottom: calc(var(--safe-bottom) + var(--desktop-bottom));
 }
 
@@ -524,6 +526,7 @@
 @media (hover: hover) and (pointer: fine) {
   :root{
     --desktop-bottom: 56px; /* 你覺得太高可改 48px / 40px */
+    --mobile-ui-bottom: 72px;         /* 先用 72px；不夠再加到 84/96 */
   }
 }
 
@@ -532,7 +535,7 @@
   position: fixed;
   left: 0;
   right: 0;
-  bottom: 0;
+  bottom: calc(var(--safe-bottom) + var(--mobile-ui-bottom)); /* ★ 抬高 */
   z-index: 1200;
   pointer-events: none;
 }
@@ -562,10 +565,10 @@
   position: fixed;
   left: 0;
   right: 0;
-  bottom: 0;
+  bottom: calc(var(--safe-bottom) + var(--mobile-ui-bottom)); /* ★ 抬高 */
   z-index: 1250;
   display: none;
-  padding: 10px 12px calc(10px + var(--ui-bottom));
+  padding: 10px 12px calc(10px + var(--safe-bottom));
   background: rgba(255,255,255,.96);
   border-top: 1px solid #eee;
 }
@@ -577,8 +580,8 @@
 }
 
 /* FAB：一律用同一個底部保留距離 */
-.fab-primary{ bottom: calc(20px + var(--ui-bottom)); }
-.fab-secondary{ bottom: calc(72px + var(--ui-bottom)); }
+.fab-primary{ bottom: calc(20px + var(--safe-bottom) + var(--mobile-ui-bottom)); }
+.fab-secondary{ bottom: calc(72px + var(--safe-bottom) + var(--mobile-ui-bottom)); }
 
 /* route-actions 出現時，FAB 往上讓位（64px 你可依操作列高度調整） */
 body.has-route-actions .fab-primary{
