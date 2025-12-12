@@ -1,15 +1,22 @@
-// Public/assets/js/app.js
+// Path: Public/assets/js/app.js
+// 說明: 主地圖頁前端控制器 — 三態狀態機（S1/S2/S3）、抽屜/Modal、路線點管理、Google 導航與重新規劃
 
 document.addEventListener('DOMContentLoaded', function () {
-  var state = {
-    routeMode: false,
-    currentPlace: null,
-    routePlaces: [] // place 物件陣列
+  var Mode = {
+    BROWSE: 'BROWSE',
+    ROUTE_PLANNING: 'ROUTE_PLANNING',
+    ROUTE_READY: 'ROUTE_READY'
   };
 
-  var myLocationPlace = null;
+  var state = {
+    mode: Mode.BROWSE,
+    currentPlace: null,
+    placesCache: [],
+    routePoints: []
+  };
 
-  // 主要 DOM
+  var myLocationPoint = null;
+
   var sheetPlace = document.getElementById('sheet-place');
   var sheetRoute = document.getElementById('sheet-route');
   var modalPlaceForm = document.getElementById('modal-place-form');
@@ -19,105 +26,83 @@ document.addEventListener('DOMContentLoaded', function () {
   var btnRouteMode = document.getElementById('btn-route-mode');
   var btnRouteExit = document.getElementById('btn-route-exit');
   var btnRouteCommit = document.getElementById('btn-route-commit');
+
   var btnRouteOpenGmaps = document.getElementById('btn-route-open-gmaps');
+  var btnRouteReplan = document.getElementById('btn-route-replan');
 
   var btnPlaceSave = document.getElementById('btn-place-save');
   var btnPlaceEdit = document.getElementById('btn-place-edit');
   var btnPlaceDelete = document.getElementById('btn-place-delete');
+  var btnLogout = document.getElementById('btn-logout');
 
   var routeListEl = document.getElementById('route-list');
-  var btnLogout = document.getElementById('btn-logout');
+  var routeBadgeEl = document.getElementById('route-badge');
+  var routeActionsEl = document.getElementById('route-actions');
 
   if (typeof MapModule === 'undefined') {
     console.error('MapModule 未定義，請確認 map.js 是否有正確載入。');
     return;
   }
 
-  // 初始化地圖：改用「長按新增」 callback
   MapModule.init({
     onSearchPlaceSelected: handleSearchPlaceSelected,
     onMapLongPressForNewPlace: handleMapLongPressForNewPlace
   });
 
-  // 先載入地點列表
   refreshPlaces();
+  initMyLocationNonBlocking();
+  applyMode(Mode.BROWSE);
 
-  /* ========== 事件綁定 ========== */
-
-  // 目前位置：移動畫面，路線模式下當起點
   if (btnMyLocation) {
     btnMyLocation.addEventListener('click', function () {
-      if (!navigator.geolocation) {
-        alert('此裝置不支援定位功能。');
-        return;
-      }
-      navigator.geolocation.getCurrentPosition(
-        function (pos) {
-          var lat = pos.coords.latitude;
-          var lng = pos.coords.longitude;
-
-          myLocationPlace = {
-            id: '__me',
-            soldier_name: '目前位置',
-            category: 'CURRENT',
-            target_name: '',
-            address: '',
-            note: '',
-            lat: lat,
-            lng: lng
-          };
-
-          MapModule.showMyLocation(lat, lng);
-
-          if (state.routeMode) {
-            var exists = state.routePlaces.some(function (p) {
-              return p.id === '__me';
-            });
-            if (!exists) {
-              state.routePlaces.unshift(myLocationPlace);
-              renderRouteList();
-            }
-          }
-        },
-        function (err) {
-          alert('無法取得目前位置：' + err.message);
-        }
-      );
+      requestMyLocation(true);
     });
   }
 
   if (btnRouteMode) {
     btnRouteMode.addEventListener('click', function () {
-      toggleRouteMode(!state.routeMode);
+      applyMode(Mode.ROUTE_PLANNING);
     });
   }
 
   if (btnRouteExit) {
     btnRouteExit.addEventListener('click', function () {
-      toggleRouteMode(false);
+      if (state.mode !== Mode.ROUTE_PLANNING) return;
+
+      var keep = confirm('是否保留已加入的路線清單？\n\n按「確定」保留，按「取消」清空（保留起點）。');
+      if (!keep) {
+        resetRouteKeepStart();
+      }
+      applyMode(Mode.BROWSE);
     });
   }
 
   if (btnRouteCommit) {
     btnRouteCommit.addEventListener('click', function () {
-      if (state.routePlaces.length < 2) {
-        alert('請至少選擇兩個拜訪地點（含目前位置）。');
+      if (!canCommitRoute()) {
+        alert('請至少加入 1 個拜訪點（起點不算）。');
         return;
       }
-      alert('這裡之後可接 Directions API 計算距離/時間。');
+      applyMode(Mode.ROUTE_READY);
     });
   }
 
   if (btnRouteOpenGmaps) {
     btnRouteOpenGmaps.addEventListener('click', function () {
-      if (state.routePlaces.length < 2) {
-        alert('請至少選擇兩個拜訪地點（含目前位置）。');
+      if (state.mode !== Mode.ROUTE_READY) return;
+      var url = MapModule.buildDirectionsUrl(state.routePoints);
+      if (!url) {
+        alert('路線資料不足，無法開啟 Google 導航。');
         return;
       }
-      var url = MapModule.buildDirectionsUrl(state.routePlaces);
-      if (url) {
-        window.open(url, '_blank');
-      }
+      window.open(url, '_blank');
+    });
+  }
+
+  if (btnRouteReplan) {
+    btnRouteReplan.addEventListener('click', function () {
+      if (state.mode !== Mode.ROUTE_READY) return;
+      applyMode(Mode.ROUTE_PLANNING);
     });
   }
 
@@ -151,57 +136,46 @@ document.addEventListener('DOMContentLoaded', function () {
     });
   }
 
-  // modal / sheet 通用關閉
   document.body.addEventListener('click', function (evt) {
     var target = evt.target;
 
-    if (
-      target.matches('[data-modal-close]') ||
-      target.matches('.modal__backdrop')
-    ) {
+    if (target && (target.matches('[data-modal-close]') || target.matches('.modal__backdrop'))) {
       var id = target.getAttribute('data-modal-close') || 'modal-place-form';
       closeModal(id);
+
+      // ★關閉 modal 時清除暫存點位，避免下次誤用
+      if (MapModule.clearTempNewPlaceLatLng) MapModule.clearTempNewPlaceLatLng();
     }
 
-    if (target.matches('[data-sheet-close]')) {
+    if (target && target.matches('[data-sheet-close]')) {
       var sid = target.getAttribute('data-sheet-close');
+      if (sid === 'sheet-route') return;
       closeSheet(sid);
     }
   });
 
-  /* ========== 實作區 ========== */
-
   function refreshPlaces() {
-    fetch('/api/places/list', {
-      credentials: 'same-origin'
-    })
+    return fetch('/api/places/list', { credentials: 'same-origin' })
       .then(function (res) {
         if (!res.ok) throw new Error('HTTP ' + res.status);
         return res.json();
       })
       .then(function (json) {
-        if (!json || typeof json !== 'object') {
-          throw new Error('回傳格式錯誤');
-        }
-        if (!json.success) {
-          throw new Error(
-            (json.error && json.error.message) || '載入地點資料失敗'
-          );
-        }
+        if (!json || typeof json !== 'object') throw new Error('回傳格式錯誤');
+        if (!json.success) throw new Error((json.error && json.error.message) || '載入地點資料失敗');
 
         var places = Array.isArray(json.data) ? json.data : [];
+        state.placesCache = places;
 
-        if (window.MapController && typeof window.MapController.setPlaces === 'function') {
-          window.MapController.setPlaces(
-            places,
-            handleMarkerClickInNormalMode,
-            handleMarkerClickInRouteMode
-          );
-        } else {
-          console.warn('MapController.setPlaces 未定義，僅快取資料');
-        }
+        MapModule.setPlaces(
+          places,
+          handleMarkerClickInBrowseMode,
+          handleMarkerClickInRoutePlanningMode
+        );
 
-        window.MAP_PLACES = places;
+        MapModule.setMode(state.mode, state.routePoints);
+
+        updateRouteBadge();
       })
       .catch(function (err) {
         console.error('refreshPlaces error:', err);
@@ -209,15 +183,160 @@ document.addEventListener('DOMContentLoaded', function () {
       });
   }
 
+  function applyMode(nextMode) {
+    state.mode = nextMode;
+
+    if (state.mode === Mode.BROWSE) {
+      closeSheet('sheet-route');
+      hideRouteActions();
+      MapModule.setMode(Mode.BROWSE, state.routePoints);
+
+      if (btnRouteMode) btnRouteMode.classList.remove('fab--active');
+      setCommitEnabled(false);
+
+    } else if (state.mode === Mode.ROUTE_PLANNING) {
+      closeSheet('sheet-place');
+      openSheet('sheet-route');
+      hideRouteActions();
+
+      ensureStartPoint();
+      MapModule.setMode(Mode.ROUTE_PLANNING, state.routePoints);
+
+      if (btnRouteMode) btnRouteMode.classList.add('fab--active');
+
+      renderRouteList();
+      updateCommitState();
+
+    } else if (state.mode === Mode.ROUTE_READY) {
+      closeSheet('sheet-route');
+      closeSheet('sheet-place');
+
+      ensureStartPoint();
+      MapModule.setMode(Mode.ROUTE_READY, state.routePoints);
+      showRouteActions();
+
+      if (btnRouteMode) btnRouteMode.classList.remove('fab--active');
+      setCommitEnabled(false);
+    }
+
+    updateRouteBadge();
+  }
+
+  function canCommitRoute() {
+    ensureStartPoint();
+    return Array.isArray(state.routePoints) && state.routePoints.length >= 2;
+  }
+
+  function updateCommitState() {
+    setCommitEnabled(canCommitRoute());
+  }
+
+  function setCommitEnabled(enabled) {
+    if (!btnRouteCommit) return;
+    btnRouteCommit.disabled = !enabled;
+  }
+
+  function showRouteActions() {
+    if (!routeActionsEl) return;
+    routeActionsEl.classList.add('route-actions--open');
+    routeActionsEl.setAttribute('aria-hidden', 'false');
+  }
+
+  function hideRouteActions() {
+    if (!routeActionsEl) return;
+    routeActionsEl.classList.remove('route-actions--open');
+    routeActionsEl.setAttribute('aria-hidden', 'true');
+  }
+
+  function initMyLocationNonBlocking() {
+    requestMyLocation(false);
+  }
+
+  function requestMyLocation(panTo) {
+    if (!navigator.geolocation) return;
+
+    navigator.geolocation.getCurrentPosition(
+      function (pos) {
+        var lat = pos.coords.latitude;
+        var lng = pos.coords.longitude;
+
+        myLocationPoint = {
+          id: '__me',
+          soldier_name: '目前位置',
+          category: 'CURRENT',
+          target_name: '',
+          address: '',
+          note: '',
+          lat: lat,
+          lng: lng
+        };
+
+        MapModule.showMyLocation(lat, lng);
+
+        if (state.mode === Mode.ROUTE_PLANNING || state.mode === Mode.ROUTE_READY) {
+          ensureStartPoint();
+          renderRouteList();
+          MapModule.setMode(state.mode, state.routePoints);
+          updateCommitState();
+        }
+
+        if (panTo) {
+          // showMyLocation 已 panTo
+        }
+      },
+      function (err) {
+        console.warn('geolocation fail:', err && err.message ? err.message : err);
+      }
+    );
+  }
+
+  function ensureStartPoint() {
+    if (!myLocationPoint) {
+      myLocationPoint = {
+        id: '__me',
+        soldier_name: '起點（未定位）',
+        category: 'CURRENT',
+        target_name: '',
+        address: '',
+        note: '',
+        lat: null,
+        lng: null
+      };
+    }
+
+    if (!Array.isArray(state.routePoints)) state.routePoints = [];
+
+    if (state.routePoints.length === 0) {
+      state.routePoints.push(myLocationPoint);
+      return;
+    }
+
+    if (state.routePoints[0].id !== '__me') {
+      state.routePoints = state.routePoints.filter(function (p) { return p && p.id !== '__me'; });
+      state.routePoints.unshift(myLocationPoint);
+      return;
+    }
+
+    state.routePoints[0] = myLocationPoint;
+  }
+
+  function resetRouteKeepStart() {
+    ensureStartPoint();
+    state.routePoints = [state.routePoints[0]];
+    renderRouteList();
+    MapModule.setMode(state.mode, state.routePoints);
+    updateCommitState();
+    updateRouteBadge();
+  }
+
   function handleSearchPlaceSelected(place) {
     console.log('搜尋定位結果：', place.formatted_address || place.name || '');
   }
 
-  // 地圖「長按」後，由 map.js 呼叫過來
   function handleMapLongPressForNewPlace(latLng, address) {
-    if (placeForm && placeForm.reset) {
-      placeForm.reset();
-    }
+    if (state.mode !== Mode.BROWSE) return;
+
+    if (placeForm && placeForm.reset) placeForm.reset();
 
     var idInput = document.getElementById('place-id');
     var addrInput = document.getElementById('place-address');
@@ -230,40 +349,38 @@ document.addEventListener('DOMContentLoaded', function () {
     openModal('modal-place-form');
   }
 
-  function handleMarkerClickInNormalMode(place) {
+  function handleMarkerClickInBrowseMode(place) {
+    if (state.mode !== Mode.BROWSE) return;
+
     state.currentPlace = place;
     fillPlaceSheet(place);
     openSheet('sheet-place');
   }
 
-  function handleMarkerClickInRouteMode(place) {
-    var exist = state.routePlaces.some(function (p) {
-      return p.id === place.id;
-    });
-    if (exist) return;
-    state.routePlaces.push(place);
+  function handleMarkerClickInRoutePlanningMode(place) {
+    if (state.mode !== Mode.ROUTE_PLANNING) return;
+
+    ensureStartPoint();
+
+    var idx = indexOfRoutePoint(place.id);
+    if (idx >= 0) {
+      if (place.id === '__me') return;
+      state.routePoints.splice(idx, 1);
+    } else {
+      state.routePoints.push(place);
+    }
+
     renderRouteList();
+    MapModule.setMode(state.mode, state.routePoints);
+    updateCommitState();
+    updateRouteBadge();
   }
 
-  function toggleRouteMode(enabled) {
-    state.routeMode = !!enabled;
-    MapModule.enableRouteMode(enabled);
-
-    if (enabled) {
-      state.routePlaces = [];
-      // 如果已經抓到目前位置，當第一個點
-      if (myLocationPlace) {
-        state.routePlaces.push(myLocationPlace);
-      }
-      renderRouteList();
-      openSheet('sheet-route');
-      if (btnRouteMode) btnRouteMode.classList.add('fab--active');
-    } else {
-      state.routePlaces = [];
-      renderRouteList();
-      closeSheet('sheet-route');
-      if (btnRouteMode) btnRouteMode.classList.remove('fab--active');
+  function indexOfRoutePoint(id) {
+    for (var i = 0; i < state.routePoints.length; i++) {
+      if (state.routePoints[i] && state.routePoints[i].id === id) return i;
     }
+    return -1;
   }
 
   function fillPlaceSheet(place) {
@@ -283,37 +400,228 @@ document.addEventListener('DOMContentLoaded', function () {
   function renderRouteList() {
     if (!routeListEl) return;
 
+    ensureStartPoint();
     routeListEl.innerHTML = '';
-    state.routePlaces.forEach(function (p, index) {
+
+    state.routePoints.forEach(function (p, index) {
       var el = document.createElement('div');
       el.className = 'route-item';
-      el.dataset.id = p.id;
+      el.dataset.id = String(p.id);
+
+      if (index === 0) {
+        el.classList.add('route-item--fixed');
+      } else {
+        el.setAttribute('draggable', 'true');
+      }
 
       var title = p.soldier_name || (p.id === '__me' ? '目前位置' : '未命名');
+      var sub = p.address || '';
 
       el.innerHTML =
         '<div class="route-item__index">' + (index + 1) + '</div>' +
         '<div class="route-item__content">' +
-        '  <div>' + title + '</div>' +
-        '  <div style="font-size:11px;color:#777;">' + (p.address || '') + '</div>' +
+        '  <div class="route-item__title">' + escapeHtml(title) + '</div>' +
+        '  <div class="route-item__sub">' + escapeHtml(sub) + '</div>' +
         '</div>' +
-        '<div class="route-item__handle">≡</div>' +
-        (p.id === '__me'
-          ? ''
-          : '<button type="button" class="route-item__remove">✕</button>');
+        (index === 0 ? '' : '<button type="button" class="route-item__remove" title="移除">✕</button>');
+
+      // ★符合你規格：點整列即可移除（起點除外；避免點到按鈕重複觸發）
+      if (index !== 0) {
+        el.addEventListener('click', function (e) {
+          if (e && e.target && e.target.classList && e.target.classList.contains('route-item__remove')) return;
+
+          state.routePoints = state.routePoints.filter(function (x) {
+            return x && x.id !== p.id;
+          });
+          ensureStartPoint();
+          renderRouteList();
+          MapModule.setMode(state.mode, state.routePoints);
+          updateCommitState();
+          updateRouteBadge();
+        });
+      }
 
       var btnRemove = el.querySelector('.route-item__remove');
       if (btnRemove) {
         btnRemove.addEventListener('click', function () {
-          state.routePlaces = state.routePlaces.filter(function (x) {
-            return x.id !== p.id;
+          state.routePoints = state.routePoints.filter(function (x) {
+            return x && x.id !== p.id;
           });
+          ensureStartPoint();
           renderRouteList();
+          MapModule.setMode(state.mode, state.routePoints);
+          updateCommitState();
+          updateRouteBadge();
         });
       }
 
       routeListEl.appendChild(el);
     });
+
+    bindDragAndDrop();
+  }
+
+  function bindDragAndDrop() {
+    if (!routeListEl) return;
+
+    var draggingId = null;
+
+    routeListEl.querySelectorAll('.route-item[draggable="true"]').forEach(function (item) {
+      item.addEventListener('dragstart', function (e) {
+        draggingId = item.dataset.id;
+        item.classList.add('route-item--dragging');
+        if (e && e.dataTransfer) e.dataTransfer.setData('text/plain', draggingId);
+      });
+
+      item.addEventListener('dragend', function () {
+        draggingId = null;
+        item.classList.remove('route-item--dragging');
+        routeListEl.querySelectorAll('.route-item').forEach(function (x) {
+          x.classList.remove('route-item--over');
+        });
+      });
+
+      item.addEventListener('dragover', function (e) {
+        if (!draggingId) return;
+        e.preventDefault();
+        item.classList.add('route-item--over');
+      });
+
+      item.addEventListener('dragleave', function () {
+        item.classList.remove('route-item--over');
+      });
+
+      item.addEventListener('drop', function (e) {
+        if (!draggingId) return;
+        e.preventDefault();
+
+        var targetId = item.dataset.id;
+        if (!targetId || targetId === draggingId) return;
+
+        var fromIdx = indexOfRoutePoint(castId(draggingId));
+        var toIdx = indexOfRoutePoint(castId(targetId));
+
+        if (fromIdx <= 0 || toIdx <= 0) return;
+
+        var moved = state.routePoints.splice(fromIdx, 1)[0];
+        state.routePoints.splice(toIdx, 0, moved);
+
+        renderRouteList();
+        MapModule.setMode(state.mode, state.routePoints);
+        updateCommitState();
+        updateRouteBadge();
+      });
+    });
+  }
+
+  function castId(id) {
+    if (id === '__me') return '__me';
+    var n = parseInt(id, 10);
+    return isFinite(n) ? n : id;
+  }
+
+  function updateRouteBadge() {
+    if (!routeBadgeEl) return;
+
+    var n = 0;
+    if (Array.isArray(state.routePoints) && state.routePoints.length > 0) {
+      n = state.routePoints.filter(function (p) { return p && p.id !== '__me'; }).length;
+    }
+
+    routeBadgeEl.textContent = String(n);
+    routeBadgeEl.style.display = n > 0 ? 'inline-flex' : 'none';
+  }
+
+  function openPlaceFormForEdit(place) {
+    var idInput = document.getElementById('place-id');
+    var nameInput = document.getElementById('place-soldier-name');
+    var catSelect = document.getElementById('place-category');
+    var targetInput = document.getElementById('place-target-name');
+    var addrInput = document.getElementById('place-address');
+    var noteInput = document.getElementById('place-note');
+    var titleEl = document.getElementById('modal-place-title');
+
+    if (idInput) idInput.value = place.id;
+    if (nameInput) nameInput.value = place.soldier_name || '';
+    if (catSelect) catSelect.value = place.category || '';
+    if (targetInput) targetInput.value = place.target_name || '';
+    if (addrInput) addrInput.value = place.address || '';
+    if (noteInput) noteInput.value = place.note || '';
+    if (titleEl) titleEl.textContent = '編輯標記';
+
+    openModal('modal-place-form');
+  }
+
+  async function handlePlaceSave() {
+    if (!placeForm) return;
+
+    var formData = new FormData(placeForm);
+    var id = formData.get('id');
+
+    var payload = {
+      soldier_name: (formData.get('soldier_name') || '').toString().trim(),
+      category: (formData.get('category') || '').toString().trim(),
+      target_name: (formData.get('target_name') || '').toString().trim(),
+      address: (formData.get('address') || '').toString().trim(),
+      note: (formData.get('note') || '').toString().trim()
+    };
+
+    if (!payload.soldier_name || !payload.category) {
+      alert('官兵姓名與類別為必填欄位。');
+      return;
+    }
+
+    var latLng = MapModule.getTempNewPlaceLatLng ? MapModule.getTempNewPlaceLatLng() : null;
+
+    try {
+      if (id) {
+        var base = state.currentPlace && String(state.currentPlace.id) === String(id) ? state.currentPlace : null;
+        payload.lat = latLng ? latLng.lat() : (base ? base.lat : null);
+        payload.lng = latLng ? latLng.lng() : (base ? base.lng : null);
+
+        if (payload.lat === null || payload.lng === null) {
+          alert('編輯時缺少座標資訊，請在地圖上重新長按選擇位置後再儲存。');
+          return;
+        }
+
+        await PlacesApi.update(id, payload);
+      } else {
+        if (!latLng) {
+          alert('請在地圖上長按選擇位置後再儲存。');
+          return;
+        }
+        payload.lat = latLng.lat();
+        payload.lng = latLng.lng();
+
+        await PlacesApi.create(payload);
+      }
+
+      closeModal('modal-place-form');
+      if (MapModule.clearTempNewPlaceLatLng) MapModule.clearTempNewPlaceLatLng();
+
+      closeSheet('sheet-place');
+      state.currentPlace = null;
+
+      await refreshPlaces();
+    } catch (err) {
+      console.error(err);
+      alert((err && err.message) ? err.message : '儲存失敗');
+    }
+  }
+
+  async function handlePlaceDelete() {
+    if (!state.currentPlace) return;
+    if (!confirm('確定要刪除這個地點嗎？此動作無法復原。')) return;
+
+    try {
+      await PlacesApi.remove(state.currentPlace.id);
+      closeSheet('sheet-place');
+      state.currentPlace = null;
+      await refreshPlaces();
+    } catch (err) {
+      console.error(err);
+      alert((err && err.message) ? err.message : '刪除失敗');
+    }
   }
 
   function openSheet(id) {
@@ -342,76 +650,10 @@ document.addEventListener('DOMContentLoaded', function () {
     el.setAttribute('aria-hidden', 'true');
   }
 
-  function openPlaceFormForEdit(place) {
-    var idInput = document.getElementById('place-id');
-    var nameInput = document.getElementById('place-soldier-name');
-    var catSelect = document.getElementById('place-category');
-    var targetInput = document.getElementById('place-target-name');
-    var addrInput = document.getElementById('place-address');
-    var noteInput = document.getElementById('place-note');
-    var titleEl = document.getElementById('modal-place-title');
-
-    if (idInput) idInput.value = place.id;
-    if (nameInput) nameInput.value = place.soldier_name || '';
-    if (catSelect) catSelect.value = place.category || '';
-    if (targetInput) targetInput.value = place.target_name || '';
-    if (addrInput) addrInput.value = place.address || '';
-    if (noteInput) noteInput.value = place.note || '';
-    if (titleEl) titleEl.textContent = '編輯標記';
-
-    openModal('modal-place-form');
-  }
-
-  async function handlePlaceSave() {
-    if (!placeForm) return;
-
-    var formData = new FormData(placeForm);
-    var id = formData.get('id');
-    var payload = {
-      soldier_name: formData.get('soldier_name') || '',
-      category: formData.get('category') || '',
-      target_name: formData.get('target_name') || '',
-      address: formData.get('address') || '',
-      note: formData.get('note') || ''
-    };
-
-    var latLng = MapModule.getTempNewPlaceLatLng();
-    if (!id && !latLng) {
-      alert('請在地圖上長按選擇位置後再儲存。');
-      return;
-    }
-    if (latLng) {
-      payload.lat = latLng.lat();
-      payload.lng = latLng.lng();
-    }
-
-    try {
-      if (id) {
-        await PlacesApi.update(id, payload);
-      } else {
-        await PlacesApi.create(payload);
-      }
-      closeModal('modal-place-form');
-      closeSheet('sheet-place');
-      await refreshPlaces();
-    } catch (err) {
-      console.error(err);
-      alert(err.message || '儲存失敗');
-    }
-  }
-
-  async function handlePlaceDelete() {
-    if (!state.currentPlace) return;
-    if (!confirm('確定要刪除這個地點嗎？此動作無法復原。')) return;
-
-    try {
-      await PlacesApi.remove(state.currentPlace.id);
-      closeSheet('sheet-place');
-      state.currentPlace = null;
-      await refreshPlaces();
-    } catch (err) {
-      console.error(err);
-      alert(err.message || '刪除失敗');
-    }
+  function escapeHtml(str) {
+    return String(str)
+      .replace(/&/g, '&amp;')
+      .replace(/</g, '&lt;')
+      .replace(/>/g, '&gt;');
   }
 });

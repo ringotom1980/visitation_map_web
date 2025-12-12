@@ -1,6 +1,9 @@
 <?php
-// Path: Public/app.php
-// 說明: 主地圖頁（搜尋 + 地圖 + 底部資訊卡 + 路線規劃抽屜）
+/**
+ * Path: Public/app.php
+ * 說明: 主地圖頁（S1 瀏覽 / S2 路線規劃 / S3 路線完成）— 地圖 + FAB + 底部抽屜 + S3 底部操作條
+ */
+
 declare(strict_types=1);
 
 // 先載入設定與 helper
@@ -9,7 +12,6 @@ require_once __DIR__ . '/../config/app.php';
 // 頁面標題與專用 CSS
 $pageTitle = APP_NAME;
 $pageCss = [
-    'assets/css/base.css',
     'assets/css/layout.css',
     'assets/css/app.css',
 ];
@@ -50,7 +52,7 @@ $pageCss = [
   </header>
 
   <!-- 主內容：地圖 + 浮動按鈕 + 底部抽屜 -->
-    <section class="app-content">
+  <section class="app-content">
     <div id="map" class="app-map"></div>
 
     <!-- 右下角浮動按鈕：目前位置 -->
@@ -63,18 +65,18 @@ $pageCss = [
       目前位置
     </button>
 
-    <!-- 右下角第二顆 FAB：進入/退出路線規劃模式 -->
+    <!-- 右下角第二顆 FAB：進入路線規劃模式（S2） -->
     <button
       id="btn-route-mode"
       class="fab fab-secondary"
       type="button"
-      title="路線規劃模式（可從目前位置出發）"
+      title="路線規劃（加入拜訪點後再進入排序）"
     >
       路線規劃
+      <span id="route-badge" class="fab-badge" aria-hidden="true">0</span>
     </button>
 
-
-    <!-- 底部資訊卡：顯示單一標記詳細資訊 -->
+    <!-- 底部資訊卡：S1（一般瀏覽模式）專屬 -->
     <div id="sheet-place" class="bottom-sheet bottom-sheet--place">
       <div class="bottom-sheet__inner">
         <header class="bottom-sheet__header">
@@ -122,14 +124,14 @@ $pageCss = [
       </div>
     </div>
 
-    <!-- 底部抽屜：路線規劃模式 -->
+    <!-- 底部抽屜：S2（路線規劃模式）固定存在 -->
     <div id="sheet-route" class="bottom-sheet bottom-sheet--route">
       <div class="bottom-sheet__inner">
         <header class="bottom-sheet__header">
           <div>
             <div class="bottom-sheet__title">路線規劃</div>
             <div class="bottom-sheet__subtitle" id="route-mode-hint">
-              已進入路線規劃模式，請依順序點選要拜訪的地點。
+              已進入路線規劃模式，請依順序點選要拜訪的地點（點已加入可移除）。
             </div>
           </div>
           <button id="btn-route-exit" type="button" class="bottom-sheet__link">
@@ -151,19 +153,23 @@ $pageCss = [
               id="btn-route-commit"
               type="button"
               class="btn btn-primary"
+              disabled
             >
               完成規劃
-            </button>
-            <button
-              id="btn-route-open-gmaps"
-              type="button"
-              class="btn btn-outline"
-            >
-              用 Google 地圖導航
             </button>
           </div>
         </footer>
       </div>
+    </div>
+
+    <!-- S3（路線完成／執行模式）底部固定操作區：Google 導航 / 重新規劃 -->
+    <div id="route-actions" class="route-actions" aria-hidden="true">
+      <button id="btn-route-open-gmaps" type="button" class="btn btn-primary">
+        用 Google 地圖導航
+      </button>
+      <button id="btn-route-replan" type="button" class="btn btn-outline">
+        重新規劃
+      </button>
     </div>
 
     <!-- 新增/編輯標記表單 -->
@@ -255,7 +261,7 @@ $pageCss = [
   </section>
 </main>
 
-<!-- Google Maps JS：**取消 async / defer**，保證先載入，再跑 map.js / app.js -->
+<!-- Google Maps JS：取消 async / defer，確保先載入，再跑 map.js / app.js -->
 <script
   src="https://maps.googleapis.com/maps/api/js?key=<?= htmlspecialchars(google_maps_key(), ENT_QUOTES) ?>&libraries=places"
 ></script>

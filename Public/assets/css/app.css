@@ -1,5 +1,11 @@
+/**
+ * Path: Public/assets/css/app.css
+ * 說明: 主地圖介面（S1 瀏覽 / S2 路線規劃 / S3 路線完成）
+ *       - Bottom Sheet / Modal / FAB / S3 底部操作條（route-actions）
+ *       - 修正：新增 route-badge 與 route-actions 樣式（不影響既有布局）
+ */
+
 /* =========================================
-   Public/assets/css/app.css
    主地圖介面（含 Bottom Sheet / Modal / 按鈕）
    ========================================= */
 
@@ -127,6 +133,7 @@
   background: #ffffff;
   color: #4ca771;
   border: 1px solid #4ca771;
+  padding-right: 30px; /* 給 badge 預留空間 */
 }
 
 .fab:hover {
@@ -137,6 +144,24 @@
 .fab--active {
   background: #256f46;
   color: #ffffff;
+}
+
+/* ====== S2 路線數量 badge（route-badge）====== */
+.fab-badge {
+  position: absolute;
+  top: -6px;
+  right: -6px;
+  min-width: 18px;
+  height: 18px;
+  padding: 0 5px;
+  border-radius: 999px;
+  background: #e53935;
+  color: #ffffff;
+  font-size: 11px;
+  line-height: 18px;
+  text-align: center;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.22);
+  display: none; /* 預設不顯示，JS 會控制 */
 }
 
 /* =========================================
@@ -327,6 +352,34 @@
 }
 
 /* =========================================
+   S3：路線完成後底部固定操作條（route-actions）
+   - 預設隱藏（aria-hidden="true"）
+   - JS 進入 S3 後改 aria-hidden="false"
+   ========================================= */
+.route-actions {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  z-index: 25; /* 高於地圖、低於 modal */
+  display: none;
+  padding: 10px 12px calc(10px + env(safe-area-inset-bottom, 10px));
+  background: rgba(255, 255, 255, 0.96);
+  border-top: 1px solid #eeeeee;
+  box-shadow: 0 -6px 18px rgba(0, 0, 0, 0.10);
+}
+
+.route-actions[aria-hidden="false"] {
+  display: flex;
+  justify-content: center;
+  gap: 10px;
+}
+
+.route-actions .btn {
+  min-width: 160px;
+}
+
+/* =========================================
    Modal（新增/編輯標記）
    ========================================= */
 .modal {
@@ -490,5 +543,10 @@
 
   .bottom-sheet__inner {
     max-width: 100%;
+  }
+
+  .route-actions .btn {
+    min-width: 0;
+    flex: 1 1 auto;
   }
 }
