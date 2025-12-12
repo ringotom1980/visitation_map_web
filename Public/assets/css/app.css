@@ -123,20 +123,6 @@
   transition: transform 0.1s ease, box-shadow 0.1s ease, background 0.1s ease;
 }
 
-.fab-primary {
-  bottom: 20px;
-  background: #4ca771;
-  color: #ffffff;
-}
-
-.fab-secondary {
-  bottom: 72px;
-  background: #ffffff;
-  color: #4ca771;
-  border: 1px solid #4ca771;
-  padding-right: 30px; /* 給 badge 預留空間 */
-}
-
 .fab:hover {
   transform: translateY(-2px);
   box-shadow: 0 6px 14px rgba(0, 0, 0, 0.22);
@@ -524,14 +510,24 @@
 }
 
 /* ===============================
-   FIX：Bottom Sheet / Route Actions（桌機 + 手機）
+   FIX：Bottom Sheet / Route Actions / FAB（桌機 + 手機）
    =============================== */
 
+/* 手機：用 safe-area；桌機：另外給固定保留距離 */
 :root{
   --safe-bottom: env(safe-area-inset-bottom, 0px);
+  --desktop-bottom: 0px;
+  --ui-bottom: calc(var(--safe-bottom) + var(--desktop-bottom));
 }
 
-/* Bottom Sheet：一定要 fixed，貼視窗底 */
+/* 桌機（滑鼠/精準指標）：預留工作列空間，避免被吃掉 */
+@media (hover: hover) and (pointer: fine) {
+  :root{
+    --desktop-bottom: 56px; /* 你覺得太高可改 48px / 40px */
+  }
+}
+
+/* Bottom Sheet：fixed 貼視窗底 */
 .bottom-sheet{
   position: fixed;
   left: 0;
@@ -549,12 +545,10 @@
   position: relative;
   margin: 0 auto;
   max-width: 720px;
-
   background: #ffffff;
   border-radius: 14px 14px 0 0;
   box-shadow: 0 -4px 16px rgba(0,0,0,.12);
-
-  padding: 12px 16px calc(16px + var(--safe-bottom));
+  padding: 12px 16px calc(16px + var(--ui-bottom));
   transform: translateY(100%);
   transition: transform .22s ease-out;
 }
@@ -570,9 +564,8 @@
   right: 0;
   bottom: 0;
   z-index: 1250;
-
   display: none;
-  padding: 10px 12px calc(10px + var(--safe-bottom));
+  padding: 10px 12px calc(10px + var(--ui-bottom));
   background: rgba(255,255,255,.96);
   border-top: 1px solid #eee;
 }
@@ -583,14 +576,14 @@
   gap: 10px;
 }
 
-/* FAB 基本位置 */
-.fab-primary{ bottom: calc(20px + var(--safe-bottom)); }
-.fab-secondary{ bottom: calc(72px + var(--safe-bottom)); }
+/* FAB：一律用同一個底部保留距離 */
+.fab-primary{ bottom: calc(20px + var(--ui-bottom)); }
+.fab-secondary{ bottom: calc(72px + var(--ui-bottom)); }
 
-/* route-actions 出現時，FAB 往上讓位 */
+/* route-actions 出現時，FAB 往上讓位（64px 你可依操作列高度調整） */
 body.has-route-actions .fab-primary{
-  bottom: calc(20px + 64px + var(--safe-bottom));
+  bottom: calc(20px + 64px + var(--ui-bottom));
 }
 body.has-route-actions .fab-secondary{
-  bottom: calc(72px + 64px + var(--safe-bottom));
+  bottom: calc(72px + 64px + var(--ui-bottom));
 }
