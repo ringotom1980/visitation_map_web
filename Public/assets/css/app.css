@@ -579,14 +579,14 @@
   gap: 10px;
 }
 
-/* FAB：一律用同一個底部保留距離 */
-.fab-primary{ bottom: calc(20px + var(--safe-bottom) + var(--mobile-ui-bottom)); }
-.fab-secondary{ bottom: calc(72px + var(--safe-bottom) + var(--mobile-ui-bottom)); }
-
-/* route-actions 出現時，FAB 往上讓位（64px 你可依操作列高度調整） */
-body.has-route-actions .fab-primary{
-  bottom: calc(20px + 64px + var(--ui-bottom));
+/* 右上角第一顆（上） */
+.fab-primary{
+  top: calc(64px + 12px);   /* 64 = toolbar 高度 */
+  bottom: auto;
 }
-body.has-route-actions .fab-secondary{
-  bottom: calc(72px + 64px + var(--ui-bottom));
+
+/* 右上角第二顆（下） */
+.fab-secondary{
+  top: calc(64px + 12px + 52px); /* 52 = 一顆 FAB 高度 + 間距 */
+  bottom: auto;
 }
