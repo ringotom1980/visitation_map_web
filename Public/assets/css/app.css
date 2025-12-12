@@ -511,44 +511,45 @@
 }
 
 /* ===============================
-   FIX：Bottom Sheet / Route Actions / FAB（桌機 + 手機）
+   FIX：FAB 置於右上角（吃 toolbar 實際高度）
+   + Bottom Sheet / Route Actions 固定在底部（只吃 safe-area）
    =============================== */
 
-/* 手機：用 safe-area；桌機：另外給固定保留距離 */
 :root{
-  --toolbar-h: 64px; /* 預設值，JS 會覆蓋 */
   --safe-top: env(safe-area-inset-top, 0px);
+  --safe-bottom: env(safe-area-inset-bottom, 0px);
+  --toolbar-h: 64px;   /* 會由 JS 動態覆蓋成實際 toolbar 高度 */
   --fab-gap: 12px;
-  --fab-step: 52px; /* 一顆 FAB 高度+間距(40+12) */
+  --fab-step: 52px;    /* 40(按鈕高) + 12(間距) */
 }
 
+/* 兩顆按鈕：固定在視窗右上角，但一定在 toolbar 下方 */
+.fab{
+  position: fixed;
+  right: 12px;
+  z-index: 1300;
+}
+
+/* 第一顆：目前位置 */
 .fab-primary{
   top: calc(var(--safe-top) + var(--toolbar-h) + var(--fab-gap));
   bottom: auto;
 }
 
+/* 第二顆：路線規劃 */
 .fab-secondary{
   top: calc(var(--safe-top) + var(--toolbar-h) + var(--fab-gap) + var(--fab-step));
   bottom: auto;
 }
 
-
-/* 桌機（滑鼠/精準指標）：預留工作列空間，避免被吃掉 */
-@media (hover: hover) and (pointer: fine) {
-  :root{
-    --desktop-bottom: 56px; /* 你覺得太高可改 48px / 40px */
-    --mobile-ui-bottom: 72px;         /* 先用 72px；不夠再加到 84/96 */
-  }
-}
-
-/* Bottom Sheet：fixed 貼視窗底 */
+/* Bottom Sheet：固定在視窗底部 */
 .bottom-sheet{
   position: fixed;
   left: 0;
   right: 0;
-  bottom: calc(var(--safe-bottom) + var(--mobile-ui-bottom)); /* ★ 抬高 */
+  bottom: 0;
   z-index: 1200;
-  pointer-events: none;
+  pointer-events: none; /* 關閉時不可操作 */
 }
 
 .bottom-sheet.bottom-sheet--open{
@@ -559,10 +560,12 @@
   position: relative;
   margin: 0 auto;
   max-width: 720px;
+
   background: #ffffff;
   border-radius: 14px 14px 0 0;
   box-shadow: 0 -4px 16px rgba(0,0,0,.12);
-  padding: 12px 16px calc(16px + var(--ui-bottom));
+
+  padding: 12px 16px calc(16px + var(--safe-bottom));
   transform: translateY(100%);
   transition: transform .22s ease-out;
 }
@@ -571,17 +574,19 @@
   transform: translateY(0);
 }
 
-/* S3 底部操作列 */
+/* S3 route-actions：固定在底部，吃 safe-area */
 .route-actions{
   position: fixed;
   left: 0;
   right: 0;
-  bottom: calc(var(--safe-bottom) + var(--mobile-ui-bottom)); /* ★ 抬高 */
+  bottom: 0;
   z-index: 1250;
+
   display: none;
   padding: 10px 12px calc(10px + var(--safe-bottom));
   background: rgba(255,255,255,.96);
   border-top: 1px solid #eee;
+  box-shadow: 0 -6px 18px rgba(0,0,0,.10);
 }
 
 .route-actions[aria-hidden="false"]{
