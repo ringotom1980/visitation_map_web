@@ -496,7 +496,7 @@ document.addEventListener('DOMContentLoaded', function () {
     updateRouteBadge();
   }
 
-  function addPlaceToRouteAndEnterPlanning(place) {
+    function addPlaceToRouteAndEnterPlanning(place) {
     ensureStartPoint();
 
     // 已在路線就不重複加入
@@ -505,18 +505,16 @@ document.addEventListener('DOMContentLoaded', function () {
       state.routePoints.push(place);
     }
 
-    // 進入 S2（保留既有點）
-    applyMode(Mode.ROUTE_PLANNING);
+    // ✅ 需求：加入後不自動切換到 S2，只要收起抽屜並更新樣式/徽章
+    closeSheet('sheet-place');
+    state.currentPlace = null;
+    collapsePlaceDetails(true);
 
-    // 讓路線清單立即刷新（applyMode 內已 render，但保險起見）
-    renderRouteList();
     MapModule.setMode(state.mode, state.routePoints);
     updateCommitState();
     updateRouteBadge();
-
-    // 規格：加入後不留在 S1 抽屜
-    closeSheet('sheet-place');
   }
+
 
   function indexOfRoutePoint(id) {
     for (var i = 0; i < state.routePoints.length; i++) {
