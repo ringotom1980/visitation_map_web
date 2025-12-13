@@ -205,11 +205,12 @@ var MapModule = (function () {
 
   if (myLocationMarker) myLocationMarker.setMap(null);
 
-  // ✅ 用 SVG 固定起點樣式：藍底白字「起」
+  // 🔵 起點 SVG：藍底圓 + ROC LOGO
+  var logoUrl = '/assets/img/roc_logo.png'; // ← 確認路徑
   var svg = [
     '<svg xmlns="http://www.w3.org/2000/svg" width="44" height="44" viewBox="0 0 44 44">',
     '  <circle cx="22" cy="22" r="11" fill="#1976d2" stroke="#ffffff" stroke-width="3" />',
-    '  <text x="22" y="26" text-anchor="middle" font-size="14" font-weight="800" fill="#ffffff" font-family="Arial, sans-serif">起</text>',
+    '  <image href="' + logoUrl + '" x="14" y="14" width="16" height="16" preserveAspectRatio="xMidYMid meet" />',
     '</svg>'
   ].join('');
 
@@ -228,7 +229,6 @@ var MapModule = (function () {
   map.panTo(pos);
   map.setZoom(15);
 }
-
 
   /* ---------- 載入標記 ---------- */
   function setPlaces(placeList, onMarkerClick, onMarkerRouteSelect) {
