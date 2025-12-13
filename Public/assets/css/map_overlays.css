@@ -1,82 +1,71 @@
 /* Path: Public/assets/css/map_overlays.css */
-/* ===============================
-   My Location Overlay (Google-like)
-   =============================== */
 
-.my-location-dot {
-  position: absolute;
-  transform: translate(-50%, -50%);
-  width: 18px;                 /* 主圓尺寸（你目前覺得 OK 的大小） */
-  height: 18px;
-  border-radius: 50%;
-  background: rgb(125, 170, 252);       /* 藍紫色主圓 */
-  border: 2px solid #ffffff;
-  box-shadow: 0 2px 10px rgba(0,0,0,.25);
-  z-index: 999999;
-  pointer-events: none;
+/* 可調整：主圓大小、LOGO大小 */
+.my-location-dot{
+  --dot: 24px;      /* 主圓直徑：你現在 18px，改 22~26 會剛好 */
+  --logo: 16px;     /* LOGO 直徑：你現在看起來太小就加大 */
+  --ring: 2px;      /* 白邊粗細 */
+  --pulse: 2.8;     /* 外圈擴散倍率 */
+
+  position:absolute;
+  transform:translate(-50%,-50%);
+  width:var(--dot);
+  height:var(--dot);
+  border-radius:50%;
+  background:#3902ffff;
+  border:var(--ring) solid #fff;
+  box-shadow:0 2px 10px rgba(0,0,0,.25);
+  z-index:999999;
+  pointer-events:none;
+
+  display:flex;
+  align-items:center;
+  justify-content:center;
 }
 
-/* === 中央 LOGO === */
-.my-location-dot .my-location-logo {
-  position: absolute;
-  left: 50%;
-  top: 50%;
-  width: 10px;                 /* LOGO 大小（可微調 9~11） */
-  height: 10px;
-  transform: translate(-50%, -50%);
-  border-radius: 50%;
-  object-fit: contain;
-  pointer-events: none;
+/* LOGO */
+.my-location-dot__logo{
+  width:var(--logo);
+  height:var(--logo);
+  object-fit:contain;
+  display:block;
+  border-radius:50%;
 }
 
-/* === 外圈呼吸波紋 === */
-.my-location-dot::before {
-  content: "";
-  position: absolute;
-  left: 50%;
-  top: 50%;
-  width: 18px;
-  height: 18px;
-  border-radius: 50%;
-  background: #ffffff;
-  transform: translate(-50%, -50%);
-  animation: myloc-pulse 1.4s ease-out infinite;
+/* 外圈呼吸波紋 */
+.my-location-dot::before{
+  content:"";
+  position:absolute;
+  left:50%;
+  top:50%;
+  width:var(--dot);
+  height:var(--dot);
+  border-radius:50%;
+  background:rgba(57,2,255,0.25);
+  transform:translate(-50%,-50%);
+  animation:myloc-pulse 1.4s ease-out infinite;
 }
 
-/* === 內圈心跳感 === */
-.my-location-dot::after {
-  content: "";
-  position: absolute;
-  left: 50%;
-  top: 50%;
-  width: 18px;
-  height: 18px;
-  border-radius: 50%;
-  transform: translate(-50%, -50%);
-  animation: myloc-beat 1.2s ease-in-out infinite;
+/* 內圈微跳動（心跳感） */
+.my-location-dot::after{
+  content:"";
+  position:absolute;
+  left:50%;
+  top:50%;
+  width:var(--dot);
+  height:var(--dot);
+  border-radius:50%;
+  transform:translate(-50%,-50%);
+  animation:myloc-beat 1.2s ease-in-out infinite;
 }
 
-/* ===== 動畫 ===== */
-
-@keyframes myloc-pulse {
-  0% {
-    transform: translate(-50%, -50%) scale(1);
-    opacity: 0.75;
-  }
-  100% {
-    transform: translate(-50%, -50%) scale(2.8);
-    opacity: 0;
-  }
+@keyframes myloc-pulse{
+  0%{transform:translate(-50%,-50%) scale(1); opacity:.75;}
+  100%{transform:translate(-50%,-50%) scale(var(--pulse)); opacity:0;}
 }
 
-@keyframes myloc-beat {
-  0%, 100% {
-    transform: translate(-50%, -50%) scale(1);
-  }
-  40% {
-    transform: translate(-50%, -50%) scale(1.10);
-  }
-  55% {
-    transform: translate(-50%, -50%) scale(0.98);
-  }
+@keyframes myloc-beat{
+  0%,100%{transform:translate(-50%,-50%) scale(1);}
+  40%{transform:translate(-50%,-50%) scale(1.10);}
+  55%{transform:translate(-50%,-50%) scale(0.98);}
 }

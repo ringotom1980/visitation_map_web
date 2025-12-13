@@ -229,16 +229,15 @@ var MapModule = (function () {
       div.className = 'my-location-dot';
 
       var img = document.createElement('img');
-      img.className = 'my-location-logo';
-      img.src = '/assets/img/roc_logo.png';
+      img.className = 'my-location-dot__logo';
       img.alt = 'ROC';
+      img.src = '/assets/img/roc_logo.png';   // 先寫死最穩
 
       div.appendChild(img);
 
       this.div = div;
-
       var panes = this.getPanes();
-      panes.overlayLayer.appendChild(div);
+      panes.overlayMouseTarget.appendChild(div);
     };
 
 
