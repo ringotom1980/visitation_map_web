@@ -1050,6 +1050,31 @@ document.addEventListener('DOMContentLoaded', function () {
 
   })();
 
+  // ===== S1：點「抽屜以外」關閉資訊抽屜（不影響 marker / 地圖操作）=====
+  (function bindOutsideClickForPlaceSheet() {
+    document.addEventListener('pointerdown', function (e) {
+      // 只在 BROWSE
+      if (state.mode !== Mode.BROWSE) return;
+
+      // 抽屜沒開，不處理
+      if (!sheetPlace || !sheetPlace.classList.contains('bottom-sheet--open')) return;
+
+      // 點在抽屜內 → 不關
+      if (sheetPlace.contains(e.target)) return;
+
+      // 點在 marker（Google Maps 會用 img / button / aria-role）
+      if (e.target.closest('[role="button"], img, canvas')) return;
+
+      // 點在 modal / toolbar / 搜尋列
+      if (e.target.closest('.app-toolbar, .modal, .pac-container')) return;
+
+      closeSheet('sheet-place');
+      state.currentPlace = null;
+      collapsePlaceDetails(true);
+    }, { passive: true });
+  })();
+
+
   function openModal(id) {
     var el = document.getElementById(id);
     if (!el) return;
