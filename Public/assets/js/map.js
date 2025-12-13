@@ -29,6 +29,44 @@ var MapModule = (function () {
 
   // ★暫存「長按新增」的點位（提供 app.js 取用）
   var tempNewPlaceLatLng = null;
+  // ★Projection Helper：提供 containerPixel <-> LatLng 精準轉換
+  var projHelper = null;
+
+  function ensureProjectionHelper() {
+    if (projHelper) return;
+    function PH() { this.setMap(map); }
+    PH.prototype = new google.maps.OverlayView();
+    PH.prototype.onAdd = function () { };
+    PH.prototype.draw = function () { };
+    PH.prototype.onRemove = function () { };
+    projHelper = new PH();
+  }
+
+  function containerPixelToLatLng(clientX, clientY) {
+    if (!projHelper) return null;
+    var proj = projHelper.getProjection();
+    if (!proj) return null;
+
+    var rect = map.getDiv().getBoundingClientRect();
+    var x = clientX - rect.left;
+    var y = clientY - rect.top;
+
+    return proj.fromContainerPixelToLatLng(new google.maps.Point(x, y));
+  }
+
+  function latLngToContainerPixel(latLng) {
+    if (!projHelper || !latLng) return null;
+    var proj = projHelper.getProjection();
+    if (!proj) return null;
+    return proj.fromLatLngToContainerPixel(latLng);
+  }
+
+  function distPx(p1, p2) {
+    if (!p1 || !p2) return Infinity;
+    var dx = p1.x - p2.x;
+    var dy = p1.y - p2.y;
+    return Math.hypot(dx, dy);
+  }
 
   // ===== Overlay：姓名標籤（使用你 app.css 的 .map-name-label）=====
   function NameLabelOverlay(position, text) {
@@ -94,7 +132,8 @@ var MapModule = (function () {
     });
 
     geocoder = new google.maps.Geocoder();
-
+    // ★新增：建立投影工具（用來精準換算座標）
+    ensureProjectionHelper();
     setupLongPressDetector();
     setupAutocomplete(initOptions.onSearchPlaceSelected);
     setupMapClickHandlers(initOptions);
@@ -147,20 +186,22 @@ var MapModule = (function () {
 
         longPressFired = true;
 
-        var bounds = map.getBounds();
-        if (!bounds) return;
+        // ✅ 正確：用 Projection 做精準換算
+        var latLng = containerPixelToLatLng(e.clientX, e.clientY);
+        if (!latLng) return;
 
-        var ne = bounds.getNorthEast();
-        var sw = bounds.getSouthWest();
+        // ✅ 需求：長按「搜尋 Pin」要精準落在 Pin 上（snap）
+        // 只要手指壓的位置離 pin 像素點夠近，就直接用 searchPinLatLng
+        if (searchPinLatLng) {
+          var pressPx = latLngToContainerPixel(latLng);
+          var pinPx = latLngToContainerPixel(searchPinLatLng);
 
-        var rect = mapDiv.getBoundingClientRect();
-        var xRatio = (e.clientX - rect.left) / rect.width;
-        var yRatio = (e.clientY - rect.top) / rect.height;
+          // 半徑可調：24~32 都合理（手指粗度）
+          if (distPx(pressPx, pinPx) <= 26) {
+            latLng = searchPinLatLng;
+          }
+        }
 
-        var lat = ne.lat() - (ne.lat() - sw.lat()) * yRatio;
-        var lng = sw.lng() + (ne.lng() - sw.lng()) * xRatio;
-
-        var latLng = new google.maps.LatLng(lat, lng);
         tempNewPlaceLatLng = latLng;
 
         if (geocoder) {
@@ -225,7 +266,7 @@ var MapModule = (function () {
       searchPinMarker = new google.maps.Marker({
         map: map,
         position: latLng,
-        clickable: false,
+        clickable: true,
         zIndex: 9999
       });
     } else {
