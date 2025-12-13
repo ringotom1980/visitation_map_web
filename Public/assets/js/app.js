@@ -316,6 +316,11 @@ document.addEventListener('DOMContentLoaded', function () {
     }
   });
 
+  // S2：路線規劃模式下點地圖空白 → 離開規劃（保留清單、不詢問）
+  document.addEventListener('map:blankClick', function () {
+    exitPlanningSilent();
+  });
+
   function loadMeNonBlocking() {
     apiRequest('/auth/me', 'GET')
       .then(function (me) {
