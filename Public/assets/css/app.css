@@ -724,3 +724,30 @@
 body.is-modal-open .fab {
   display: none;
 }
+/* ===============================
+   FIX: iOS / LINE 內建瀏覽器輸入放大（zoom）與跑版
+   - 只要 focus 的輸入元件 computed font-size < 16px 就可能觸發 zoom
+   - 同時關閉 iOS 自動文字尺寸調整（非縮放）
+   =============================== */
+
+/* 防止 iOS 自動調整字體大小造成視覺變形 */
+html, body {
+  -webkit-text-size-adjust: 100%;
+  text-size-adjust: 100%;
+}
+
+/* 全域保底：所有輸入元件至少 16px（避免 iOS focus zoom） */
+input,
+select,
+textarea {
+  font-size: 16px !important;
+}
+
+/* 再加一層針對你這頁的關鍵輸入：搜尋列與 Modal 表單 */
+.search-bar__input,
+#map-search-input,
+#place-form input,
+#place-form select,
+#place-form textarea {
+  font-size: 16px !important;
+}
