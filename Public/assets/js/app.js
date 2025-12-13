@@ -316,21 +316,6 @@ document.addEventListener('DOMContentLoaded', function () {
     }
   });
 
-  // S2：路線規劃模式下點地圖空白 → 離開規劃（保留清單、不詢問）
-  document.addEventListener('map:blankClick', function () {
-    exitPlanningSilent();
-  });
-
-  // S1：點地圖空白 → 關閉資訊抽屜（不靠 backdrop）
-  document.addEventListener('map:blankClick', function () {
-    if (state.mode !== Mode.BROWSE) return;
-
-    closeSheet('sheet-place');
-    state.currentPlace = null;
-    collapsePlaceDetails(true);
-  });
-
-
   function loadMeNonBlocking() {
     apiRequest('/auth/me', 'GET')
       .then(function (me) {
@@ -1065,4 +1050,22 @@ document.addEventListener('DOMContentLoaded', function () {
       .replace(/</g, '&lt;')
       .replace(/>/g, '&gt;');
   }
+   // ===== S1：點地圖空白 → 關閉資訊抽屜（不靠 backdrop）=====
+  (function bindMapClickToCloseSheet() {
+    var mapEl = document.getElementById('map'); // ⚠️ 如果你的地圖不是這個 id，等下跟我說
+    if (!mapEl) return;
+
+    mapEl.addEventListener('click', function (e) {
+      // 只處理瀏覽模式
+      if (state.mode !== Mode.BROWSE) return;
+
+      // 點在資訊抽屜本體內，不關
+      if (sheetPlace && sheetPlace.contains(e.target)) return;
+
+      closeSheet('sheet-place');
+      state.currentPlace = null;
+      collapsePlaceDetails(true);
+    }, true); // ★ 一定要 capture
+  })();
+
 });
