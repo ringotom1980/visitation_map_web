@@ -638,3 +638,21 @@
   border-color: #e53935;
   color: #e53935;
 }
+
+/* 起點：把原本的圓形 index 變成「標籤」 */
+.route-item__index.route-item__index--start{
+  width: auto;              /* 解除固定寬 */
+  min-width: 44px;          /* 避免太窄 */
+  height: 22px;             /* 比原本圓形小一點也可以 */
+  line-height: 22px;
+  padding: 0 8px;           /* 左右留白 */
+  border-radius: 999px;     /* 膠囊 */
+  font-size: 12px;
+  font-weight: 700;
+  white-space: nowrap;      /* 不換行 */
+  overflow: hidden;
+  text-overflow: ellipsis;  /* 超長才省略 */
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
