@@ -208,7 +208,7 @@ var MapModule = (function () {
     // ✅ 用 SVG 固定起點樣式：藍底白字「起」
     var svg = [
       '<svg xmlns="http://www.w3.org/2000/svg" width="44" height="44" viewBox="0 0 44 44">',
-      '  <circle cx="22" cy="22" r="10" fill="#025020cc" stroke="#ffffff" stroke-width="2.5" />',
+      '  <circle cx="22" cy="22" r="9" fill="#0b70f3cc" stroke="#ffffff" stroke-width="2.5" />',
       '</svg>'
     ].join('');
 
