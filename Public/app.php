@@ -17,6 +17,7 @@ $pageTitle = APP_NAME;
 $pageCss = [
   'assets/css/layout.css',
   'assets/css/app.css',
+  'assets/css/map_overlays.css',
 ];
 ?>
 <!DOCTYPE html>

@@ -13,6 +13,7 @@ var MapModule = (function () {
 
   // 目前位置 marker
   var myLocationMarker = null;
+  var myLocationOverlay = null;
 
   // 路線 polyline（簡版：依 routePoints 順序連線）
   var routeLine = null;
@@ -201,33 +202,64 @@ var MapModule = (function () {
     if (!map) return;
     if (!isFinite(lat) || !isFinite(lng)) return;
 
-    var pos = { lat: lat, lng: lng };
+    var pos = new google.maps.LatLng(lat, lng);
 
-    if (myLocationMarker) myLocationMarker.setMap(null);
+    // 先清掉舊的 marker（如果你之前用 marker）
+    if (myLocationMarker) {
+      myLocationMarker.setMap(null);
+      myLocationMarker = null;
+    }
 
-    // ✅ 用 SVG 固定起點樣式：藍底白字「起」
-    var svg = [
-      '<svg xmlns="http://www.w3.org/2000/svg" width="44" height="44" viewBox="0 0 44 44">',
-      '  <circle cx="22" cy="22" r="9" fill="#0b70f3cc" stroke="#ffffff" stroke-width="2.5" />',
-      '</svg>'
-    ].join('');
+    // 清掉舊 overlay
+    if (myLocationOverlay) {
+      myLocationOverlay.setMap(null);
+      myLocationOverlay = null;
+    }
 
-    myLocationMarker = new google.maps.Marker({
-      map: map,
-      position: pos,
-      title: '目前位置',
-      icon: {
-        url: 'data:image/svg+xml;charset=UTF-8,' + encodeURIComponent(svg),
-        scaledSize: new google.maps.Size(44, 44),
-        anchor: new google.maps.Point(22, 22)
-      },
-      zIndex: 999999
-    });
+    // Overlay：Google-like pulsing dot
+    function MyLocationOverlay(position) {
+      this.position = position;
+      this.div = null;
+      this.setMap(map);
+    }
+    MyLocationOverlay.prototype = new google.maps.OverlayView();
 
-    map.panTo(pos);
+    MyLocationOverlay.prototype.onAdd = function () {
+      var div = document.createElement('div');
+      div.className = 'my-location-dot';
+      this.div = div;
+
+      var panes = this.getPanes();
+      panes.overlayMouseTarget.appendChild(div);
+    };
+
+    MyLocationOverlay.prototype.draw = function () {
+      if (!this.div) return;
+      var proj = this.getProjection();
+      if (!proj) return;
+
+      var point = proj.fromLatLngToDivPixel(this.position);
+      if (!point) return;
+
+      this.div.style.left = point.x + 'px';
+      this.div.style.top = point.y + 'px';
+    };
+
+    MyLocationOverlay.prototype.onRemove = function () {
+      if (this.div && this.div.parentNode) this.div.parentNode.removeChild(this.div);
+      this.div = null;
+    };
+
+    MyLocationOverlay.prototype.setPosition = function (position) {
+      this.position = position;
+      this.draw();
+    };
+
+    myLocationOverlay = new MyLocationOverlay(pos);
+
+    map.panTo({ lat: lat, lng: lng });
     map.setZoom(15);
   }
-
 
   /* ---------- 載入標記 ---------- */
   function setPlaces(placeList, onMarkerClick, onMarkerRouteSelect) {
