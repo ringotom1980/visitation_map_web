@@ -309,8 +309,9 @@ document.addEventListener('DOMContentLoaded', function () {
       if (MapModule.clearTempNewPlaceLatLng) MapModule.clearTempNewPlaceLatLng();
     }
 
-    if (target && target.matches('[data-sheet-close]')) {
-      var sid = target.getAttribute('data-sheet-close');
+    var sheetCloseBtn = target && target.closest ? target.closest('[data-sheet-close]') : null;
+    if (sheetCloseBtn) {
+      var sid = sheetCloseBtn.getAttribute('data-sheet-close');
       if (sid === 'sheet-route') return;
       closeSheet(sid);
     }
@@ -1145,15 +1146,19 @@ document.addEventListener('DOMContentLoaded', function () {
     }
   }
 
-  // 防止點擊抽屜內容誤觸 backdrop
+  // 防止點擊抽屜內容誤觸外層關閉，但「允許」點 X 正常關閉
   (function bindSheetStopPropagation() {
     var sheet = document.getElementById('sheet-place');
     if (!sheet) return;
 
     sheet.addEventListener('click', function (e) {
+      // ✅ 點到任何帶 data-sheet-close 的元素（或其子元素）時，不要阻擋冒泡
+      // 讓 body 的委派可以收到事件並關閉抽屜
+      if (e.target && e.target.closest && e.target.closest('[data-sheet-close]')) return;
+
+      // 其他點擊才阻擋冒泡
       e.stopPropagation();
     });
-
   })();
 
   // ===== S1：點「抽屜以外」關閉資訊抽屜（不影響 marker / 地圖操作）=====
