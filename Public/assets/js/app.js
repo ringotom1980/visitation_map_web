@@ -666,6 +666,7 @@ document.addEventListener('DOMContentLoaded', function () {
 
     ensureStartPoint();
     routeListEl.innerHTML = '';
+    var visitNo = 0; // 只對拜訪點編號（排除 __me 起點）
 
     state.routePoints.forEach(function (p, index) {
       var el = document.createElement('div');
@@ -680,9 +681,17 @@ document.addEventListener('DOMContentLoaded', function () {
 
       var title = p.soldier_name || (p.id === '__me' ? '目前位置' : '未命名');
       var sub = p.address || '';
+      var indexHtml = '';
+      if (p && p.id !== '__me') {
+        visitNo++;
+        indexHtml = '<div class="route-item__index">' + visitNo + '</div>';
+      } else {
+        // 起點不要顯示「1」
+        indexHtml = '<div class="route-item__index route-item__index--start">起點</div>';
+      }
 
       el.innerHTML =
-        '<div class="route-item__index">' + (index + 1) + '</div>' +
+        indexHtml +
         '<div class="route-item__content">' +
         '  <div class="route-item__title">' + escapeHtml(title) + '</div>' +
         '  <div class="route-item__sub">' + escapeHtml(sub) + '</div>' +
