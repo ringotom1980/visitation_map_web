@@ -677,3 +677,8 @@
   opacity: 1;
   pointer-events: auto;
 }
+
+/* Modal 開啟時，隱藏 FAB */
+body.is-modal-open .fab {
+  display: none;
+}

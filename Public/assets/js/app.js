@@ -974,6 +974,7 @@ document.addEventListener('DOMContentLoaded', function () {
     if (!el) return;
     el.classList.add('modal--open');
     el.setAttribute('aria-hidden', 'false');
+    document.body.classList.add('is-modal-open');
   }
 
   function closeModal(id) {
@@ -981,6 +982,7 @@ document.addEventListener('DOMContentLoaded', function () {
     if (!el) return;
     el.classList.remove('modal--open');
     el.setAttribute('aria-hidden', 'true');
+    document.body.classList.remove('is-modal-open');
   }
 
   function escapeHtml(str) {

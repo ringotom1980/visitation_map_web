@@ -21,10 +21,6 @@ var MapModule = (function () {
   // 狀態（由 app.js 設定）
   var mode = 'BROWSE';
 
-  // 長按偵測
-  var lastPointerDown = 0;
-  var LONG_PRESS_MS = 600;
-
   // places 快取
   var placesCache = [];
 
@@ -115,24 +111,81 @@ var MapModule = (function () {
     }
   }
 
-  /* ---------- 長按偵測 ---------- */
+  // ===== 長按新增（0.6s 到就立刻觸發）=====
+  var LONG_PRESS_MS = 600;
+  var longPressTimer = null;
+  var longPressFired = false;
+  var downLatLng = null;
+  var downPoint = null;
+
   function setupLongPressDetector() {
     if (!map) return;
     var mapDiv = map.getDiv();
 
-    function onDown() {
-      lastPointerDown = Date.now();
-    }
+    mapDiv.addEventListener('pointerdown', function (e) {
+      if (mode !== 'BROWSE') return;
 
-    mapDiv.addEventListener('mousedown', onDown);
-    mapDiv.addEventListener('touchstart', onDown, { passive: true });
+      longPressFired = false;
+      downPoint = { x: e.clientX, y: e.clientY };
+
+      longPressTimer = setTimeout(function () {
+        longPressFired = true;
+
+        // 取得地理座標（關鍵）
+        var proj = map.getProjection();
+        if (!proj) return;
+
+        var bounds = map.getBounds();
+        if (!bounds) return;
+
+        var ne = bounds.getNorthEast();
+        var sw = bounds.getSouthWest();
+
+        var mapDivRect = mapDiv.getBoundingClientRect();
+        var xRatio = (e.clientX - mapDivRect.left) / mapDivRect.width;
+        var yRatio = (e.clientY - mapDivRect.top) / mapDivRect.height;
+
+        var lat = ne.lat() - (ne.lat() - sw.lat()) * yRatio;
+        var lng = sw.lng() + (ne.lng() - sw.lng()) * xRatio;
+
+        var latLng = new google.maps.LatLng(lat, lng);
+        tempNewPlaceLatLng = latLng;
+
+        if (geocoder) {
+          geocoder.geocode({ location: latLng }, function (results, status) {
+            var addr = '';
+            if (status === 'OK' && results && results[0]) {
+              addr = results[0].formatted_address || '';
+            }
+            if (options && typeof options.onMapLongPressForNewPlace === 'function') {
+              options.onMapLongPressForNewPlace(latLng, addr);
+            }
+          });
+        } else {
+          if (options && typeof options.onMapLongPressForNewPlace === 'function') {
+            options.onMapLongPressForNewPlace(latLng, '');
+          }
+        }
+      }, LONG_PRESS_MS);
+    });
+
+    mapDiv.addEventListener('pointermove', function (e) {
+      if (!downPoint || longPressFired) return;
+      var dx = e.clientX - downPoint.x;
+      var dy = e.clientY - downPoint.y;
+      if (Math.hypot(dx, dy) > 8) {
+        clearTimeout(longPressTimer);
+      }
+    });
+
+    mapDiv.addEventListener('pointerup', clearLongPress);
+    mapDiv.addEventListener('pointercancel', clearLongPress);
   }
 
-  function wasLongPress() {
-    if (!lastPointerDown) return false;
-    var diff = Date.now() - lastPointerDown;
-    lastPointerDown = 0;
-    return diff >= LONG_PRESS_MS;
+  function clearLongPress() {
+    clearTimeout(longPressTimer);
+    longPressTimer = null;
+    downPoint = null;
   }
 
   /* ---------- Autocomplete ---------- */
