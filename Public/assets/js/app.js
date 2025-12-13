@@ -321,6 +321,16 @@ document.addEventListener('DOMContentLoaded', function () {
     exitPlanningSilent();
   });
 
+  // S1：點地圖空白 → 關閉資訊抽屜（不靠 backdrop）
+  document.addEventListener('map:blankClick', function () {
+    if (state.mode !== Mode.BROWSE) return;
+
+    closeSheet('sheet-place');
+    state.currentPlace = null;
+    collapsePlaceDetails(true);
+  });
+
+
   function loadMeNonBlocking() {
     apiRequest('/auth/me', 'GET')
       .then(function (me) {
@@ -999,18 +1009,18 @@ document.addEventListener('DOMContentLoaded', function () {
   }
 
   function openSheet(id) {
-  var el = document.getElementById(id);
-  if (!el) return;
+    var el = document.getElementById(id);
+    if (!el) return;
 
-  if (id === 'sheet-place' && state.mode !== Mode.BROWSE) return;
+    if (id === 'sheet-place' && state.mode !== Mode.BROWSE) return;
 
-  el.classList.add('bottom-sheet--open');
+    el.classList.add('bottom-sheet--open');
 
-  // ❌ S1 資訊抽屜「不要」開 backdrop，地圖必須可操作
-  if (id === 'sheet-place') {
-    setPlaceSheetBackdrop(false);
+    // ❌ S1 資訊抽屜「不要」開 backdrop，地圖必須可操作
+    if (id === 'sheet-place') {
+      setPlaceSheetBackdrop(false);
+    }
   }
-}
 
   function closeSheet(id) {
     var el = document.getElementById(id);
