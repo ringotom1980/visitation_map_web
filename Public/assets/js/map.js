@@ -7,6 +7,7 @@ var MapModule = (function () {
   var map;
   var autocomplete;
   var geocoder;
+  var initOptions = {};
 
   // id -> { marker: google.maps.Marker, nameOv: NameLabelOverlay, data: place }
   var markers = new Map();
@@ -74,6 +75,7 @@ var MapModule = (function () {
   };
 
   function init(options) {
+    initOptions = options || {};   // ★★★ 這一行一定要有
     var mapEl = document.getElementById('map');
     if (!mapEl) return;
 
@@ -92,8 +94,8 @@ var MapModule = (function () {
     geocoder = new google.maps.Geocoder();
 
     setupLongPressDetector();
-    setupAutocomplete(options && options.onSearchPlaceSelected);
-    setupMapClickHandlers(options);
+    setupAutocomplete(initOptions.onSearchPlaceSelected);
+    setupMapClickHandlers(initOptions);
   }
 
   /* ---------- 對外：切換模式 + 顯示策略 ---------- */
@@ -115,7 +117,6 @@ var MapModule = (function () {
   var LONG_PRESS_MS = 600;
   var longPressTimer = null;
   var longPressFired = false;
-  var downLatLng = null;
   var downPoint = null;
 
   function setupLongPressDetector() {
@@ -157,13 +158,13 @@ var MapModule = (function () {
             if (status === 'OK' && results && results[0]) {
               addr = results[0].formatted_address || '';
             }
-            if (options && typeof options.onMapLongPressForNewPlace === 'function') {
-              options.onMapLongPressForNewPlace(latLng, addr);
+            if (initOptions && typeof initOptions.onMapLongPressForNewPlace === 'function') {
+              initOptions.onMapLongPressForNewPlace(latLng, addr);
             }
           });
         } else {
-          if (options && typeof options.onMapLongPressForNewPlace === 'function') {
-            options.onMapLongPressForNewPlace(latLng, '');
+          if (initOptions && typeof initOptions.onMapLongPressForNewPlace === 'function') {
+            initOptions.onMapLongPressForNewPlace(latLng, '');
           }
         }
       }, LONG_PRESS_MS);
@@ -212,32 +213,16 @@ var MapModule = (function () {
 
   /* ---------- 地圖點擊（長按新增：僅 S1） ---------- */
   function setupMapClickHandlers(options) {
-    var newPlaceCb =
-      options &&
-      (options.onMapLongPressForNewPlace || options.onMapClickForNewPlace);
-
     map.addListener('click', function (evt) {
+      // S2：路線規劃模式下，點地圖空白 → 離開規劃
       if (mode === 'ROUTE_PLANNING') {
         document.dispatchEvent(new CustomEvent('map:blankClick'));
       }
-      // 規格：S2/S3 點地圖空白不做行為；這裡也不做新增
-      if (mode !== 'BROWSE') return;
 
-      if (!wasLongPress()) return;
-
-      tempNewPlaceLatLng = evt.latLng;
-
-      if (geocoder) {
-        geocoder.geocode({ location: evt.latLng }, function (results, status) {
-          var addr = '';
-          if (status === 'OK' && results && results[0]) {
-            addr = results[0].formatted_address || '';
-          }
-          if (typeof newPlaceCb === 'function') newPlaceCb(evt.latLng, addr);
-        });
-      } else {
-        if (typeof newPlaceCb === 'function') newPlaceCb(evt.latLng, '');
-      }
+      // 規格確認：
+      // - S1（BROWSE）：點地圖空白「不做任何事」（新增只靠長按）
+      // - S3（ROUTE_READY）：點地圖空白不做事
+      return;
     });
   }
 
