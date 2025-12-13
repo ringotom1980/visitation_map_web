@@ -11,6 +11,7 @@ var MapModule = (function () {
 
   // id -> { marker: google.maps.Marker, nameOv: NameLabelOverlay, data: place }
   var markers = new Map();
+  var searchPinMarker = null;
 
   // 目前位置 marker
   var myLocationMarker = null;
@@ -212,6 +213,27 @@ var MapModule = (function () {
     downPoint = null;
   }
 
+  function showSearchPin(latLng) {
+    if (!map || !latLng) return;
+
+    // 先清掉舊的
+    if (searchPinMarker) {
+      searchPinMarker.setMap(null);
+      searchPinMarker = null;
+    }
+
+    searchPinMarker = new google.maps.Marker({
+      map: map,
+      position: latLng,
+      icon: {
+        url: 'https://maps.gstatic.com/mapfiles/api-3/images/spotlight-poi2_hdpi.png',
+        scaledSize: new google.maps.Size(27, 43)
+      },
+      zIndex: 9999
+    });
+  }
+
+
   /* ---------- Autocomplete ---------- */
   function setupAutocomplete(onPlaceSelected) {
     var input = document.getElementById('map-search-input');
@@ -227,6 +249,7 @@ var MapModule = (function () {
 
       map.panTo(place.geometry.location);
       map.setZoom(16);
+      showSearchPin(loc);
 
       if (typeof onPlaceSelected === 'function') {
         onPlaceSelected(place);
