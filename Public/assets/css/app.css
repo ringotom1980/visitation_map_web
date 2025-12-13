@@ -655,4 +655,6 @@
   display: inline-flex;
   align-items: center;
   justify-content: center;
+  background: #7c62ee;   /* 淡綠底 */
+  color: #ffffff;        /* 深綠字 */
 }
