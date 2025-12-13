@@ -227,11 +227,20 @@ var MapModule = (function () {
     MyLocationOverlay.prototype.onAdd = function () {
       var div = document.createElement('div');
       div.className = 'my-location-dot';
+
+      var img = document.createElement('img');
+      img.className = 'my-location-logo';
+      img.src = '/assets/img/roc_logo.png';
+      img.alt = 'ROC';
+
+      div.appendChild(img);
+
       this.div = div;
 
       var panes = this.getPanes();
-      panes.overlayMouseTarget.appendChild(div);
+      panes.overlayLayer.appendChild(div);
     };
+
 
     MyLocationOverlay.prototype.draw = function () {
       if (!this.div) return;
@@ -243,6 +252,8 @@ var MapModule = (function () {
 
       this.div.style.left = point.x + 'px';
       this.div.style.top = point.y + 'px';
+      this.div.style.transform = 'translate(-50%, -50%)';
+
     };
 
     MyLocationOverlay.prototype.onRemove = function () {
