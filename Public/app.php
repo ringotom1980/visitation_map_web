@@ -56,8 +56,8 @@ $pageCss = [
             <div>
               <!-- 依需求：官兵姓名 serviceman_name（類別 category）同一行 -->
               <div class="bottom-sheet__title">
-                官兵姓名 <span id="sheet-place-serviceman-name">—</span>
-                <span class="muted">（類別 <span id="sheet-place-category">—</span>）</span>
+                <span id="sheet-place-serviceman-name">—</span>
+                <span class="muted">（<span id="sheet-place-category">—</span>）</span>
               </div>
             </div>
             <button
