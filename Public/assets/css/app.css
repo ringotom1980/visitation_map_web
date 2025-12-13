@@ -387,9 +387,10 @@
   background: rgba(0, 0, 0, 0.35);
 }
 
+/* Modal：手機左右留白，不貼邊 */
 .modal__dialog {
   position: relative;
-  width: 100%;
+  width: calc(100% - 24px);   /* 左右各 12px */
   max-width: 480px;
   max-height: 90vh;
   background: #ffffff;
@@ -398,6 +399,20 @@
   display: flex;
   flex-direction: column;
 }
+
+/* iPhone 有瀏海時，再多吃 safe-area，避免貼邊 */
+@supports (padding: max(0px)) {
+  .modal__dialog {
+    width: calc(100% - max(24px, calc(var(--safe-left, 0px) + var(--safe-right, 0px) + 24px)));
+  }
+}
+
+/* 補 safe-area 左右變數（你目前只有 top/bottom） */
+:root{
+  --safe-left: env(safe-area-inset-left, 0px);
+  --safe-right: env(safe-area-inset-right, 0px);
+}
+
 
 .modal__header {
   display: flex;
