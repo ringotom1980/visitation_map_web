@@ -59,6 +59,10 @@ $pageCss = [
                 <span id="sheet-place-serviceman-name">—</span>
                 <span class="muted">（<span id="sheet-place-category">—</span>）</span>
               </div>
+              <div class="field-row">
+              <div class="field-label">撫卹令號</div>
+              <div id="sheet-place-condolence-order-no" class="field-value">—</div>
+            </div>
             </div>
             <button
               type="button"
