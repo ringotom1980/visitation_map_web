@@ -19,7 +19,8 @@ if (!isset($pageCss) || !is_array($pageCss)) {
 <head>
   <meta charset="UTF-8">
   <title><?= htmlspecialchars((string)$pageTitle, ENT_QUOTES, 'UTF-8') ?></title>
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
+
 
   <link rel="icon" type="image/png" href="<?= asset_url('assets/img/logo.png') ?>">
 
