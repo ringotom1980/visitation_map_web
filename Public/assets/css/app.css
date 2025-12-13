@@ -398,6 +398,8 @@
   box-shadow: 0 8px 24px rgba(0, 0, 0, 0.35);
   display: flex;
   flex-direction: column;
+  max-height: 90vh;
+  max-height: 90dvh; /* ★ 新增：更貼近手機實際可視高度 */
 }
 
 /* iPhone 有瀏海時，再多吃 safe-area，避免貼邊 */

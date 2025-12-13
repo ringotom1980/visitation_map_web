@@ -1074,21 +1074,59 @@ document.addEventListener('DOMContentLoaded', function () {
     }, { passive: true });
   })();
 
+  // ===== FIX: iOS 鍵盤導致頁面被推上去後無法回位（鎖定 body scroll） =====
+  var __modalScrollY = 0;
+
+  function lockBodyScroll() {
+    // 記錄當下捲動位置
+    __modalScrollY = window.scrollY || document.documentElement.scrollTop || 0;
+
+    // 把 body 固定住，避免 iOS 鍵盤/聚焦時滾動整頁
+    document.body.style.position = 'fixed';
+    document.body.style.top = (-__modalScrollY) + 'px';
+    document.body.style.left = '0';
+    document.body.style.right = '0';
+    document.body.style.width = '100%';
+  }
+
+  function unlockBodyScroll() {
+    // 還原 body
+    document.body.style.position = '';
+    document.body.style.top = '';
+    document.body.style.left = '';
+    document.body.style.right = '';
+    document.body.style.width = '';
+
+    // 把捲動位置還回去（關鍵：讓 toolbar/search 回到原位）
+    window.scrollTo(0, __modalScrollY || 0);
+  }
 
   function openModal(id) {
     var el = document.getElementById(id);
     if (!el) return;
+
     el.classList.add('modal--open');
     el.setAttribute('aria-hidden', 'false');
+
+    // 原本就有
     document.body.classList.add('is-modal-open');
+
+    // ★新增：鎖住捲動，避免 iOS 鍵盤推頁面後卡住
+    lockBodyScroll();
   }
 
   function closeModal(id) {
     var el = document.getElementById(id);
     if (!el) return;
+
     el.classList.remove('modal--open');
     el.setAttribute('aria-hidden', 'true');
+
+    // 原本就有
     document.body.classList.remove('is-modal-open');
+
+    // ★新增：解鎖並回復捲動位置
+    unlockBodyScroll();
   }
 
   function escapeHtml(str) {
