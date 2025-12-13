@@ -321,6 +321,16 @@ document.addEventListener('DOMContentLoaded', function () {
     exitPlanningSilent();
   });
 
+  // S1：點地圖空白 → 關閉資訊抽屜（不靠 backdrop）
+  document.addEventListener('map:blankClick', function () {
+    if (state.mode !== Mode.BROWSE) return;
+
+    closeSheet('sheet-place');
+    state.currentPlace = null;
+    collapsePlaceDetails(true);
+  });
+
+
   function loadMeNonBlocking() {
     apiRequest('/auth/me', 'GET')
       .then(function (me) {
