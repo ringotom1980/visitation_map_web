@@ -208,6 +208,13 @@ document.addEventListener('DOMContentLoaded', function () {
     btnPlaceEdit.addEventListener('click', function () {
       if (state.mode !== Mode.BROWSE) return;
       if (!state.currentPlace) return;
+
+      // ✅ 先把資訊抽屜完整收掉（避免和 Modal 疊在一起）
+      closeSheet('sheet-place');
+      setPlaceSheetBackdrop(false);     // 你目前設定 S1 不用 backdrop，但保險呼叫
+      collapsePlaceDetails(true);       // 收合詳細區，避免下次打開狀態錯亂
+
+      // ✅ 再開啟編輯 Modal
       openPlaceFormForEdit(state.currentPlace);
     });
   }
@@ -215,6 +222,12 @@ document.addEventListener('DOMContentLoaded', function () {
   if (btnPlaceDelete) {
     btnPlaceDelete.addEventListener('click', function () {
       if (state.mode !== Mode.BROWSE) return;
+      if (!state.currentPlace) return;
+
+      closeSheet('sheet-place');
+      setPlaceSheetBackdrop(false);
+      collapsePlaceDetails(true);
+
       handlePlaceDelete();
     });
   }
