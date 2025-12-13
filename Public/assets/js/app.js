@@ -999,17 +999,18 @@ document.addEventListener('DOMContentLoaded', function () {
   }
 
   function openSheet(id) {
-    var el = document.getElementById(id);
-    if (!el) return;
+  var el = document.getElementById(id);
+  if (!el) return;
 
-    if (id === 'sheet-place' && state.mode !== Mode.BROWSE) return;
+  if (id === 'sheet-place' && state.mode !== Mode.BROWSE) return;
 
-    el.classList.add('bottom-sheet--open');
+  el.classList.add('bottom-sheet--open');
 
-    if (id === 'sheet-place') {
-      setPlaceSheetBackdrop(true);
-    }
+  // ❌ S1 資訊抽屜「不要」開 backdrop，地圖必須可操作
+  if (id === 'sheet-place') {
+    setPlaceSheetBackdrop(false);
   }
+}
 
   function closeSheet(id) {
     var el = document.getElementById(id);
