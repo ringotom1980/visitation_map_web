@@ -54,83 +54,102 @@ $pageCss = [
         <div class="bottom-sheet__inner">
           <header class="bottom-sheet__header">
             <div>
-              <div id="sheet-place-name" class="bottom-sheet__title">官兵姓名</div>
-              <div id="sheet-place-category" class="bottom-sheet__subtitle">類別</div>
+              <!-- 依需求：官兵姓名 serviceman_name（類別 category）同一行 -->
+              <div class="bottom-sheet__title">
+                官兵姓名 <span id="sheet-place-serviceman-name">—</span>
+                <span class="muted">（類別 <span id="sheet-place-category">—</span>）</span>
+              </div>
             </div>
             <button
               type="button"
               class="bottom-sheet__close"
-              data-sheet-close="sheet-place">
-              ✕
-            </button>
+              data-sheet-close="sheet-place">✕</button>
           </header>
 
           <div class="bottom-sheet__body">
+            <!-- S1：初始滑上來的簡略資訊（依圖1） -->
+
             <div class="field-row">
-              <div class="field-label">地址</div>
-              <div id="sheet-place-address" class="field-value">—</div>
+              <div class="field-label">撫卹令號</div>
+              <div id="sheet-place-condolence-order-no" class="field-value">—</div>
             </div>
-            <div class="field-row">
-              <div class="field-label">訪問對象</div>
-              <div id="sheet-place-target" class="field-value">—</div>
+
+            <div class="field-row field-row--split">
+              <div class="field-col">
+                <div class="field-label">實際受訪者</div>
+                <div id="sheet-place-visit-name" class="field-value">—</div>
+              </div>
+              <div class="field-col">
+                <div class="field-label">是否 65 歲以上</div>
+                <div id="sheet-place-beneficiary-over65" class="field-value">—</div>
+              </div>
             </div>
+
+            <div class="field-row field-row--split">
+              <div class="field-col">
+                <div class="field-label">與官兵關係</div>
+                <div id="sheet-place-visit-target" class="field-value">—</div>
+              </div>
+              <div class="field-col">
+                <div class="field-label">列管鄉鎮市區</div>
+                <div id="sheet-place-managed-district" class="field-value">—</div>
+              </div>
+            </div>
+
             <div class="field-row">
               <div class="field-label">備註</div>
               <div id="sheet-place-note" class="field-value">—</div>
             </div>
 
-            <!-- C2：詳細資訊（預設收合，不跳頁） -->
+            <!-- C2：詳細資訊（預設收合，不跳頁）（依圖2） -->
             <div id="sheet-place-details" class="place-details is-collapsed" aria-hidden="true">
               <div class="place-details__divider"></div>
 
               <div class="field-row">
-                <div class="field-label">訪問名稱</div>
-                <div id="sheet-place-visit-name" class="field-value">—</div>
+                <div class="field-label">列管縣市</div>
+                <div id="sheet-place-org-county" class="field-value">—</div>
               </div>
 
               <div class="field-row">
-                <div class="field-label">鄉鎮市區</div>
-                <div id="sheet-place-township" class="field-value">—</div>
-              </div>
-
-              <div class="field-row">
-                <div class="field-label">建立時間</div>
-                <div id="sheet-place-created-at" class="field-value">—</div>
-              </div>
-
-              <div class="field-row">
-                <div class="field-label">更新時間</div>
-                <div id="sheet-place-updated-at" class="field-value">—</div>
+                <div class="field-label">標記點地址</div>
+                <div id="sheet-place-address-text" class="field-value">—</div>
               </div>
 
               <div class="field-row">
                 <div class="field-label">座標</div>
                 <div id="sheet-place-latlng" class="field-value">—</div>
               </div>
+
+              <div class="field-row">
+                <div class="field-label">最後更新人</div>
+                <div id="sheet-place-updated-by-user-id" class="field-value">—</div>
+              </div>
+
+              <div class="field-row field-row--split">
+                <div class="field-col">
+                  <div class="field-label">建立時間</div>
+                  <div id="sheet-place-created-at" class="field-value">—</div>
+                </div>
+                <div class="field-col">
+                  <div class="field-label">最後更新</div>
+                  <div id="sheet-place-updated-at" class="field-value">—</div>
+                </div>
+              </div>
             </div>
           </div>
 
           <footer class="bottom-sheet__footer bottom-sheet__footer--split">
-            <button id="btn-place-detail" type="button" class="btn btn-ghost">
-              詳細
-            </button>
+            <button id="btn-place-detail" type="button" class="btn btn-ghost">詳細</button>
 
             <div class="bottom-sheet__footer-right">
-              <!-- C3：加入路線（S1可用；S2/S3禁用由 JS 控） -->
-              <button id="btn-place-add-route" type="button" class="btn btn-primary">
-                加入路線
-              </button>
-
-              <button id="btn-place-edit" type="button" class="btn btn-outline">
-                編輯
-              </button>
-              <button id="btn-place-delete" type="button" class="btn btn-danger">
-                刪除
-              </button>
+              <button id="btn-place-add-route" type="button" class="btn btn-primary">加入路線</button>
+              <button id="btn-place-edit" type="button" class="btn btn-outline">編輯</button>
+              <button id="btn-place-delete" type="button" class="btn btn-danger">刪除</button>
             </div>
           </footer>
         </div>
       </div>
+
 
       <!-- S2 路線規劃抽屜 -->
       <div id="sheet-route" class="bottom-sheet bottom-sheet--route">
@@ -199,8 +218,8 @@ $pageCss = [
               <input type="hidden" id="place-id" name="id" />
 
               <div class="form-row">
-                <label for="place-soldier-name">官兵姓名（必填）</label>
-                <input id="place-soldier-name" name="soldier_name" type="text" required />
+                <label for="place-serviceman-name">官兵姓名（必填）</label>
+                <input id="place-serviceman-name" name="serviceman_name" type="text" required />
               </div>
 
               <div class="form-row">
@@ -214,13 +233,37 @@ $pageCss = [
               </div>
 
               <div class="form-row">
-                <label for="place-target-name">訪問對象</label>
-                <input id="place-target-name" name="target_name" type="text" />
+                <label for="place-visit-target">與官兵關係</label>
+                <input id="place-visit-target" name="visit_target" type="text" />
               </div>
 
               <div class="form-row">
-                <label for="place-address">地址</label>
-                <input id="place-address" name="address" type="text" readonly />
+                <label for="place-visit-name">實際受訪姓名</label>
+                <input id="place-visit-name" name="visit_name" type="text" required />
+              </div>
+
+              <div class="form-row">
+                <label for="place-condolence-order-no">撫卹令號</label>
+                <input id="place-condolence-order-no" name="condolence_order_no" type="text" />
+                <small class="form-help">同一撫卹令號可能有多位受益人，所以不做唯一。</small>
+              </div>
+
+              <div class="form-row">
+                <label for="place-beneficiary-over65">受益人是否 65 歲以上</label>
+                <select id="place-beneficiary-over65" name="beneficiary_over65">
+                  <option value="N" selected>否</option>
+                  <option value="Y">是</option>
+                </select>
+              </div>
+
+              <div class="form-row">
+                <label for="place-managed-district">列管鄉鎮市區</label>
+                <input id="place-managed-district" name="managed_district" type="text" />
+              </div>
+
+              <div class="form-row">
+                <label for="place-address-text">地址</label>
+                <input id="place-address-text" name="address_text" type="text" readonly />
                 <small class="form-help">會自動帶入你在地圖上點選的位置（可之後再提供手動修正）。</small>
               </div>
 

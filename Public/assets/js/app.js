@@ -512,13 +512,20 @@ document.addEventListener('DOMContentLoaded', function () {
 
         myLocationPoint = {
           id: '__me',
-          soldier_name: '目前位置',
+
+          // ===== canonical（新版 places schema）=====
+          serviceman_name: '目前位置',
           category: 'CURRENT',
-          target_name: '',
-          address: '',
+          visit_target: '',
+          address_text: '',
           note: '',
           lat: lat,
-          lng: lng
+          lng: lng,
+
+          // ===== legacy alias（相容 MapModule / 舊程式）=====
+          soldier_name: '目前位置',
+          target_name: '',
+          address: ''
         };
 
         MapModule.showMyLocation(lat, lng);
@@ -546,27 +553,50 @@ document.addEventListener('DOMContentLoaded', function () {
 
   function ensureStartPoint() {
     if (!myLocationPoint) {
+      // 盡量用新版：organization_name（organizations.name）
+      // 其次相容舊版：organization_county
+      var orgLabel = '';
+      if (state.me) {
+        orgLabel = (state.me.organization_name || state.me.organization_county || '');
+      }
+
       if (state.fallbackCenter && isFinite(state.fallbackCenter.lat) && isFinite(state.fallbackCenter.lng)) {
+        var addrText = orgLabel ? (orgLabel + '（推定）') : '';
+
         myLocationPoint = {
           id: '__me',
-          soldier_name: '起點（縣市中心）',
           category: 'CURRENT',
-          target_name: '',
-          address: (state.me && state.me.organization_county) ? (state.me.organization_county + '（推定）') : '',
           note: '',
           lat: state.fallbackCenter.lat,
-          lng: state.fallbackCenter.lng
+          lng: state.fallbackCenter.lng,
+
+          // canonical（新版 places）
+          serviceman_name: '起點（縣市中心）',
+          visit_target: '',
+          address_text: addrText,
+
+          // alias（前端舊欄位/MapModule 兼容）
+          soldier_name: '起點（縣市中心）',
+          target_name: '',
+          address: addrText
         };
       } else {
         myLocationPoint = {
           id: '__me',
-          soldier_name: '起點（未定位）',
           category: 'CURRENT',
-          target_name: '',
-          address: '',
           note: '',
           lat: null,
-          lng: null
+          lng: null,
+
+          // canonical
+          serviceman_name: '起點（未定位）',
+          visit_target: '',
+          address_text: '',
+
+          // alias
+          soldier_name: '起點（未定位）',
+          target_name: '',
+          address: ''
         };
       }
     }
@@ -606,8 +636,12 @@ document.addEventListener('DOMContentLoaded', function () {
     if (placeForm && placeForm.reset) placeForm.reset();
 
     var idInput = document.getElementById('place-id');
-    var addrInput = document.getElementById('place-address');
+    var addrInput = document.getElementById('place-address-text');
     var titleEl = document.getElementById('modal-place-title');
+
+    // ★新增：預設 65+ 為 N
+    var over65Select = document.getElementById('place-beneficiary-over65');
+    if (over65Select) over65Select.value = 'N';
 
     if (idInput) idInput.value = '';
     if (addrInput) addrInput.value = address || '';
@@ -694,28 +728,42 @@ document.addEventListener('DOMContentLoaded', function () {
   }
 
   function fillPlaceSheet(place) {
-    var elName = document.getElementById('sheet-place-name');
-    var elCat = document.getElementById('sheet-place-category');
-    var elAddr = document.getElementById('sheet-place-address');
-    var elTarget = document.getElementById('sheet-place-target');
-    var elNote = document.getElementById('sheet-place-note');
+    // ====== canonical first, fallback to alias ======
+    var servicemanName = pick(place, 'serviceman_name', 'soldier_name');
+    var visitTarget = pick(place, 'visit_target', 'target_name');
+    var addressText = pick(place, 'address_text', 'address');
 
-    if (elName) elName.textContent = place.soldier_name || '—';
-    if (elCat) elCat.textContent = place.category_label || place.category || '—';
-    if (elAddr) elAddr.textContent = place.address || '—';
-    if (elTarget) elTarget.textContent = place.target_name || '—';
-    if (elNote) elNote.textContent = place.note || '—';
+    // 類別顯示：若後端有 category_label 就用，否則用 category
+    var categoryText = place.category_label || place.category || '';
 
-    // C2 詳細欄位（place 可能沒有某些欄位，沒有就顯示 —）
-    setText('sheet-place-visit-name', place.visit_name || '—');
-    setText('sheet-place-township', place.township || '—');
-    setText('sheet-place-created-at', formatDateTime(place.created_at) || '—');
-    setText('sheet-place-updated-at', formatDateTime(place.updated_at) || '—');
+    // ====== S1 簡略資訊（新版抽屜 id）======
+    // 你新版抽屜用的是：
+    // sheet-place-serviceman-name / sheet-place-category / sheet-place-address-text / sheet-place-visit-target / sheet-place-note
+    setText('sheet-place-serviceman-name', servicemanName);
+    setText('sheet-place-category', categoryText);
+    setText('sheet-place-address-text', addressText);
+    setText('sheet-place-visit-target', visitTarget);
+    setText('sheet-place-note', place.note);
 
+    // ====== C2 詳細欄位（新版詳細區 id）======
+    // 你要顯示 organizations.name → organization_name
+    setText('sheet-place-org-county', place.organization_name || place.organization_county || '—');
+
+    setText('sheet-place-visit-name', place.visit_name);
+    setText('sheet-place-managed-district', place.managed_district);
+    setText('sheet-place-condolence-order-no', place.condolence_order_no);
+    setText('sheet-place-beneficiary-over65', toYesNo(place.beneficiary_over65));
+
+    // created/updated
+    setText('sheet-place-created-at', formatDateTime(place.created_at));
+    setText('sheet-place-updated-at', formatDateTime(place.updated_at));
+
+    // lat/lng
     var lat = (place.lat !== undefined && place.lat !== null) ? String(place.lat) : '';
     var lng = (place.lng !== undefined && place.lng !== null) ? String(place.lng) : '';
     setText('sheet-place-latlng', (lat && lng) ? (lat + ', ' + lng) : '—');
-    // S1：抽屜內按鈕要依是否已加入路線切換：加入路線 / 取消路線
+
+    // ====== S1：抽屜內按鈕要依是否已加入路線切換：加入路線 / 取消路線 ======
     var btnAdd = document.getElementById('btn-place-add-route');
     if (btnAdd) {
       var inRoute = indexOfRoutePoint(place.id) >= 0;
@@ -732,8 +780,8 @@ document.addEventListener('DOMContentLoaded', function () {
         btnAdd.dataset.action = 'add';
       }
     }
-
   }
+
 
   function setText(id, text) {
     var el = document.getElementById(id);
@@ -796,8 +844,8 @@ document.addEventListener('DOMContentLoaded', function () {
         el.setAttribute('draggable', 'true');
       }
 
-      var title = p.soldier_name || (p.id === '__me' ? '目前位置' : '未命名');
-      var sub = p.address || '';
+      var title = pick(p, 'serviceman_name', 'soldier_name') || (p.id === '__me' ? '目前位置' : '未命名');
+      var sub = pick(p, 'address_text', 'address') || '';
       var indexHtml = '';
       if (p && p.id !== '__me') {
         visitNo++;
@@ -903,6 +951,23 @@ document.addEventListener('DOMContentLoaded', function () {
     });
   }
 
+  // ===== canonical + alias helpers =====
+  function pick(place, canonicalKey, aliasKey) {
+    if (!place) return '';
+    var v = place[canonicalKey];
+    if (v === undefined || v === null || v === '') v = place[aliasKey];
+    return (v === undefined || v === null) ? '' : v;
+  }
+
+  function toYesNo(v) {
+    return (String(v || '').toUpperCase() === 'Y') ? '是' : '否';
+  }
+
+  function safeText(v) {
+    return (v === undefined || v === null || v === '') ? '—' : String(v);
+  }
+
+
   function castId(id) {
     if (id === '__me') return '__me';
     var n = parseInt(id, 10);
@@ -923,18 +988,26 @@ document.addEventListener('DOMContentLoaded', function () {
 
   function openPlaceFormForEdit(place) {
     var idInput = document.getElementById('place-id');
-    var nameInput = document.getElementById('place-soldier-name');
+    var nameInput = document.getElementById('place-serviceman-name');
     var catSelect = document.getElementById('place-category');
-    var targetInput = document.getElementById('place-target-name');
-    var addrInput = document.getElementById('place-address');
+    var targetInput = document.getElementById('place-visit-target');
+    var visitNameInput = document.getElementById('place-visit-name');                 // ★新增
+    var condolenceInput = document.getElementById('place-condolence-order-no');       // ★新增
+    var over65Select = document.getElementById('place-beneficiary-over65');           // ★新增 (select Y/N)
+    var mdistInput = document.getElementById('place-managed-district');
+    var addrInput = document.getElementById('place-address-text');
     var noteInput = document.getElementById('place-note');
     var titleEl = document.getElementById('modal-place-title');
 
     if (idInput) idInput.value = place.id;
-    if (nameInput) nameInput.value = place.soldier_name || '';
+    if (nameInput) nameInput.value = place.serviceman_name || place.soldier_name || '';
     if (catSelect) catSelect.value = place.category || '';
-    if (targetInput) targetInput.value = place.target_name || '';
-    if (addrInput) addrInput.value = place.address || '';
+    if (targetInput) targetInput.value = place.visit_target || place.target_name || '';
+    if (visitNameInput) visitNameInput.value = place.visit_name || '';                // ★新增
+    if (condolenceInput) condolenceInput.value = place.condolence_order_no || '';     // ★新增
+    if (over65Select) over65Select.value = (place.beneficiary_over65 || 'N');         // ★新增
+    if (mdistInput) mdistInput.value = place.managed_district || '';
+    if (addrInput) addrInput.value = place.address_text || place.address || '';
     if (noteInput) noteInput.value = place.note || '';
     if (titleEl) titleEl.textContent = '編輯標記';
 
@@ -946,28 +1019,59 @@ document.addEventListener('DOMContentLoaded', function () {
     if (state.mode !== Mode.BROWSE) return;
 
     var formData = new FormData(placeForm);
-    var id = formData.get('id');
+    var id = (formData.get('id') || '').toString().trim();
 
+    // ===== canonical (A: 表單用 canonical 欄位名) =====
     var payload = {
-      soldier_name: (formData.get('soldier_name') || '').toString().trim(),
+      serviceman_name: (formData.get('serviceman_name') || '').toString().trim(),
       category: (formData.get('category') || '').toString().trim(),
-      target_name: (formData.get('target_name') || '').toString().trim(),
-      address: (formData.get('address') || '').toString().trim(),
+      visit_target: (formData.get('visit_target') || '').toString().trim(),
+
+      // 仍為 canonical
+      visit_name: (formData.get('visit_name') || '').toString().trim(),
+      condolence_order_no: (formData.get('condolence_order_no') || '').toString().trim(),
+      beneficiary_over65: (formData.get('beneficiary_over65') || 'N').toString().trim().toUpperCase(),
+
+      managed_district: (formData.get('managed_district') || '').toString().trim(),
+
+      address_text: (formData.get('address_text') || '').toString().trim(),
       note: (formData.get('note') || '').toString().trim()
     };
 
-    if (!payload.soldier_name || !payload.category) {
+    // ===== alias（保留舊 PlacesApi/舊後端收法）=====
+    payload.soldier_name = payload.serviceman_name;
+    payload.target_name = payload.visit_target;
+    payload.address = payload.address_text;
+
+    // 基本驗證：官兵姓名/類別必填
+    if (!payload.serviceman_name || !payload.category) {
       alert('官兵姓名與類別為必填欄位。');
       return;
     }
 
-    var latLng = MapModule.getTempNewPlaceLatLng ? MapModule.getTempNewPlaceLatLng() : null;
+    // 受益人姓名必填（避免 visit_name 為空導致 uq 重覆判斷混亂）
+    if (!payload.visit_name) {
+      alert('受益人姓名為必填欄位。');
+      return;
+    }
+
+    // Y/N 防呆
+    if (payload.beneficiary_over65 !== 'Y' && payload.beneficiary_over65 !== 'N') {
+      payload.beneficiary_over65 = 'N';
+    }
+
+    var latLng = (MapModule.getTempNewPlaceLatLng ? MapModule.getTempNewPlaceLatLng() : null);
 
     try {
       if (id) {
-        var base = state.currentPlace && String(state.currentPlace.id) === String(id) ? state.currentPlace : null;
-        payload.lat = latLng ? latLng.lat() : (base ? base.lat : null);
-        payload.lng = latLng ? latLng.lng() : (base ? base.lng : null);
+        // 編輯：lat/lng 可用暫存新點，否則沿用原資料（canonical/alias 都支援）
+        var base = (state.currentPlace && String(state.currentPlace.id) === String(id)) ? state.currentPlace : null;
+
+        var baseLat = base ? (base.lat !== undefined ? base.lat : base.latitude) : null;
+        var baseLng = base ? (base.lng !== undefined ? base.lng : base.longitude) : null;
+
+        payload.lat = latLng ? latLng.lat() : (baseLat !== null ? baseLat : null);
+        payload.lng = latLng ? latLng.lng() : (baseLng !== null ? baseLng : null);
 
         if (payload.lat === null || payload.lng === null) {
           alert('編輯時缺少座標資訊，請在地圖上重新長按選擇位置後再儲存。');
@@ -975,7 +1079,9 @@ document.addEventListener('DOMContentLoaded', function () {
         }
 
         await PlacesApi.update(id, payload);
+
       } else {
+        // 新增：必須有新點位
         if (!latLng) {
           alert('請在地圖上長按選擇位置後再儲存。');
           return;

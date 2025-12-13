@@ -1,7 +1,7 @@
 <?php
 /**
  * Path: Public/api/places/create.php
- * 說明: 新增標記（POST /api/places/create.php）
+ * 說明: 新增標記（新版 places schema）
  */
 
 declare(strict_types=1);
@@ -23,21 +23,22 @@ if (empty($input)) {
     $raw = file_get_contents('php://input');
     if ($raw) {
         $json = json_decode($raw, true);
-        if (is_array($json)) {
-            $input = $json;
-        }
+        if (is_array($json)) $input = $json;
     }
 }
 
-$soldierName = trim($input['soldier_name'] ?? '');
-$category    = trim($input['category'] ?? '');
-$targetName  = trim($input['target_name'] ?? '');
-$visitName   = trim($input['visit_name'] ?? '');
-$address     = trim($input['address'] ?? '');
-$township    = trim($input['township'] ?? '');
-$note        = trim($input['note'] ?? '');
-$lat         = $input['lat'] ?? null;
-$lng         = $input['lng'] ?? null;
+$soldierName = trim((string)($input['soldier_name'] ?? ''));
+$category    = trim((string)($input['category'] ?? ''));
+$targetName  = trim((string)($input['target_name'] ?? ''));
+$visitName   = trim((string)($input['visit_name'] ?? ''));
+$condNo      = trim((string)($input['condolence_order_no'] ?? ''));
+$over65      = strtoupper(trim((string)($input['beneficiary_over65'] ?? 'N')));
+$address     = trim((string)($input['address'] ?? ''));
+$mdist       = trim((string)($input['managed_district'] ?? ($input['township'] ?? ''))); // 先相容舊欄位名
+$note        = trim((string)($input['note'] ?? ''));
+
+$lat = $input['lat'] ?? null;
+$lng = $input['lng'] ?? null;
 
 // 基本驗證
 if ($soldierName === '' || $category === '') {
@@ -46,84 +47,97 @@ if ($soldierName === '' || $category === '') {
 if (!is_numeric($lat) || !is_numeric($lng)) {
     json_error('座標資訊錯誤（lat/lng 必須為數值）');
 }
+if ($over65 !== 'Y' && $over65 !== 'N') $over65 = 'N';
 
 $pdo = db();
 
 try {
     $sql = 'INSERT INTO places (
                 organization_id,
-                created_by_user_id,
+                updated_by_user_id,
                 serviceman_name,
                 category,
                 visit_target,
+                condolence_order_no,
                 visit_name,
+                beneficiary_over65,
                 note,
                 lat,
                 lng,
                 address_text,
-                township,
-                is_active,
+                managed_district,
                 created_at,
                 updated_at
             ) VALUES (
                 :org_id,
-                :user_id,
+                :updated_by,
                 :serviceman_name,
                 :category,
                 :visit_target,
+                :cond_no,
                 :visit_name,
+                :over65,
                 :note,
                 :lat,
                 :lng,
                 :address_text,
-                :township,
-                1,
+                :mdist,
                 NOW(),
                 NOW()
             )';
 
-    $params = array(
-        ':org_id'         => $user['organization_id'],
-        ':user_id'        => $user['id'],
-        ':serviceman_name'=> $soldierName,
-        ':category'       => $category,
-        ':visit_target'   => ($targetName !== '' ? $targetName : null),
-        ':visit_name'     => ($visitName !== '' ? $visitName : null),
-        ':note'           => ($note !== '' ? $note : null),
-        ':lat'            => (float)$lat,
-        ':lng'            => (float)$lng,
-        ':address_text'   => ($address !== '' ? $address : null),
-        ':township'       => ($township !== '' ? $township : null),
-    );
+    $params = [
+        ':org_id'          => (int)$user['organization_id'],
+        ':updated_by'      => (int)$user['id'],
+        ':serviceman_name' => $soldierName,
+        ':category'        => $category,
+        ':visit_target'    => ($targetName !== '' ? $targetName : null),
+        ':cond_no'         => ($condNo !== '' ? $condNo : null),
+        ':visit_name'      => ($visitName !== '' ? $visitName : null),
+        ':over65'          => $over65,
+        ':note'            => ($note !== '' ? $note : null),
+        ':lat'             => (float)$lat,
+        ':lng'             => (float)$lng,
+        ':address_text'    => ($address !== '' ? $address : null),
+        ':mdist'           => ($mdist !== '' ? $mdist : null),
+    ];
 
     $stmt = $pdo->prepare($sql);
     $stmt->execute($params);
     $newId = (int)$pdo->lastInsertId();
 
-    // 回傳新資料（用 list 的 alias 規格）
+    // 回傳新資料（維持前端 alias）
     $sqlGet = 'SELECT
                     id,
                     serviceman_name AS soldier_name,
                     category,
-                    visit_target   AS target_name,
+                    visit_target AS target_name,
                     visit_name,
-                    address_text   AS address,
-                    township,
+                    condolence_order_no,
+                    beneficiary_over65,
+                    address_text AS address,
+                    managed_district,
                     note,
                     lat,
                     lng,
                     organization_id,
+                    updated_by_user_id,
                     created_at,
                     updated_at
                FROM places
-               WHERE id = :id';
-
+               WHERE id = :id
+               LIMIT 1';
     $stmtGet = $pdo->prepare($sqlGet);
-    $stmtGet->execute(array(':id' => $newId));
+    $stmtGet->execute([':id' => $newId]);
     $row = $stmtGet->fetch();
 
     json_success($row);
 
 } catch (Throwable $e) {
+    // MariaDB duplicate key 常見：1062
+    $msg = $e->getMessage();
+    if (strpos($msg, 'Duplicate') !== false || strpos($msg, '1062') !== false) {
+        json_error('同單位下「官兵姓名 + 受益人姓名」已存在，請確認是否重複。', 409);
+    }
     json_error('新增標記時發生錯誤：' . $e->getMessage(), 500);
 }

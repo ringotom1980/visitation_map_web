@@ -1,7 +1,7 @@
 <?php
 /**
  * Path: Public/api/places/list.php
- * 說明: 取得目前登入使用者可見的所有標記列表（JSON）
+ * 說明: 取得可見的所有標記列表（新版 places schema）
  */
 
 declare(strict_types=1);
@@ -12,7 +12,6 @@ if ($_SERVER['REQUEST_METHOD'] !== 'GET') {
     json_error('Method not allowed', 405);
 }
 
-// API 不能 redirect，只能回 JSON
 $user = current_user();
 if (!$user) {
     json_error('尚未登入', 401);
@@ -22,29 +21,43 @@ $pdo = db();
 
 try {
     $sql = 'SELECT
-                id,
-                serviceman_name AS soldier_name,
-                category,
-                visit_target   AS target_name,
-                visit_name,
-                address_text   AS address,
-                township,
-                note,
-                lat,
-                lng,
-                organization_id,
-                created_at,
-                updated_at
-            FROM places
-            WHERE is_active = 1';
+            p.id,
 
-    // 一定初始化
-    $params = array();
+            -- canonical
+            p.serviceman_name,
+            p.category,
+            p.visit_target,
+            p.visit_name,
+            p.condolence_order_no,
+            p.beneficiary_over65,
+            p.address_text,
+            p.managed_district,
+            p.note,
+            p.lat,
+            p.lng,
+            p.organization_id,
+            p.updated_by_user_id,
+            p.created_at,
+            p.updated_at,
 
-    // 一般使用者只看自己單位；ADMIN 看全部
+            -- join
+            o.name AS organization_name,
+
+            -- legacy aliases (keep old JS/MapModule safe)
+            p.serviceman_name AS soldier_name,
+            p.visit_target AS target_name,
+            p.address_text AS address
+        FROM places p
+        LEFT JOIN organizations o ON o.id = p.organization_id
+        WHERE 1=1';
+
+
+    $params = [];
+
+    // 非 ADMIN 僅能看到自己單位
     if (($user['role'] ?? '') !== 'ADMIN') {
         $sql .= ' AND organization_id = :org_id';
-        $params[':org_id'] = $user['organization_id'];
+        $params[':org_id'] = (int)$user['organization_id'];
     }
 
     $sql .= ' ORDER BY id DESC';

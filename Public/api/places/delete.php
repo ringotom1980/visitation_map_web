@@ -1,7 +1,7 @@
 <?php
 /**
  * Path: Public/api/places/delete.php
- * 說明: 刪除標記（軟刪除，將 is_active 設為 0）
+ * 說明: 刪除標記（新版 places schema：硬刪除）
  */
 
 declare(strict_types=1);
@@ -23,9 +23,7 @@ if (empty($input)) {
     $raw = file_get_contents('php://input');
     if ($raw) {
         $json = json_decode($raw, true);
-        if (is_array($json)) {
-            $input = $json;
-        }
+        if (is_array($json)) $input = $json;
     }
 }
 
@@ -37,14 +35,13 @@ if ($id <= 0) {
 $pdo = db();
 
 try {
-    // 先抓原始資料，做權限檢查
-    $sqlOrig = 'SELECT id, organization_id, is_active FROM places WHERE id = :id';
+    $sqlOrig = 'SELECT id, organization_id FROM places WHERE id = :id';
     $stmtOrig = $pdo->prepare($sqlOrig);
-    $stmtOrig->execute(array(':id' => $id));
+    $stmtOrig->execute([':id' => $id]);
     $orig = $stmtOrig->fetch();
 
-    if (!$orig || (int)$orig['is_active'] !== 1) {
-        json_error('標記不存在或已刪除', 404);
+    if (!$orig) {
+        json_error('標記不存在', 404);
     }
 
     if (($user['role'] ?? '') !== 'ADMIN'
@@ -53,16 +50,10 @@ try {
         json_error('無權限刪除此標記', 403);
     }
 
-    // 軟刪除
-    $sqlDel = 'UPDATE places
-               SET is_active = 0,
-                   updated_at = NOW()
-               WHERE id = :id';
+    $stmtDel = $pdo->prepare('DELETE FROM places WHERE id = :id');
+    $stmtDel->execute([':id' => $id]);
 
-    $stmtDel = $pdo->prepare($sqlDel);
-    $stmtDel->execute(array(':id' => $id));
-
-    json_success(array('id' => $id, 'deleted' => true));
+    json_success(['id' => $id, 'deleted' => true]);
 
 } catch (Throwable $e) {
     json_error('刪除標記時發生錯誤：' . $e->getMessage(), 500);

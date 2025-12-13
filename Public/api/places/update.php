@@ -1,10 +1,10 @@
 <?php
 /**
  * Path: Public/api/places/update.php
- * 說明: 編輯標記（POST /api/places/update.php）
- *       - 支援 JSON 與 form-data
- *       - 權限：ADMIN 可編輯全部；一般使用者只能編輯自己單位
- *       - 重要修正：lat/lng 改為「可選」；若未帶座標，沿用 DB 既有座標（避免只改文字欄位被擋）
+ * 說明: 編輯標記（新版 places schema）
+ * - 權限：ADMIN 可編輯全部；一般使用者只能編輯自己單位
+ * - lat/lng 可選：未帶則沿用 DB
+ * - 每次更新都寫 updated_by_user_id
  */
 
 declare(strict_types=1);
@@ -26,9 +26,7 @@ if (empty($input)) {
     $raw = file_get_contents('php://input');
     if ($raw) {
         $json = json_decode($raw, true);
-        if (is_array($json)) {
-            $input = $json;
-        }
+        if (is_array($json)) $input = $json;
     }
 }
 
@@ -37,14 +35,15 @@ $soldierName = trim((string)($input['soldier_name'] ?? ''));
 $category    = trim((string)($input['category'] ?? ''));
 $targetName  = trim((string)($input['target_name'] ?? ''));
 $visitName   = trim((string)($input['visit_name'] ?? ''));
+$condNo      = trim((string)($input['condolence_order_no'] ?? ''));
+$over65      = strtoupper(trim((string)($input['beneficiary_over65'] ?? 'N')));
 $address     = trim((string)($input['address'] ?? ''));
-$township    = trim((string)($input['township'] ?? ''));
+$mdist       = trim((string)($input['managed_district'] ?? ($input['township'] ?? ''))); // 先相容舊欄位名
 $note        = trim((string)($input['note'] ?? ''));
 
-// lat/lng：改為可選（若未帶，沿用 DB）
+// lat/lng：可選（若未帶，沿用 DB）
 $hasLat = array_key_exists('lat', $input) && $input['lat'] !== '' && $input['lat'] !== null;
 $hasLng = array_key_exists('lng', $input) && $input['lng'] !== '' && $input['lng'] !== null;
-
 $lat = $input['lat'] ?? null;
 $lng = $input['lng'] ?? null;
 
@@ -54,17 +53,16 @@ if ($id <= 0) {
 if ($soldierName === '' || $category === '') {
     json_error('官兵姓名與類別為必填欄位');
 }
-
-// 若有帶座標，就必須是數值；若未帶則後面用 DB 舊值
 if (($hasLat && !is_numeric($lat)) || ($hasLng && !is_numeric($lng))) {
     json_error('座標資訊錯誤（lat/lng 必須為數值）');
 }
+if ($over65 !== 'Y' && $over65 !== 'N') $over65 = 'N';
 
 $pdo = db();
 
 try {
-    // 先抓原始資料：權限 + 取得既有座標（供未帶 lat/lng 時沿用）
-    $sqlOrig = 'SELECT id, organization_id, is_active, lat, lng
+    // 先抓原始資料：權限 + 取得既有座標
+    $sqlOrig = 'SELECT id, organization_id, lat, lng
                 FROM places
                 WHERE id = :id
                 LIMIT 1';
@@ -72,7 +70,7 @@ try {
     $stmtOrig->execute([':id' => $id]);
     $orig = $stmtOrig->fetch();
 
-    if (!$orig || (int)$orig['is_active'] !== 1) {
+    if (!$orig) {
         json_error('找不到要編輯的標記', 404);
     }
 
@@ -82,60 +80,66 @@ try {
         json_error('無權限編輯此標記', 403);
     }
 
-    // 沿用 DB 座標（只有在未提供 lat/lng 時）
     $finalLat = $hasLat ? (float)$lat : (float)$orig['lat'];
     $finalLng = $hasLng ? (float)$lng : (float)$orig['lng'];
 
-    // 更新資料
     $sql = 'UPDATE places
             SET
+                updated_by_user_id = :updated_by,
                 serviceman_name = :serviceman_name,
-                category        = :category,
-                visit_target    = :visit_target,
-                visit_name      = :visit_name,
-                note            = :note,
-                lat             = :lat,
-                lng             = :lng,
-                address_text    = :address_text,
-                township        = :township,
-                updated_at      = NOW()
+                category = :category,
+                visit_target = :visit_target,
+                condolence_order_no = :cond_no,
+                visit_name = :visit_name,
+                beneficiary_over65 = :over65,
+                note = :note,
+                lat = :lat,
+                lng = :lng,
+                address_text = :address_text,
+                managed_district = :mdist,
+                updated_at = NOW()
             WHERE id = :id';
 
     $params = [
         ':id'              => $id,
+        ':updated_by'      => (int)$user['id'],
         ':serviceman_name' => $soldierName,
         ':category'        => $category,
         ':visit_target'    => ($targetName !== '' ? $targetName : null),
+        ':cond_no'         => ($condNo !== '' ? $condNo : null),
         ':visit_name'      => ($visitName !== '' ? $visitName : null),
+        ':over65'          => $over65,
         ':note'            => ($note !== '' ? $note : null),
         ':lat'             => $finalLat,
         ':lng'             => $finalLng,
         ':address_text'    => ($address !== '' ? $address : null),
-        ':township'        => ($township !== '' ? $township : null),
+        ':mdist'           => ($mdist !== '' ? $mdist : null),
     ];
 
     $stmt = $pdo->prepare($sql);
     $stmt->execute($params);
 
-    // 回傳更新後資料（與 list 的 alias 規格一致）
+    // 回傳更新後資料
     $sqlGet = 'SELECT
                     id,
                     serviceman_name AS soldier_name,
                     category,
-                    visit_target   AS target_name,
+                    visit_target AS target_name,
                     visit_name,
-                    address_text   AS address,
-                    township,
+                    condolence_order_no,
+                    beneficiary_over65,
+                    address_text AS address,
+                    managed_district,
                     note,
                     lat,
                     lng,
                     organization_id,
+                    updated_by_user_id,
                     created_at,
                     updated_at
                FROM places
                WHERE id = :id
                LIMIT 1';
-
     $stmtGet = $pdo->prepare($sqlGet);
     $stmtGet->execute([':id' => $id]);
     $row = $stmtGet->fetch();
@@ -143,5 +147,9 @@ try {
     json_success($row);
 
 } catch (Throwable $e) {
+    $msg = $e->getMessage();
+    if (strpos($msg, 'Duplicate') !== false || strpos($msg, '1062') !== false) {
+        json_error('同單位下「官兵姓名 + 受益人姓名」已存在，請確認是否重複。', 409);
+    }
     json_error('更新標記時發生錯誤：' . $e->getMessage(), 500);
 }

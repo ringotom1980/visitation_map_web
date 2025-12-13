@@ -1,7 +1,7 @@
 <?php
 /**
  * Path: Public/api/places/get.php
- * 說明: 取得單一標記詳細資料（GET /api/places/get.php?id=123）
+ * 說明: 取得單一標記詳細資料（新版 places schema）
  */
 
 declare(strict_types=1);
@@ -26,35 +26,43 @@ $pdo = db();
 
 try {
     $sql = 'SELECT
-                id,
-                serviceman_name AS soldier_name,
-                category,
-                visit_target   AS target_name,
-                visit_name,
-                address_text   AS address,
-                township,
-                note,
-                lat,
-                lng,
-                organization_id,
-                created_by_user_id,
-                created_at,
-                updated_at,
-                is_active
-            FROM places
-            WHERE id = :id';
+            p.id,
 
-    $params = array(':id' => $id);
+            p.serviceman_name,
+            p.category,
+            p.visit_target,
+            p.visit_name,
+            p.condolence_order_no,
+            p.beneficiary_over65,
+            p.address_text,
+            p.managed_district,
+            p.note,
+            p.lat,
+            p.lng,
+            p.organization_id,
+            p.updated_by_user_id,
+            p.created_at,
+            p.updated_at,
+
+            o.name AS organization_name,
+
+            p.serviceman_name AS soldier_name,
+            p.visit_target AS target_name,
+            p.address_text AS address
+        FROM places p
+        LEFT JOIN organizations o ON o.id = p.organization_id
+        WHERE p.id = :id
+        LIMIT 1';
+
 
     $stmt = $pdo->prepare($sql);
-    $stmt->execute($params);
+    $stmt->execute([':id' => $id]);
     $row = $stmt->fetch();
 
     if (!$row) {
         json_error('找不到指定的標記', 404);
     }
 
-    // 權限：ADMIN 看全部，一般使用者只能看自己單位
     if (($user['role'] ?? '') !== 'ADMIN'
         && (int)$row['organization_id'] !== (int)$user['organization_id']
     ) {
