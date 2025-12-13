@@ -118,6 +118,7 @@ var MapModule = (function () {
   var longPressTimer = null;
   var longPressFired = false;
   var downPoint = null;
+  var activePointers = new Set();   // 追蹤目前有幾根手指
 
   function setupLongPressDetector() {
     if (!map) return;
@@ -126,15 +127,23 @@ var MapModule = (function () {
     mapDiv.addEventListener('pointerdown', function (e) {
       if (mode !== 'BROWSE') return;
 
+      // ★紀錄目前活躍的 pointer（手指）
+      activePointers.add(e.pointerId);
+
+      // ❌ 只允許「單指」
+      if (activePointers.size !== 1) {
+        clearLongPress();
+        return;
+      }
+
       longPressFired = false;
       downPoint = { x: e.clientX, y: e.clientY };
 
       longPressTimer = setTimeout(function () {
-        longPressFired = true;
+        // ★再次確認仍然只有一指
+        if (activePointers.size !== 1) return;
 
-        // 取得地理座標（關鍵）
-        var proj = map.getProjection();
-        if (!proj) return;
+        longPressFired = true;
 
         var bounds = map.getBounds();
         if (!bounds) return;
@@ -142,9 +151,9 @@ var MapModule = (function () {
         var ne = bounds.getNorthEast();
         var sw = bounds.getSouthWest();
 
-        var mapDivRect = mapDiv.getBoundingClientRect();
-        var xRatio = (e.clientX - mapDivRect.left) / mapDivRect.width;
-        var yRatio = (e.clientY - mapDivRect.top) / mapDivRect.height;
+        var rect = mapDiv.getBoundingClientRect();
+        var xRatio = (e.clientX - rect.left) / rect.width;
+        var yRatio = (e.clientY - rect.top) / rect.height;
 
         var lat = ne.lat() - (ne.lat() - sw.lat()) * yRatio;
         var lng = sw.lng() + (ne.lng() - sw.lng()) * xRatio;
@@ -172,15 +181,29 @@ var MapModule = (function () {
 
     mapDiv.addEventListener('pointermove', function (e) {
       if (!downPoint || longPressFired) return;
+
+      // ★一旦變成多指，直接取消
+      if (activePointers.size !== 1) {
+        clearLongPress();
+        return;
+      }
+
       var dx = e.clientX - downPoint.x;
       var dy = e.clientY - downPoint.y;
       if (Math.hypot(dx, dy) > 8) {
-        clearTimeout(longPressTimer);
+        clearLongPress();
       }
     });
 
-    mapDiv.addEventListener('pointerup', clearLongPress);
-    mapDiv.addEventListener('pointercancel', clearLongPress);
+    mapDiv.addEventListener('pointerup', function (e) {
+      activePointers.delete(e.pointerId);
+      clearLongPress();
+    });
+
+    mapDiv.addEventListener('pointercancel', function (e) {
+      activePointers.delete(e.pointerId);
+      clearLongPress();
+    });
   }
 
   function clearLongPress() {
