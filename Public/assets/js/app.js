@@ -325,16 +325,26 @@ document.addEventListener('DOMContentLoaded', function () {
       return;
     }
 
-    // S1：瀏覽模式 → 關閉資訊抽屜
-    if (state.mode === Mode.BROWSE) {
+    // S3：ROUTE_READY → 不做事（刻意）
+  });
+
+  // ===== S1：BROWSE 模式，點地圖空白 → 關閉資訊抽屜 =====
+  (function bindMapClickForBrowseOnly() {
+    var mapEl = document.getElementById('map');
+    if (!mapEl) return;
+
+    mapEl.addEventListener('click', function (e) {
+      // 只在 S1 生效
+      if (state.mode !== Mode.BROWSE) return;
+
+      // 點在資訊抽屜內，不關
+      if (sheetPlace && sheetPlace.contains(e.target)) return;
+
       closeSheet('sheet-place');
       state.currentPlace = null;
       collapsePlaceDetails(true);
-      return;
-    }
-
-    // S3：ROUTE_READY → 不做事（刻意）
-  });
+    }, true); // ⚠️ 一定要 capture
+  })();
 
   function loadMeNonBlocking() {
     apiRequest('/auth/me', 'GET')
@@ -1043,9 +1053,10 @@ document.addEventListener('DOMContentLoaded', function () {
     var sheet = document.getElementById('sheet-place');
     if (!sheet) return;
 
-    sheet.addEventListener('pointerdown', function (e) {
+    sheet.addEventListener('click', function (e) {
       e.stopPropagation();
     });
+
   })();
 
   function openModal(id) {
