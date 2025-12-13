@@ -198,36 +198,37 @@ var MapModule = (function () {
 
   /* ---------- 目前位置 ---------- */
   function showMyLocation(lat, lng) {
-    if (!map) return;
-    if (!isFinite(lat) || !isFinite(lng)) return;
+  if (!map) return;
+  if (!isFinite(lat) || !isFinite(lng)) return;
 
-    var pos = { lat: lat, lng: lng };
+  var pos = { lat: lat, lng: lng };
 
-    if (myLocationMarker) myLocationMarker.setMap(null);
+  if (myLocationMarker) myLocationMarker.setMap(null);
 
-    myLocationMarker = new google.maps.Marker({
-      map: map,
-      position: pos,
-      title: '目前位置',
-      icon: {
-        path: google.maps.SymbolPath.CIRCLE,
-        scale: 6,
-        fillColor: '#1976d2',
-        fillOpacity: 1,
-        strokeColor: '#ffffff',
-        strokeWeight: 2
-      },
-      label: {
-        text: '起',
-        color: '#ffffff',
-        fontSize: '12px',
-        fontWeight: '700'
-      }
-    });
+  // ✅ 用 SVG 固定起點樣式：藍底白字「起」
+  var svg = [
+    '<svg xmlns="http://www.w3.org/2000/svg" width="44" height="44" viewBox="0 0 44 44">',
+    '  <circle cx="22" cy="22" r="11" fill="#1976d2" stroke="#ffffff" stroke-width="3" />',
+    '  <text x="22" y="26" text-anchor="middle" font-size="14" font-weight="800" fill="#ffffff" font-family="Arial, sans-serif">起</text>',
+    '</svg>'
+  ].join('');
 
-    map.panTo(pos);
-    map.setZoom(15);
-  }
+  myLocationMarker = new google.maps.Marker({
+    map: map,
+    position: pos,
+    title: '目前位置',
+    icon: {
+      url: 'data:image/svg+xml;charset=UTF-8,' + encodeURIComponent(svg),
+      scaledSize: new google.maps.Size(44, 44),
+      anchor: new google.maps.Point(22, 22)
+    },
+    zIndex: 999999
+  });
+
+  map.panTo(pos);
+  map.setZoom(15);
+}
+
 
   /* ---------- 載入標記 ---------- */
   function setPlaces(placeList, onMarkerClick, onMarkerRouteSelect) {
