@@ -1,4 +1,5 @@
 <?php
+
 /**
  * Path: Public/api/places/list.php
  * 說明: 取得可見的所有標記列表（新版 places schema）
@@ -42,13 +43,14 @@ try {
 
             -- join
             o.name AS organization_name,
-
+            u.name AS updated_by_user_name,
             -- legacy aliases (keep old JS/MapModule safe)
             p.serviceman_name AS soldier_name,
             p.visit_target AS target_name,
             p.address_text AS address
         FROM places p
         LEFT JOIN organizations o ON o.id = p.organization_id
+        LEFT JOIN users u ON u.id = p.updated_by_user_id
         WHERE 1=1';
 
 
@@ -67,7 +69,6 @@ try {
     $rows = $stmt->fetchAll();
 
     json_success($rows);
-
 } catch (Throwable $e) {
     json_error('載入地點資料時發生錯誤：' . $e->getMessage(), 500);
 }

@@ -762,6 +762,7 @@ document.addEventListener('DOMContentLoaded', function () {
     // ====== C2 詳細欄位（新版詳細區 id）======
     // 你要顯示 organizations.name → organization_name
     setText('sheet-place-org-county', place.organization_name || place.organization_county || '—');
+    setText('sheet-place-updated-by-user-id', place.updated_by_user_name || place.updated_by_user_id);
 
     setText('sheet-place-visit-name', place.visit_name);
     setText('sheet-place-managed-district', place.managed_district);

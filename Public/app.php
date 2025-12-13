@@ -75,7 +75,7 @@ $pageCss = [
 
             <div class="field-row field-row--split">
               <div class="field-col">
-                <div class="field-label">實際受訪者</div>
+                <div class="field-label">受益人</div>
                 <div id="sheet-place-visit-name" class="field-value">—</div>
               </div>
               <div class="field-col">

@@ -45,12 +45,14 @@ try {
             p.updated_at,
 
             o.name AS organization_name,
+            u.name AS updated_by_user_name,
 
             p.serviceman_name AS soldier_name,
             p.visit_target AS target_name,
             p.address_text AS address
         FROM places p
         LEFT JOIN organizations o ON o.id = p.organization_id
+        LEFT JOIN users u ON u.id = p.updated_by_user_id
         WHERE p.id = :id
         LIMIT 1';
 
