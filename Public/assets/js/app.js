@@ -200,6 +200,42 @@ document.addEventListener('DOMContentLoaded', function () {
         });
     });
   }
+  // ===== S1 資訊抽屜：點外面關閉 =====
+  var sheetBackdrop = null;
+  var escBound = false;
+
+  function ensureSheetBackdrop() {
+    if (sheetBackdrop) return sheetBackdrop;
+
+    sheetBackdrop = document.createElement('div');
+    sheetBackdrop.className = 'sheet-backdrop';
+    document.body.appendChild(sheetBackdrop);
+
+    sheetBackdrop.addEventListener('click', function () {
+      closeSheet('sheet-place');
+      state.currentPlace = null;
+      collapsePlaceDetails(true);
+    });
+
+    if (!escBound) {
+      escBound = true;
+      document.addEventListener('keydown', function (e) {
+        if (e.key === 'Escape') {
+          closeSheet('sheet-place');
+          state.currentPlace = null;
+          collapsePlaceDetails(true);
+        }
+      });
+    }
+
+    return sheetBackdrop;
+  }
+
+  function setPlaceSheetBackdrop(open) {
+    var bd = ensureSheetBackdrop();
+    if (open) bd.classList.add('is-open');
+    else bd.classList.remove('is-open');
+  }
 
   document.body.addEventListener('click', function (evt) {
     var target = evt.target;
@@ -274,6 +310,8 @@ document.addEventListener('DOMContentLoaded', function () {
 
   function applyMode(nextMode) {
     state.mode = nextMode;
+    // 保險：離開 BROWSE 時，確保資訊抽屜的 backdrop 關閉
+    if (nextMode !== Mode.BROWSE) setPlaceSheetBackdrop(false);
 
     applyModeGuards();
 
@@ -900,19 +938,36 @@ document.addEventListener('DOMContentLoaded', function () {
   function openSheet(id) {
     var el = document.getElementById(id);
     if (!el) return;
+
     if (id === 'sheet-place' && state.mode !== Mode.BROWSE) return;
+
     el.classList.add('bottom-sheet--open');
+
+    if (id === 'sheet-place') {
+      setPlaceSheetBackdrop(true);
+    }
   }
 
   function closeSheet(id) {
     var el = document.getElementById(id);
     if (!el) return;
 
-    // ✅允許在 S2 也能用 X 收起「路線規劃抽屜」
-    // （收起不等於退出模式；退出模式走 btnRouteExit 的流程）
     el.classList.remove('bottom-sheet--open');
+
+    if (id === 'sheet-place') {
+      setPlaceSheetBackdrop(false);
+    }
   }
 
+  // 防止點擊抽屜內容誤觸 backdrop
+  (function bindSheetStopPropagation() {
+    var sheet = document.getElementById('sheet-place');
+    if (!sheet) return;
+
+    sheet.addEventListener('pointerdown', function (e) {
+      e.stopPropagation();
+    });
+  })();
 
   function openModal(id) {
     var el = document.getElementById(id);

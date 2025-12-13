@@ -658,3 +658,22 @@
   background: #7c62ee;   /* 淡綠底 */
   color: #ffffff;        /* 深綠字 */
 }
+
+/* =========================================
+   S1 資訊抽屜：點外面關閉用 Backdrop
+   - 只用於 sheet-place
+   ========================================= */
+.sheet-backdrop {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.28);
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity .18s ease;
+  z-index: 1150; /* 介於地圖(較低) 與 bottom-sheet(1200) 之間 */
+}
+
+.sheet-backdrop.is-open {
+  opacity: 1;
+  pointer-events: auto;
+}
