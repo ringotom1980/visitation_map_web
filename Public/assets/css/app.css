@@ -252,6 +252,31 @@
   border-bottom: 1px dashed #eeeeee;
 }
 
+/* 兩欄 split：左右各一欄 */
+.field-row--split{
+  display: flex;
+  gap: 12px;
+  align-items: flex-start;
+}
+
+/* split 內的欄位 */
+.field-row--split .field-col{
+  flex: 1 1 0;
+  min-width: 0; /* 避免內容撐破導致不分欄 */
+}
+
+/* split 欄位內：label 在上、value 在下 */
+.field-row--split .field-label{
+  flex: none;
+  width: auto;
+  margin-bottom: 2px;
+}
+
+.field-row--split .field-value{
+  flex: none;
+}
+
+
 .field-row:last-child {
   border-bottom: none;
 }
@@ -266,6 +291,14 @@
   flex: 1 1 auto;
   font-size: 13px;
 }
+
+@media (max-width: 420px){
+  .field-row--split{
+    flex-direction: column;
+    gap: 8px;
+  }
+}
+
 
 /* 路線列表 */
 .route-list {
