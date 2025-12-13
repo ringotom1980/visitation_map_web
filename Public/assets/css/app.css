@@ -72,6 +72,33 @@
   border-radius: 999px;
   background: #f3f3f3;
   border: 1px solid #e0e0e0;
+  position: relative;
+  padding-right: 64px; /* 右側預留兩顆按鈕空間 */
+}
+
+.search-bar__btn{
+  position: absolute;
+  top: 50%;
+  transform: translateY(-50%);
+  border: none;
+  background: transparent;
+  cursor: pointer;
+  font-size: 16px;
+  line-height: 1;
+  padding: 6px;
+  color: #444;
+}
+
+.search-bar__btn--search{
+  right: 10px;
+}
+
+.search-bar__btn--clear{
+  right: 38px;
+  display: none; /* 預設隱藏，有輸入才顯示 */
+}
+.search-bar__btn--clear.is-show{
+  display: inline-block;
 }
 
 .search-bar__icon {

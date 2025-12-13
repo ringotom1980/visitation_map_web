@@ -12,6 +12,7 @@ var MapModule = (function () {
   // id -> { marker: google.maps.Marker, nameOv: NameLabelOverlay, data: place }
   var markers = new Map();
   var searchPinMarker = null;
+  var searchPinLatLng = null;
 
   // 目前位置 marker
   var myLocationMarker = null;
@@ -213,26 +214,71 @@ var MapModule = (function () {
     downPoint = null;
   }
 
+  // ====== 搜尋後 Pin：顯示 / 清除 ======
   function showSearchPin(latLng) {
     if (!map || !latLng) return;
 
-    // 先清掉舊的
-    if (searchPinMarker) {
-      searchPinMarker.setMap(null);
-      searchPinMarker = null;
-    }
+    searchPinLatLng = latLng;
 
-    searchPinMarker = new google.maps.Marker({
-      map: map,
-      position: latLng,
-      icon: {
-        url: 'https://maps.gstatic.com/mapfiles/api-3/images/spotlight-poi2_hdpi.png',
-        scaledSize: new google.maps.Size(27, 43)
-      },
-      zIndex: 9999
-    });
+    if (!searchPinMarker) {
+      // 不指定 icon => Google 預設紅色大頭針
+      searchPinMarker = new google.maps.Marker({
+        map: map,
+        position: latLng,
+        clickable: false,
+        zIndex: 9999
+      });
+    } else {
+      searchPinMarker.setPosition(latLng);
+      searchPinMarker.setMap(map);
+    }
   }
 
+  function clearSearchPin() {
+    searchPinLatLng = null;
+    if (searchPinMarker) {
+      searchPinMarker.setMap(null);
+    }
+  }
+
+  // ====== 允許「沒選到下拉選項」也能按放大鏡搜尋：用 Geocoder 找最近結果 ======
+  function searchByText(query, cb) {
+    if (!geocoder || !map) {
+      if (typeof cb === 'function') cb(new Error('geocoder/map not ready'));
+      return;
+    }
+
+    var q = (query || '').toString().trim();
+    if (!q) {
+      if (typeof cb === 'function') cb(new Error('empty query'));
+      return;
+    }
+
+    // 用目前視窗 bounds 當作偏好範圍（符合你說的「查不到精準就以附近為主」）
+    var req = { address: q };
+    var b = map.getBounds();
+    if (b) req.bounds = b;
+
+    geocoder.geocode(req, function (results, status) {
+      if (status !== 'OK' || !results || !results[0] || !results[0].geometry) {
+        if (typeof cb === 'function') cb(new Error('not found'));
+        return;
+      }
+
+      var loc = results[0].geometry.location;
+      map.panTo(loc);
+      map.setZoom(16);
+      showSearchPin(loc);
+
+      if (typeof cb === 'function') {
+        cb(null, {
+          formatted_address: results[0].formatted_address || q,
+          location: loc,
+          raw: results[0]
+        });
+      }
+    });
+  }
 
   /* ---------- Autocomplete ---------- */
   function setupAutocomplete(onPlaceSelected) {
@@ -629,7 +675,11 @@ var MapModule = (function () {
     buildDirectionsUrl: buildDirectionsUrl,
     showMyLocation: showMyLocation,
     getTempNewPlaceLatLng: getTempNewPlaceLatLng,
-    clearTempNewPlaceLatLng: clearTempNewPlaceLatLng
+    clearTempNewPlaceLatLng: clearTempNewPlaceLatLng,
+    // ★搜尋列用
+    showSearchPin: showSearchPin,
+    clearSearchPin: clearSearchPin,
+    searchByText: searchByText
   };
 })();
 

@@ -79,6 +79,69 @@ document.addEventListener('DOMContentLoaded', function () {
     onMapLongPressForNewPlace: handleMapLongPressForNewPlace
   });
 
+  // ===== 搜尋列（Google Map 風格）：放大鏡搜尋 + 動態 X 清除 =====
+  (function bindSearchBarUX() {
+    var input = document.getElementById('map-search-input');
+    var btnGo = document.getElementById('btn-search-go');
+    var btnClear = document.getElementById('btn-search-clear');
+    if (!input) return;
+
+    function syncClearBtn() {
+      if (!btnClear) return;
+      var has = (input.value || '').trim().length > 0;
+      if (has) btnClear.classList.add('is-show');
+      else btnClear.classList.remove('is-show');
+    }
+
+    // 任何輸入變更 => 控制 X
+    input.addEventListener('input', function () {
+      syncClearBtn();
+    }, { passive: true });
+
+    // 按 X：清空 + 清 pin
+    if (btnClear) {
+      btnClear.addEventListener('click', function () {
+        input.value = '';
+        syncClearBtn();
+        if (MapModule && MapModule.clearSearchPin) MapModule.clearSearchPin();
+        input.focus();
+      });
+    }
+
+    // 放大鏡搜尋：若使用者沒選下拉選項，也能用文字查
+    function doSearchByText() {
+      var q = (input.value || '').trim();
+      if (!q) return;
+
+      if (MapModule && MapModule.searchByText) {
+        MapModule.searchByText(q, function (err, info) {
+          if (err) {
+            alert('查無結果，請輸入更完整的地址或地標名稱。');
+            return;
+          }
+          // 若你想：搜尋成功後保留文字、保持 X 顯示
+          syncClearBtn();
+        });
+      }
+    }
+
+    if (btnGo) {
+      btnGo.addEventListener('click', doSearchByText);
+    }
+
+    // Enter 也觸發搜尋（符合一般搜尋習慣）
+    input.addEventListener('keydown', function (e) {
+      if (e.key === 'Enter') {
+        e.preventDefault();
+        doSearchByText();
+      }
+    });
+
+    // 初始同步一次
+    syncClearBtn();
+  })();
+
+
   loadMeNonBlocking();
   refreshPlaces();
   initMyLocationNonBlocking();
