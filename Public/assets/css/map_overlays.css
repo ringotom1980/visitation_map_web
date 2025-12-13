@@ -38,7 +38,7 @@
   width: 18px;
   height: 18px;
   border-radius: 50%;
-  background: rgba(57, 2, 255, 0.25);
+  background: #ffffff;
   transform: translate(-50%, -50%);
   animation: myloc-pulse 1.4s ease-out infinite;
 }
