@@ -60,9 +60,9 @@ $pageCss = [
                 <span class="muted">（<span id="sheet-place-category">—</span>）</span>
               </div>
               <div class="field-row">
-              <div class="field-label">撫卹令號</div>
-              <div id="sheet-place-condolence-order-no" class="field-value">—</div>
-            </div>
+                <div class="field-label">撫卹令號</div>
+                <div id="sheet-place-condolence-order-no" class="field-value">—</div>
+              </div>
             </div>
             <button
               type="button"
@@ -72,11 +72,6 @@ $pageCss = [
 
           <div class="bottom-sheet__body">
             <!-- S1：初始滑上來的簡略資訊（依圖1） -->
-
-            <div class="field-row">
-              <div class="field-label">撫卹令號</div>
-              <div id="sheet-place-condolence-order-no" class="field-value">—</div>
-            </div>
 
             <div class="field-row field-row--split">
               <div class="field-col">
