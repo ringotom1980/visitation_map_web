@@ -240,9 +240,6 @@ $pageCss = [
   </main>
 
   <script src="https://maps.googleapis.com/maps/api/js?key=<?= htmlspecialchars(google_maps_key(), ENT_QUOTES) ?>&libraries=places"></script>
-<script>
-  window.ASSET_BASE = "<?= asset_url('') ?>";
-</script>
 
   <script src="<?= asset_url('assets/js/api.js') ?>"></script>
   <script src="<?= asset_url('assets/js/places.js') ?>"></script>
