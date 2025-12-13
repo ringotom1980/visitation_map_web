@@ -246,8 +246,8 @@ var MapModule = (function () {
     autocomplete.addListener('place_changed', function () {
       var place = autocomplete.getPlace();
       if (!place.geometry || !place.geometry.location) return;
-
-      map.panTo(place.geometry.location);
+      var loc = place.geometry.location;
+      map.panTo(loc);
       map.setZoom(16);
       showSearchPin(loc);
 
