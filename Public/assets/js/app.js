@@ -348,6 +348,18 @@ document.addEventListener('DOMContentLoaded', function () {
       renderSuggest(list);
     }
 
+    function hideGooglePac() {
+      document.querySelectorAll('.pac-container').forEach(function (el) {
+        el.style.display = 'none';
+      });
+    }
+
+    function showGooglePac() {
+      document.querySelectorAll('.pac-container').forEach(function (el) {
+        el.style.display = '';
+      });
+    }
+
     function syncClearBtn() {
       if (!btnClear) return;
       var has = (input.value || '').trim().length > 0;
@@ -377,6 +389,7 @@ document.addEventListener('DOMContentLoaded', function () {
         input.value = '';
         syncClearBtn();
         closeSuggest();
+        showGooglePac();
         if (MapModule && MapModule.clearSearchPin) MapModule.clearSearchPin();
         input.focus();
       });
@@ -390,8 +403,8 @@ document.addEventListener('DOMContentLoaded', function () {
       // 1) 先找「我自己的標註點」
       var hit = findBestLocalPlace(q);
       if (hit) {
-        // 命中：直接開我的資訊抽屜（不走 Google）
-        focusAndOpenMyPlace(hit);
+        hideGooglePac();// ★關掉 Google 的下拉選單（避免重疊）
+        focusAndOpenMyPlace(hit);// 命中：直接開我的資訊抽屜（不走 Google）
         syncClearBtn();
         return;
       }
