@@ -150,7 +150,10 @@ document.addEventListener('DOMContentLoaded', function () {
 
       // 互斥：先確保 POI 抽屜關閉（你剛剛遇到的疊加問題就是這裡）
       closeSheet('sheet-poi');
-      
+      // 地圖聚焦到我的點（行為對齊 Google）
+      if (MapModule && MapModule.focusPlace) {
+        MapModule.focusPlace(place);
+      }
       state.currentPlace = place;
       fillPlaceSheet(place);
       collapsePlaceDetails(true);
