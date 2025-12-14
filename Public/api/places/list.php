@@ -1,5 +1,4 @@
 <?php
-
 /**
  * Path: Public/api/places/list.php
  * 說明: 取得可見的所有標記列表（新版 places schema）
@@ -22,37 +21,38 @@ $pdo = db();
 
 try {
     $sql = 'SELECT
-            p.id,
+        p.id,
 
-            -- canonical
-            p.serviceman_name,
-            p.category,
-            p.visit_target,
-            p.visit_name,
-            p.condolence_order_no,
-            p.beneficiary_over65,
-            p.address_text,
-            p.managed_district,
-            p.note,
-            p.lat,
-            p.lng,
-            p.organization_id,
-            p.updated_by_user_id,
-            p.created_at,
-            p.updated_at,
+        -- canonical
+        p.serviceman_name,
+        p.category,
+        p.visit_target,
+        p.visit_name,
+        p.condolence_order_no,
+        p.beneficiary_over65,
+        p.address_text,
+        p.managed_district,
+        p.note,
+        p.lat,
+        p.lng,
+        p.organization_id,
+        p.updated_by_user_id,
+        p.created_at,
+        p.updated_at,
 
-            -- join
-            o.name AS organization_name,
-            u.name AS updated_by_user_name,
-            -- legacy aliases (keep old JS/MapModule safe)
-            p.serviceman_name AS soldier_name,
-            p.visit_target AS target_name,
-            p.address_text AS address
-        FROM places p
-        LEFT JOIN organizations o ON o.id = p.organization_id
-        LEFT JOIN users u ON u.id = p.updated_by_user_id
-        WHERE 1=1';
+        -- join
+        o.name AS organization_name,
+        u.name AS updated_by_user_name,
 
+        -- legacy aliases（維持前端舊 JS 相容）
+        p.serviceman_name AS soldier_name,
+        p.visit_target AS target_name,
+        p.address_text AS address
+
+    FROM places p
+    LEFT JOIN organizations o ON o.id = p.organization_id
+    LEFT JOIN users u ON u.id = p.updated_by_user_id
+    WHERE 1=1';
 
     $params = [];
 
@@ -62,13 +62,15 @@ try {
         $params[':org_id'] = (int)$user['organization_id'];
     }
 
-    $sql .= ' ORDER BY id DESC';
+    // ★ 這行是關鍵修正
+    $sql .= ' ORDER BY p.id DESC';
 
     $stmt = $pdo->prepare($sql);
     $stmt->execute($params);
     $rows = $stmt->fetchAll();
 
     json_success($rows);
+
 } catch (Throwable $e) {
     json_error('載入地點資料時發生錯誤：' . $e->getMessage(), 500);
 }
