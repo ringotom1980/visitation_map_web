@@ -59,7 +59,7 @@ try {
 
     $stmt = $pdo->prepare($sql);
     $stmt->execute([':id' => $id]);
-    $row = $stmt->fetch();
+    $row = $stmt->fetch(PDO::FETCH_ASSOC);
 
     if (!$row) {
         json_error('找不到指定的標記', 404);

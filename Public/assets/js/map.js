@@ -347,15 +347,41 @@ var MapModule = (function () {
   /* ---------- 地圖點擊（長按新增：僅 S1） ---------- */
   function setupMapClickHandlers(options) {
     map.addListener('click', function (evt) {
-      // S2：路線規劃模式下，點地圖空白 → 離開規劃
+
+      if (evt && evt.placeId) {
+        evt.stop();
+
+        if (mode === 'BROWSE') {
+          var service = new google.maps.places.PlacesService(map);
+          service.getDetails(
+            {
+              placeId: evt.placeId,
+              fields: ['name', 'formatted_address', 'geometry', 'photos']
+            },
+            function (place, status) {
+              if (status !== google.maps.places.PlacesServiceStatus.OK || !place) return;
+
+              document.dispatchEvent(new CustomEvent('map:poiClick', {
+                detail: place   // ★重點：直接丟完整 place
+              }));
+            }
+          );
+        }
+
+        return;
+      }
+
+      // === B) 點地圖空白 ===
+      // S2：路線規劃模式下，點地圖空白 → 離開規劃（維持你原本規格）
       if (mode === 'ROUTE_PLANNING') {
         document.dispatchEvent(new CustomEvent('map:blankClick'));
+        return;
       }
 
       // 規格確認：
       // - S1（BROWSE）：點地圖空白「不做任何事」（新增只靠長按）
       // - S3（ROUTE_READY）：點地圖空白不做事
-      return;
+      //（是否關閉任何資訊抽屜，交給 app.js 依 UX 規格統一處理）
     });
   }
 

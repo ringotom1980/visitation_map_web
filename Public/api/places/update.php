@@ -31,15 +31,18 @@ if (empty($input)) {
 }
 
 $id          = isset($input['id']) ? (int)$input['id'] : 0;
-$soldierName = trim((string)($input['soldier_name'] ?? ''));
+// $soldierName = trim((string)($input['soldier_name'] ?? ''));
 $category    = trim((string)($input['category'] ?? ''));
-$targetName  = trim((string)($input['target_name'] ?? ''));
+// $targetName  = trim((string)($input['target_name'] ?? ''));
 $visitName   = trim((string)($input['visit_name'] ?? ''));
 $condNo      = trim((string)($input['condolence_order_no'] ?? ''));
 $over65      = strtoupper(trim((string)($input['beneficiary_over65'] ?? 'N')));
-$address     = trim((string)($input['address'] ?? ''));
+// $address     = trim((string)($input['address'] ?? ''));
 $mdist       = trim((string)($input['managed_district'] ?? ($input['township'] ?? ''))); // 先相容舊欄位名
 $note        = trim((string)($input['note'] ?? ''));
+$soldierName = trim((string)($input['serviceman_name'] ?? $input['soldier_name'] ?? ''));
+$targetName = trim((string)($input['visit_target'] ?? $input['target_name'] ?? ''));
+$address = trim((string)($input['address_text'] ?? $input['address'] ?? ''));
 
 // lat/lng：可選（若未帶，沿用 DB）
 $hasLat = array_key_exists('lat', $input) && $input['lat'] !== '' && $input['lat'] !== null;

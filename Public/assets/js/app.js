@@ -350,6 +350,27 @@ document.addEventListener('DOMContentLoaded', function () {
     // S3：ROUTE_READY → 不做事（刻意）
   });
 
+  // ===== map.js：點 Google 原生 POI → 打開同一個 sheet-place（相容多事件名）=====
+  (function bindPoiEvents() {
+    function handler(e) {
+      // e.detail 可能是 { place } 或直接 place
+      var d = e && e.detail ? e.detail : null;
+      var gp = null;
+
+      if (d && d.place) gp = d.place;
+      else if (d && typeof d === 'object') gp = d;
+
+      if (!gp) return;
+
+      openPoiSheetFromGoogle(gp);
+    }
+
+    // 你 map.js 最後用哪個事件名都沒關係，這裡都接
+    document.addEventListener('map:poiClick', handler);
+    document.addEventListener('map:poiSelected', handler);
+    document.addEventListener('map:googlePlaceSelected', handler);
+    document.addEventListener('map:placeSelected', handler);
+  })();
 
   function loadMeNonBlocking() {
     apiRequest('/auth/me', 'GET')
@@ -641,7 +662,8 @@ document.addEventListener('DOMContentLoaded', function () {
   }
 
   function handleSearchPlaceSelected(place) {
-    console.log('搜尋定位結果：', place.formatted_address || place.name || '');
+    // place 是 Google Autocomplete/Places 的回傳
+    openPoiSheetFromGoogle(place);
   }
 
   function handleMapLongPressForNewPlace(latLng, address) {
@@ -797,6 +819,119 @@ document.addEventListener('DOMContentLoaded', function () {
     }
   }
 
+  // ===== POI（Google 原生地點）顯示到同一個 sheet-place =====
+  function openPoiSheetFromGoogle(googlePlace) {
+    // 只在 S1 才顯示（避免你 S2/S3 被干擾）
+    if (state.mode !== Mode.BROWSE) return;
+    if (!googlePlace) return;
+
+    // 將 Google Place 轉成「類似 places row」的結構，供既有 UI 使用
+    var poi = normalizeGooglePlaceToPoi(googlePlace);
+
+    // POI 不應該被當成可編輯的 place
+    state.currentPlace = poi;
+
+    fillPlaceSheetForPoi(poi);
+
+    // 詳細區先收起（避免開啟狀態錯亂）
+    collapsePlaceDetails(true);
+
+    openSheet('sheet-place');
+  }
+
+  function normalizeGooglePlaceToPoi(gp) {
+    // gp 可能是 Places Autocomplete 回傳，也可能是 Place Details 的結構
+    var name = gp.name || gp.formatted_name || gp.title || '';
+    var addr = gp.formatted_address || gp.vicinity || gp.address || '';
+    var placeId = gp.place_id || gp.placeId || '';
+
+    // geometry.location 可能是 LatLng，也可能是純物件
+    var lat = null, lng = null;
+    try {
+      var loc = gp.geometry && gp.geometry.location ? gp.geometry.location : null;
+      if (loc) {
+        lat = (typeof loc.lat === 'function') ? loc.lat() : loc.lat;
+        lng = (typeof loc.lng === 'function') ? loc.lng() : loc.lng;
+      }
+    } catch (e) { /* ignore */ }
+
+    return {
+      // 用特殊 id 避免和 DB place 混淆
+      id: '__poi__' + (placeId || (name + '|' + addr)),
+
+      // canonical
+      serviceman_name: name || '（未命名地點）',
+      category: 'POI',
+      category_label: 'Google 地點',
+      visit_target: '',
+      visit_name: '',
+      condolence_order_no: '',
+      beneficiary_over65: 'N',
+      address_text: addr || '',
+      managed_district: '',
+      note: '',
+
+      lat: lat,
+      lng: lng,
+
+      organization_name: '—',
+      updated_by_user_id: null,
+      updated_by_user_name: '—',
+      created_at: '',
+      updated_at: '',
+
+      // alias（給你現有 pick() 相容）
+      soldier_name: name || '（未命名地點）',
+      target_name: '',
+      address: addr || '',
+
+      // 標記為 POI
+      __is_poi: true,
+      __google_place_id: placeId || ''
+    };
+  }
+
+  function fillPlaceSheetForPoi(poi) {
+    // ====== S1 簡略資訊（沿用同一套 DOM id）======
+    setText('sheet-place-serviceman-name', poi.serviceman_name);
+    setText('sheet-place-category', poi.category_label || 'Google 地點');
+    setText('sheet-place-address-text', poi.address_text || '—');
+    setText('sheet-place-visit-target', ''); // POI 沒有受訪對象
+    setText('sheet-place-note', '');         // 先留空（你要可擴充電話/網站再加）
+
+    // ====== C2 詳細欄位（也沿用同一套）======
+    setText('sheet-place-org-county', '—');
+    setText('sheet-place-updated-by-user-id', '—');
+
+    setText('sheet-place-visit-name', '—');
+    setText('sheet-place-managed-district', '—');
+    setText('sheet-place-condolence-order-no', '—');
+    setText('sheet-place-beneficiary-over65', '—');
+
+    setText('sheet-place-created-at', '');
+    setText('sheet-place-updated-at', '');
+
+    var lat = (poi.lat !== undefined && poi.lat !== null) ? String(poi.lat) : '';
+    var lng = (poi.lng !== undefined && poi.lng !== null) ? String(poi.lng) : '';
+    setText('sheet-place-latlng', (lat && lng) ? (lat + ', ' + lng) : '—');
+
+    // ====== POI：禁用「編輯/刪除/加入路線」按鈕（避免混入 DB places）======
+    if (btnPlaceEdit) btnPlaceEdit.disabled = true;
+    if (btnPlaceDelete) btnPlaceDelete.disabled = true;
+    if (btnPlaceAddRoute) btnPlaceAddRoute.disabled = true;
+
+    // 詳細按鈕：可以留著（但 POI 詳細目前也只是展開同一區塊）
+    if (btnPlaceDetail) btnPlaceDetail.disabled = false;
+
+    // 若你的「加入路線」按鈕文字可能被上一個 place 改掉，這裡順便恢復
+    var btnAdd = document.getElementById('btn-place-add-route');
+    if (btnAdd) {
+      btnAdd.textContent = '加入路線';
+      btnAdd.classList.remove('btn-danger');
+      btnAdd.classList.add('btn-primary');
+      btnAdd.dataset.action = 'add';
+    }
+  }
 
   function setText(id, text) {
     var el = document.getElementById(id);
