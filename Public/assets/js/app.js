@@ -25,6 +25,7 @@ document.addEventListener('DOMContentLoaded', function () {
 
   var sheetPlace = document.getElementById('sheet-place');
   var sheetRoute = document.getElementById('sheet-route');
+  var sheetPoi = document.getElementById('sheet-poi');
   var modalPlaceForm = document.getElementById('modal-place-form');
   var placeForm = document.getElementById('place-form');
 
@@ -289,6 +290,7 @@ document.addEventListener('DOMContentLoaded', function () {
 
     sheetBackdrop.addEventListener('click', function () {
       closeSheet('sheet-place');
+      closeSheet('sheet-poi');
       state.currentPlace = null;
       collapsePlaceDetails(true);
     });
@@ -298,6 +300,7 @@ document.addEventListener('DOMContentLoaded', function () {
       document.addEventListener('keydown', function (e) {
         if (e.key === 'Escape') {
           closeSheet('sheet-place');
+          closeSheet('sheet-poi');
           state.currentPlace = null;
           collapsePlaceDetails(true);
         }
@@ -342,6 +345,7 @@ document.addEventListener('DOMContentLoaded', function () {
     // S1：BROWSE → 點地圖空白才關資訊抽屜
     if (state.mode === Mode.BROWSE) {
       closeSheet('sheet-place');
+      closeSheet('sheet-poi');
       state.currentPlace = null;
       collapsePlaceDetails(true);
       return;
@@ -819,24 +823,61 @@ document.addEventListener('DOMContentLoaded', function () {
     }
   }
 
-  // ===== POI（Google 原生地點）顯示到同一個 sheet-place =====
+  // ===== POI（Google 原生地點）顯示到 sheet-poi（只要店名/地址/照片）=====
   function openPoiSheetFromGoogle(googlePlace) {
-    // 只在 S1 才顯示（避免你 S2/S3 被干擾）
     if (state.mode !== Mode.BROWSE) return;
     if (!googlePlace) return;
 
-    // 將 Google Place 轉成「類似 places row」的結構，供既有 UI 使用
-    var poi = normalizeGooglePlaceToPoi(googlePlace);
-
-    // POI 不應該被當成可編輯的 place
-    state.currentPlace = poi;
-
-    fillPlaceSheetForPoi(poi);
-
-    // 詳細區先收起（避免開啟狀態錯亂）
+    // 避免兩個抽屜疊在一起：POI 打開時，先把 places 抽屜收掉（不改動 route/sheet-route）
+    closeSheet('sheet-place');
+    state.currentPlace = null;
     collapsePlaceDetails(true);
 
-    openSheet('sheet-place');
+    fillPoiSheet(googlePlace);
+    openSheet('sheet-poi');
+
+    // 若有 placeId 嘗試抓照片（沒有就只顯示店名/地址）
+    var pid = googlePlace.place_id || googlePlace.placeId || '';
+    if (pid) fetchPoiPhoto(pid);
+  }
+
+  function fillPoiSheet(gp) {
+    var name = gp.name || gp.formatted_name || gp.title || '（未命名地點）';
+    var addr = gp.formatted_address || gp.vicinity || gp.address || '—';
+
+    setText('sheet-poi-name', name);
+    setText('sheet-poi-address', addr);
+
+    var img = document.getElementById('sheet-poi-photo');
+    if (img) {
+      img.style.display = 'none';
+      img.src = '';
+    }
+  }
+
+  function fetchPoiPhoto(placeId) {
+    try {
+      if (!placeId || !window.google || !google.maps || !google.maps.places) return;
+
+      // PlacesService 需要一個容器元素，但不一定要綁你的地圖實例
+      var dummy = document.createElement('div');
+      var svc = new google.maps.places.PlacesService(dummy);
+
+      svc.getDetails({ placeId: placeId, fields: ['photos'] }, function (place, status) {
+        if (status !== google.maps.places.PlacesServiceStatus.OK || !place) return;
+
+        var img = document.getElementById('sheet-poi-photo');
+        if (!img) return;
+
+        if (place.photos && place.photos.length) {
+          img.src = place.photos[0].getUrl({ maxWidth: 900, maxHeight: 500 });
+          img.style.display = 'block';
+        }
+      });
+    } catch (e) {
+      // 不要打斷主流程：照片抓不到就算了
+      console.warn('fetchPoiPhoto fail:', e);
+    }
   }
 
   function normalizeGooglePlaceToPoi(gp) {
@@ -1275,6 +1316,7 @@ document.addEventListener('DOMContentLoaded', function () {
     if (!el) return;
 
     if (id === 'sheet-place' && state.mode !== Mode.BROWSE) return;
+    if (id === 'sheet-poi' && state.mode !== Mode.BROWSE) return;
 
     el.classList.add('bottom-sheet--open');
 
@@ -1333,6 +1375,22 @@ document.addEventListener('DOMContentLoaded', function () {
       collapsePlaceDetails(true);
     }, { passive: true });
   })();
+
+  // ===== POI：點「抽屜以外」關閉 POI 抽屜（不影響 marker / 地圖操作）=====
+  (function bindOutsideClickForPoiSheet() {
+    document.addEventListener('pointerdown', function (e) {
+      if (state.mode !== Mode.BROWSE) return;
+
+      if (!sheetPoi || !sheetPoi.classList.contains('bottom-sheet--open')) return;
+      if (sheetPoi.contains(e.target)) return;
+
+      if (e.target.closest('[role="button"], img, canvas')) return;
+      if (e.target.closest('.app-toolbar, .modal, .pac-container')) return;
+
+      closeSheet('sheet-poi');
+    }, { passive: true });
+  })();
+
 
   // ===== FIX: iOS 鍵盤導致頁面被推上去後無法回位（鎖定 body scroll） =====
   var __modalScrollY = 0;
