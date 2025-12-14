@@ -148,38 +148,40 @@ document.addEventListener('DOMContentLoaded', function () {
     function focusAndOpenMyPlace(place) {
       if (!place) return;
 
-      // 互斥：先確保 POI 抽屜關閉（你剛剛遇到的疊加問題就是這裡）
       closeSheet('sheet-poi');
-      // 地圖聚焦到我的點（行為對齊 Google）
-      if (MapModule && MapModule.focusPlace) {
-        MapModule.focusPlace(place);
-      }
+
       state.currentPlace = place;
       fillPlaceSheet(place);
       collapsePlaceDetails(true);
-      openSheet('sheet-place');
-      // ★新增：手機避免被抽屜擋住
-      requestAnimationFrame(function () {
-        requestAnimationFrame(function () {
-          panUpForBottomSheet(sheetPlace);
-        });
-      });
-      // 地圖聚焦（不強依賴 map.js 的 API，能用就用）
-      var lat = (place.lat !== undefined && place.lat !== null) ? Number(place.lat) : null;
-      var lng = (place.lng !== undefined && place.lng !== null) ? Number(place.lng) : null;
 
-      try {
-        if (MapModule && MapModule.panToPlace) {
-          MapModule.panToPlace(place);
-        } else if (MapModule && MapModule.panToLatLng && isFinite(lat) && isFinite(lng)) {
+      // 先把地圖移到點（只做一次，避免跳動/覆蓋 offset）
+      if (MapModule && MapModule.focusPlace) {
+        MapModule.focusPlace(place);
+      } else {
+        // 備援
+        var lat = (place.lat !== undefined && place.lat !== null) ? Number(place.lat) : null;
+        var lng = (place.lng !== undefined && place.lng !== null) ? Number(place.lng) : null;
+        if (isFinite(lat) && isFinite(lng) && MapModule && MapModule.panToLatLng) {
           MapModule.panToLatLng(lat, lng);
-        } else if (MapModule && MapModule.setCenter && isFinite(lat) && isFinite(lng)) {
-          MapModule.setCenter(lat, lng);
         }
-      } catch (e) {
-        // 不影響主流程：抽屜先正常打開
-        console.warn('focus map fail:', e);
       }
+
+      // 再打開抽屜
+      openSheet('sheet-place');
+
+      // ★關鍵：等抽屜「打開動畫」結束/高度穩定，再把點往上推
+      // 1) 先延遲一拍（讓 DOM 套上 class）
+      requestAnimationFrame(function () {
+        // 2) 再等 CSS transition（通常 250~350ms），用 setTimeout 穩定抓高度
+        setTimeout(function () {
+          panUpForBottomSheet(sheetPlace);
+
+          // 3) 保險：Google Maps 偶爾下一拍又 repaint，補刀一次
+          setTimeout(function () {
+            panUpForBottomSheet(sheetPlace);
+          }, 120);
+        }, 320);
+      });
     }
 
     // ===== 我的點下拉候選（顯示在 Google pac-container 之前）=====

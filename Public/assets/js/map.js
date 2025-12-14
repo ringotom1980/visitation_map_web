@@ -694,6 +694,15 @@ var MapModule = (function () {
     }
   }
 
+  function panBy(dx, dy) {
+    if (!map) return;
+    map.panBy(Number(dx) || 0, Number(dy) || 0);
+  }
+
+  function getMap() {
+    return map || null;
+  }
+
   /* ---------- 組 Google 導航 URL ---------- */
   function buildDirectionsUrl(routePlaces) {
     if (!routePlaces || routePlaces.length < 2) return null;
@@ -746,7 +755,9 @@ var MapModule = (function () {
     // ★搜尋列用
     showSearchPin: showSearchPin,
     clearSearchPin: clearSearchPin,
-    searchByText: searchByText
+    searchByText: searchByText,
+    panBy: panBy,
+    getMap: getMap,
   };
 })();
 
