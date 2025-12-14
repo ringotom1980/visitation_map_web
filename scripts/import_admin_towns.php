@@ -7,8 +7,7 @@
  *   → 原子更新 admin_towns（先全設 inactive，再以 staging 覆蓋/新增 active）
  *   → 寫入 admin_towns_import_log
  *
- * 執行（CLI）：
- *   php scripts/import_admin_towns.php
+ *  已在伺服器端設定定時任務，每月1號自動更新
  */
 
 declare(strict_types=1);
