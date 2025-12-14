@@ -321,13 +321,7 @@ document.addEventListener('DOMContentLoaded', function () {
           if (sub.textContent) item.appendChild(sub);
 
           item.addEventListener('click', function () {
-            // 先收掉 Google 選單 + 鍵盤
-            dismissSearchUI();
-
-            input.value = (p.serviceman_name || p.soldier_name || '').trim() || input.value;
-            syncClearBtn();
-            try { input.blur(); } catch (e) { }
-            suppressGooglePacFor(850);
+            finalizeAfterMyPlaceChosen();
             focusAndOpenMyPlace(p);
           });
 
@@ -440,6 +434,29 @@ document.addEventListener('DOMContentLoaded', function () {
       else btnClear.classList.remove('is-show');
     }
 
+    function finalizeAfterMyPlaceChosen() {
+      // 1) 關我的候選
+      closeSuggest();
+
+      // 2) 清空輸入，讓 Google 失去觸發條件（核心）
+      input.value = '';
+      syncClearBtn();
+
+      // 3) 關 Google pac
+      setGooglePacVisible(false);
+
+      // 4) 收鍵盤 / 解除 focus
+      try { input.blur(); } catch (e) { }
+      if (document.activeElement && document.activeElement.blur) {
+        try { document.activeElement.blur(); } catch (e2) { }
+      }
+
+      // 5) 保險：下一拍再關一次（避免 Google 同步重開）
+      setTimeout(function () {
+        setGooglePacVisible(false);
+      }, 0);
+    }
+
     function dismissSearchUI() {
       // 關閉我的候選
       closeSuggest();
@@ -463,21 +480,6 @@ document.addEventListener('DOMContentLoaded', function () {
       }, 50);
     }
 
-    // ===== FIX: Mobile 上 Google 會自己把 pac-container 再打開，用 Observer 壓回去 =====
-    (function bindPacObserver() {
-      var mo = new MutationObserver(function () {
-        // 任何 DOM 變動（pac-container 新增 / style 改變）都重新仲裁一次
-        try { arbitratePacByState(); } catch (e) { }
-      });
-
-      mo.observe(document.body, {
-        childList: true,
-        subtree: true,
-        attributes: true,
-        attributeFilter: ['style', 'class']
-      });
-    })();
-
     // 任何輸入變更 => 控制 X
     input.addEventListener('input', function () {
       syncClearBtn();
@@ -491,10 +493,11 @@ document.addEventListener('DOMContentLoaded', function () {
     });
 
     input.addEventListener('blur', function () {
-      // 延遲關閉，讓 click 能先觸發
-      setTimeout(function () { closeSuggest(); setGooglePacVisible(false); }, 120);
+      setTimeout(function () {
+        closeSuggest();
+        suppressGooglePacFor(400); // blur 後短壓一下即可
+      }, 120);
     });
-
 
     // 按 X：清空 + 清 pin
     if (btnClear) {
@@ -516,12 +519,8 @@ document.addEventListener('DOMContentLoaded', function () {
       // 1) 先找「我自己的標註點」
       var hit = findBestLocalPlace(q);
       if (hit) {
-        // 關鍵盤（手機）+ 固定窗壓制 Google 選單
-        try { input.blur(); } catch (e) { }
-        suppressGooglePacFor(850);
-
+        finalizeAfterMyPlaceChosen();
         focusAndOpenMyPlace(hit);
-        syncClearBtn();
         return;
       }
 
@@ -574,7 +573,6 @@ document.addEventListener('DOMContentLoaded', function () {
 
           input.value = (p.serviceman_name || p.soldier_name || '').trim() || input.value;
           syncClearBtn();
-          try { input.blur(); } catch (e) { }
           suppressGooglePacFor(850);
           focusAndOpenMyPlace(p);
           return;
@@ -593,7 +591,6 @@ document.addEventListener('DOMContentLoaded', function () {
     // 初始同步一次
     syncClearBtn();
   })();
-
 
   loadMeNonBlocking();
   refreshPlaces();
