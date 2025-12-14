@@ -326,7 +326,8 @@ document.addEventListener('DOMContentLoaded', function () {
 
             input.value = (p.serviceman_name || p.soldier_name || '').trim() || input.value;
             syncClearBtn();
-
+            try { input.blur(); } catch (e) { }
+            suppressGooglePacFor(850);
             focusAndOpenMyPlace(p);
           });
 
@@ -352,6 +353,38 @@ document.addEventListener('DOMContentLoaded', function () {
 
     // ===== Google pac-container 顯示仲裁（關鍵修正）=====
     var MIN_GOOGLE_CHARS = 2; // 你想更保守就改 3
+    // ===== 固定窗：短時間壓住 Google pac-container（避免選完又被打開）=====
+    var __pacSuppressedUntil = 0;
+    var __pacSuppressTimer = null;
+
+    function suppressGooglePacFor(ms) {
+      var dur = Number(ms || 750);
+      if (!isFinite(dur) || dur < 0) dur = 750;
+
+      __pacSuppressedUntil = Date.now() + dur;
+
+      // 立刻關一次 + 多壓一拍
+      setGooglePacVisible(false);
+
+      // 期間內持續補刀（Google 可能下一拍又打開）
+      if (__pacSuppressTimer) clearTimeout(__pacSuppressTimer);
+
+      // 先在 80~120ms 補一次，再在結束前補一次
+      __pacSuppressTimer = setTimeout(function () {
+        setGooglePacVisible(false);
+
+        var remain = __pacSuppressedUntil - Date.now();
+        if (remain > 50) {
+          setTimeout(function () {
+            setGooglePacVisible(false);
+          }, Math.min(remain, 900));
+        }
+      }, 100);
+    }
+
+    function isGooglePacSuppressed() {
+      return Date.now() < __pacSuppressedUntil;
+    }
 
     function raf2(fn) {
       requestAnimationFrame(function () {
@@ -378,6 +411,11 @@ document.addEventListener('DOMContentLoaded', function () {
 
     function arbitratePacByState() {
       var q = (input.value || '').trim();
+      // 規則 0：固定窗壓制中 → Google 一律關閉
+      if (isGooglePacSuppressed()) {
+        setGooglePacVisible(false);
+        return;
+      }
 
       // 規則 1：我的候選開著且有資料 → Google 一律關閉（避免重疊）
       if (suggestOpen && Array.isArray(suggestItems) && suggestItems.length > 0) {
@@ -478,7 +516,10 @@ document.addEventListener('DOMContentLoaded', function () {
       // 1) 先找「我自己的標註點」
       var hit = findBestLocalPlace(q);
       if (hit) {
-        dismissSearchUI();     // ★關鍵：收鍵盤 + 關 Google 選單
+        // 關鍵盤（手機）+ 固定窗壓制 Google 選單
+        try { input.blur(); } catch (e) { }
+        suppressGooglePacFor(850);
+
         focusAndOpenMyPlace(hit);
         syncClearBtn();
         return;
@@ -533,7 +574,8 @@ document.addEventListener('DOMContentLoaded', function () {
 
           input.value = (p.serviceman_name || p.soldier_name || '').trim() || input.value;
           syncClearBtn();
-
+          try { input.blur(); } catch (e) { }
+          suppressGooglePacFor(850);
           focusAndOpenMyPlace(p);
           return;
         }
