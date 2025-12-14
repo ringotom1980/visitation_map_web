@@ -321,10 +321,9 @@ document.addEventListener('DOMContentLoaded', function () {
           if (sub.textContent) item.appendChild(sub);
 
           item.addEventListener('click', function () {
-            // 選中：優先開你的點
-            closeSuggest();
+            // 先收掉 Google 選單 + 鍵盤
+            dismissSearchUI();
 
-            // 讓輸入框顯示較合理的文字（非必須）
             input.value = (p.serviceman_name || p.soldier_name || '').trim() || input.value;
             syncClearBtn();
 
@@ -403,6 +402,29 @@ document.addEventListener('DOMContentLoaded', function () {
       else btnClear.classList.remove('is-show');
     }
 
+    function dismissSearchUI() {
+      // 關閉我的候選
+      closeSuggest();
+
+      // 關閉 Google 的 pac-container
+      setGooglePacVisible(false);
+
+      // 讓 iOS 鍵盤收起來：移除 focus
+      if (document.activeElement && document.activeElement.blur) {
+        document.activeElement.blur();
+      }
+      if (input && input.blur) input.blur();
+
+      // 有些 iOS 需要多壓一拍才會真的收
+      setTimeout(function () {
+        if (document.activeElement && document.activeElement.blur) {
+          document.activeElement.blur();
+        }
+        if (input && input.blur) input.blur();
+        setGooglePacVisible(false);
+      }, 50);
+    }
+
     // ===== FIX: Mobile 上 Google 會自己把 pac-container 再打開，用 Observer 壓回去 =====
     (function bindPacObserver() {
       var mo = new MutationObserver(function () {
@@ -456,8 +478,8 @@ document.addEventListener('DOMContentLoaded', function () {
       // 1) 先找「我自己的標註點」
       var hit = findBestLocalPlace(q);
       if (hit) {
-        setGooglePacVisible(false);// ★關掉 Google 的下拉選單（避免重疊）
-        focusAndOpenMyPlace(hit);// 命中：直接開我的資訊抽屜（不走 Google）
+        dismissSearchUI();     // ★關鍵：收鍵盤 + 關 Google 選單
+        focusAndOpenMyPlace(hit);
         syncClearBtn();
         return;
       }
@@ -506,9 +528,12 @@ document.addEventListener('DOMContentLoaded', function () {
         if (suggestOpen && suggestItems.length && activeIndex >= 0) {
           e.preventDefault();
           var p = suggestItems[activeIndex];
-          closeSuggest();
+
+          dismissSearchUI();
+
           input.value = (p.serviceman_name || p.soldier_name || '').trim() || input.value;
           syncClearBtn();
+
           focusAndOpenMyPlace(p);
           return;
         }
