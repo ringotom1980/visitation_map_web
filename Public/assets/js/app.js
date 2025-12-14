@@ -596,7 +596,7 @@ document.addEventListener('DOMContentLoaded', function () {
       if (!sheetEl) return;
       if (!sheetEl.classList.contains('bottom-sheet--open')) return;
 
-      var gap = (opts && isFinite(opts.gap)) ? Number(opts.gap) : 16;
+      var gap = (opts && isFinite(opts.gap)) ? Number(opts.gap) : 10;
 
       // 1) 取得 Google Map 的實際 DOM（這才是正確 viewport）
       var map = (MapModule && typeof MapModule.getMap === 'function') ? MapModule.getMap() : null;
