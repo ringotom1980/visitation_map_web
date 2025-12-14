@@ -158,7 +158,12 @@ document.addEventListener('DOMContentLoaded', function () {
       fillPlaceSheet(place);
       collapsePlaceDetails(true);
       openSheet('sheet-place');
-
+      // ★新增：手機避免被抽屜擋住
+      requestAnimationFrame(function () {
+        requestAnimationFrame(function () {
+          panUpForBottomSheet(sheetPlace);
+        });
+      });
       // 地圖聚焦（不強依賴 map.js 的 API，能用就用）
       var lat = (place.lat !== undefined && place.lat !== null) ? Number(place.lat) : null;
       var lng = (place.lng !== undefined && place.lng !== null) ? Number(place.lng) : null;
@@ -569,6 +574,39 @@ document.addEventListener('DOMContentLoaded', function () {
   refreshPlaces();
   initMyLocationNonBlocking();
   applyMode(Mode.BROWSE);
+
+  function panUpForBottomSheet(sheetEl) {
+    try {
+      if (!sheetEl) return;
+
+      // 抽屜高度（目前 open 狀態下的實際高度）
+      var rect = sheetEl.getBoundingClientRect();
+      var sheetH = rect && rect.height ? rect.height : 0;
+      if (!sheetH) return;
+
+      // 你希望點位在抽屜上方留一些空間（可調）
+      var padding = 24;
+
+      // 把中心往上推：推「抽屜高度的一半 + padding」通常手感最好
+      var offsetY = Math.round((sheetH / 2) + padding);
+
+      // MapModule 若有提供 panBy 就用；否則退回直接找 google map instance（看你 MapModule 的實作）
+      if (MapModule && typeof MapModule.panBy === 'function') {
+        MapModule.panBy(0, -offsetY);
+        return;
+      }
+
+      // 若 MapModule 有 getMap() 可取回原生 map（可選）
+      if (MapModule && typeof MapModule.getMap === 'function') {
+        var map = MapModule.getMap();
+        if (map && typeof map.panBy === 'function') {
+          map.panBy(0, -offsetY);
+        }
+      }
+    } catch (e) {
+      console.warn('panUpForBottomSheet fail:', e);
+    }
+  }
 
   if (btnMyLocation) {
     btnMyLocation.addEventListener('click', function () {
