@@ -879,7 +879,7 @@ document.addEventListener('DOMContentLoaded', function () {
       console.warn('fetchPoiPhoto fail:', e);
     }
   }
-
+  //確認google原生點資訊沒問題這段就刪
   function normalizeGooglePlaceToPoi(gp) {
     // gp 可能是 Places Autocomplete 回傳，也可能是 Place Details 的結構
     var name = gp.name || gp.formatted_name || gp.title || '';
@@ -931,7 +931,7 @@ document.addEventListener('DOMContentLoaded', function () {
       __google_place_id: placeId || ''
     };
   }
-
+  //確認google原生點沒問題這段可以刪
   function fillPlaceSheetForPoi(poi) {
     // ====== S1 簡略資訊（沿用同一套 DOM id）======
     setText('sheet-place-serviceman-name', poi.serviceman_name);
@@ -1334,6 +1334,12 @@ document.addEventListener('DOMContentLoaded', function () {
 
     if (id === 'sheet-place') {
       setPlaceSheetBackdrop(false);
+    }
+
+    // ✅ POI：關閉時清掉照片，避免殘留上一張
+    if (id === 'sheet-poi') {
+      var img = document.getElementById('sheet-poi-photo');
+      if (img) { img.style.display = 'none'; img.src = ''; }
     }
   }
 
