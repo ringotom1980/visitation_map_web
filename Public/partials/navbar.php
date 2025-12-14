@@ -20,7 +20,7 @@
 
   <div class="app-toolbar__center">
     <div class="search-bar">
-      <input id="map-search-input" class="search-bar__input" placeholder="搜尋地點或地址" autocomplete="off" />
+      <input id="map-search-input" class="search-bar__input" placeholder="搜尋官兵姓名、地點或地址" autocomplete="off" />
 
       <button type="button" id="btn-search-go" class="search-bar__btn search-bar__btn--search" aria-label="搜尋">
         🔍
