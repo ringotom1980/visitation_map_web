@@ -169,19 +169,8 @@ document.addEventListener('DOMContentLoaded', function () {
       // 再打開抽屜
       openSheet('sheet-place');
 
-      // ★關鍵：等抽屜「打開動畫」結束/高度穩定，再把點往上推
-      // 1) 先延遲一拍（讓 DOM 套上 class）
-      requestAnimationFrame(function () {
-        // 2) 再等 CSS transition（通常 250~350ms），用 setTimeout 穩定抓高度
-        setTimeout(function () {
-          panUpForBottomSheet(sheetPlace);
-
-          // 3) 保險：Google Maps 偶爾下一拍又 repaint，補刀一次
-          setTimeout(function () {
-            panUpForBottomSheet(sheetPlace);
-          }, 120);
-        }, 320);
-      });
+      // 抽屜打開後，把點對齊到「抽屜上緣」
+      alignMyPlaceAfterSheetOpen(place, sheetPlace);
     }
 
     // ===== 我的點下拉候選（顯示在 Google pac-container 之前）=====
@@ -577,34 +566,91 @@ document.addEventListener('DOMContentLoaded', function () {
   initMyLocationNonBlocking();
   applyMode(Mode.BROWSE);
 
-  function panUpForBottomSheet(sheetEl) {
+  // ===== FIX: 點位對齊到「資訊抽屜上緣」(一次性、不可累加) =====
+  var __lastAlignKey = '';
+  var __alignTimer1 = null;
+  var __alignTimer2 = null;
+
+  function getMapViewportEl() {
+    // 依常見結構取地圖容器（你專案若 id 不同也不會壞，會 fallback 到 window.innerHeight）
+    return document.getElementById('map')
+      || document.getElementById('gmap')
+      || document.querySelector('.map')
+      || document.querySelector('#map-canvas')
+      || null;
+  }
+
+  function panMarkerAboveSheetOnce(sheetEl, opts) {
     try {
       if (!sheetEl) return;
+      if (!sheetEl.classList.contains('bottom-sheet--open')) return;
 
-      var rect = sheetEl.getBoundingClientRect();
-      var sheetH = rect && rect.height ? rect.height : 0;
+      var gap = (opts && isFinite(opts.gap)) ? Number(opts.gap) : 16; // 抽屜上緣留白（可微調）
+
+      var mapEl = getMapViewportEl();
+      var viewportH = mapEl ? mapEl.getBoundingClientRect().height : window.innerHeight;
+      if (!viewportH) viewportH = window.innerHeight || 800;
+
+      var sheetRect = sheetEl.getBoundingClientRect();
+      var sheetH = sheetRect && sheetRect.height ? sheetRect.height : 0;
       if (!sheetH) return;
 
-      // 可調參數
-      var padding = 124; // 抽屜上緣留白
-      var extra = -165;    // 整體再多推一點（你要調高度就調這個）
+      // 目標：點位落在抽屜上緣上方 gap 像素
+      var desiredMarkerY = Math.round(viewportH - sheetH - gap);
 
-      var offsetY = Math.round((sheetH / 2) + padding + extra);
+      // Google map panTo 後點位大致在視窗中心
+      var centerY = Math.round(viewportH / 2);
+
+      // 若 desiredMarkerY 在中心下方（抽屜很矮/桌機），不需要推
+      if (desiredMarkerY >= centerY) return;
+
+      // 需要把點「往上」移：Google Maps panBy 的 y 正值會讓點往上
+      var delta = Math.round(centerY - desiredMarkerY);
+
+      // 避免極端值
+      var maxDelta = Math.round(viewportH * 0.45);
+      if (delta > maxDelta) delta = maxDelta;
+      if (delta < 0) delta = 0;
+
+      if (!delta) return;
 
       if (MapModule && typeof MapModule.panBy === 'function') {
-        MapModule.panBy(0, -offsetY);
+        MapModule.panBy(0, delta);
         return;
       }
 
       if (MapModule && typeof MapModule.getMap === 'function') {
         var map = MapModule.getMap();
         if (map && typeof map.panBy === 'function') {
-          map.panBy(0, -offsetY);
+          map.panBy(0, delta);
         }
       }
     } catch (e) {
-      console.warn('panUpForBottomSheet fail:', e);
+      console.warn('panMarkerAboveSheetOnce fail:', e);
     }
+  }
+
+  function alignMyPlaceAfterSheetOpen(place, sheetEl) {
+    if (!place || !sheetEl) return;
+
+    // key 用 place.id + 目前是否已開，避免同一點連點重覆推
+    var key = String(place.id) + '|' + (sheetEl.classList.contains('bottom-sheet--open') ? 'open' : 'closed');
+    if (__lastAlignKey === key) return;
+    __lastAlignKey = key;
+
+    // 清掉上一輪的 timer，避免連點疊加
+    if (__alignTimer1) clearTimeout(__alignTimer1);
+    if (__alignTimer2) clearTimeout(__alignTimer2);
+
+    // 等抽屜 transition 高度穩定：做兩次（一次立即、一次補刀）
+    requestAnimationFrame(function () {
+      __alignTimer1 = setTimeout(function () {
+        panMarkerAboveSheetOnce(sheetEl, { gap: 16 });
+        __alignTimer2 = setTimeout(function () {
+          panMarkerAboveSheetOnce(sheetEl, { gap: 16 });
+        }, 120);
+      }, 220);
+    });
   }
 
   if (btnMyLocation) {
@@ -1149,23 +1195,31 @@ document.addEventListener('DOMContentLoaded', function () {
     openModal('modal-place-form');
   }
 
-  function handleMarkerClickInBrowseMode(place) {
+    function handleMarkerClickInBrowseMode(place) {
     if (state.mode !== Mode.BROWSE) return;
+
     closeSheet('sheet-poi');
     state.currentPlace = place;
 
     fillPlaceSheet(place);
     collapsePlaceDetails(true);
 
+    // 1) 先把地圖置中到這個點（reset，避免累加）
+    if (MapModule && typeof MapModule.focusPlace === 'function') {
+      MapModule.focusPlace(place);
+    } else {
+      var lat = (place.lat !== undefined && place.lat !== null) ? Number(place.lat) : null;
+      var lng = (place.lng !== undefined && place.lng !== null) ? Number(place.lng) : null;
+      if (isFinite(lat) && isFinite(lng) && MapModule && typeof MapModule.panToLatLng === 'function') {
+        MapModule.panToLatLng(lat, lng);
+      }
+    }
+
+    // 2) 打開抽屜
     openSheet('sheet-place');
 
-    requestAnimationFrame(function () {
-      setTimeout(function () {
-        panUpForBottomSheet(sheetPlace);
-        setTimeout(function () { panUpForBottomSheet(sheetPlace); }, 120);
-      }, 320);
-    });
-
+    // 3) 抽屜打開後，把點對齊到「抽屜上緣」
+    alignMyPlaceAfterSheetOpen(place, sheetPlace);
   }
 
   function handleMarkerClickInRoutePlanningMode(place) {
