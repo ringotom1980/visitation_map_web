@@ -58,7 +58,7 @@ try {
 
     // 非 ADMIN 僅能看到自己單位
     if (($user['role'] ?? '') !== 'ADMIN') {
-        $sql .= ' AND organization_id = :org_id';
+        $sql .= ' AND p.organization_id = :org_id';
         $params[':org_id'] = (int)$user['organization_id'];
     }
 
