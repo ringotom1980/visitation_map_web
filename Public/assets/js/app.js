@@ -150,10 +150,7 @@ document.addEventListener('DOMContentLoaded', function () {
 
       // 互斥：先確保 POI 抽屜關閉（你剛剛遇到的疊加問題就是這裡）
       closeSheet('sheet-poi');
-      // 地圖聚焦到我的點（行為對齊 Google）
-      if (MapModule && MapModule.focusPlace) {
-        MapModule.focusPlace(place);
-      }
+      
       state.currentPlace = place;
       fillPlaceSheet(place);
       collapsePlaceDetails(true);
@@ -457,29 +454,6 @@ document.addEventListener('DOMContentLoaded', function () {
       }, 0);
     }
 
-    function dismissSearchUI() {
-      // 關閉我的候選
-      closeSuggest();
-
-      // 關閉 Google 的 pac-container
-      setGooglePacVisible(false);
-
-      // 讓 iOS 鍵盤收起來：移除 focus
-      if (document.activeElement && document.activeElement.blur) {
-        document.activeElement.blur();
-      }
-      if (input && input.blur) input.blur();
-
-      // 有些 iOS 需要多壓一拍才會真的收
-      setTimeout(function () {
-        if (document.activeElement && document.activeElement.blur) {
-          document.activeElement.blur();
-        }
-        if (input && input.blur) input.blur();
-        setGooglePacVisible(false);
-      }, 50);
-    }
-
     // 任何輸入變更 => 控制 X
     input.addEventListener('input', function () {
       syncClearBtn();
@@ -495,7 +469,7 @@ document.addEventListener('DOMContentLoaded', function () {
     input.addEventListener('blur', function () {
       setTimeout(function () {
         closeSuggest();
-        suppressGooglePacFor(400); // blur 後短壓一下即可
+        setGooglePacVisible(false);
       }, 120);
     });
 
@@ -569,11 +543,7 @@ document.addEventListener('DOMContentLoaded', function () {
           e.preventDefault();
           var p = suggestItems[activeIndex];
 
-          dismissSearchUI();
-
-          input.value = (p.serviceman_name || p.soldier_name || '').trim() || input.value;
-          syncClearBtn();
-          suppressGooglePacFor(850);
+          finalizeAfterMyPlaceChosen();
           focusAndOpenMyPlace(p);
           return;
         }
