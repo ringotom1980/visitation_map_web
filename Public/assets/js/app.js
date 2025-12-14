@@ -249,7 +249,7 @@ document.addEventListener('DOMContentLoaded', function () {
       var parts = [];
       if (addr) parts.push(addr);
       if (md) parts.push(md);
-      if (co) parts.push('慰問令:' + co);
+      if (co) parts.push('撫卹令:' + co);
 
       return parts.join(' ｜ ') || '';
     }
