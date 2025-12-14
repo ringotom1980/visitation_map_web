@@ -24,9 +24,7 @@ document.addEventListener('DOMContentLoaded', function () {
   var myLocationPoint = null;
 
   var sheetPlace = document.getElementById('sheet-place');
-  var sheetRoute = document.getElementById('sheet-route');
   var sheetPoi = document.getElementById('sheet-poi');
-  var modalPlaceForm = document.getElementById('modal-place-form');
   var placeForm = document.getElementById('place-form');
 
   var btnMyLocation = document.getElementById('btn-my-location');
@@ -272,6 +270,7 @@ document.addEventListener('DOMContentLoaded', function () {
       suggestWrap.innerHTML = '';
       suggestWrap.style.display = 'none';
       suggestWrap.setAttribute('aria-hidden', 'true');
+      arbitratePacByState(); // ★關閉我的候選後，重新決定 Google 是否可顯示
     }
 
     function setActive(idx) {
@@ -335,6 +334,7 @@ document.addEventListener('DOMContentLoaded', function () {
 
       // 預設不主動選中任何一筆（避免 Enter 直接跳）
       setActive(-1);
+      arbitratePacByState(); // ★渲染完立刻仲裁 Google 選單顯示
     }
 
     function refreshSuggestByInput() {
@@ -348,16 +348,46 @@ document.addEventListener('DOMContentLoaded', function () {
       renderSuggest(list);
     }
 
-    function hideGooglePac() {
-      document.querySelectorAll('.pac-container').forEach(function (el) {
-        el.style.display = 'none';
+    // ===== Google pac-container 顯示仲裁（關鍵修正）=====
+    var MIN_GOOGLE_CHARS = 2; // 你想更保守就改 3
+
+    function raf2(fn) {
+      requestAnimationFrame(function () {
+        requestAnimationFrame(fn);
       });
     }
 
-    function showGooglePac() {
-      document.querySelectorAll('.pac-container').forEach(function (el) {
-        el.style.display = '';
+    function setGooglePacVisible(visible) {
+      var nodes = document.querySelectorAll('.pac-container');
+      nodes.forEach(function (el) {
+        el.style.display = visible ? '' : 'none';
       });
+
+      // Google 有時會在同一個 frame 又把它打開，所以多壓一拍
+      if (!visible) raf2(function () {
+        document.querySelectorAll('.pac-container').forEach(function (el) {
+          el.style.display = 'none';
+        });
+      });
+    }
+
+    function arbitratePacByState() {
+      var q = (input.value || '').trim();
+
+      // 規則 1：我的候選開著且有資料 → Google 一律關閉（避免重疊）
+      if (suggestOpen && Array.isArray(suggestItems) && suggestItems.length > 0) {
+        setGooglePacVisible(false);
+        return;
+      }
+
+      // 規則 2：字數不足 → Google 一律關閉（解決「打一個字就跳出」）
+      if (q.length < MIN_GOOGLE_CHARS) {
+        setGooglePacVisible(false);
+        return;
+      }
+
+      // 規則 3：沒有我的候選 + 字數達標 → 允許 Google 顯示
+      setGooglePacVisible(true);
     }
 
     function syncClearBtn() {
@@ -371,15 +401,17 @@ document.addEventListener('DOMContentLoaded', function () {
     input.addEventListener('input', function () {
       syncClearBtn();
       refreshSuggestByInput();
+      arbitratePacByState();
     }, { passive: true });
 
     input.addEventListener('focus', function () {
       refreshSuggestByInput();
+      arbitratePacByState();
     });
 
     input.addEventListener('blur', function () {
       // 延遲關閉，讓 click 能先觸發
-      setTimeout(function () { closeSuggest(); }, 120);
+      setTimeout(function () { closeSuggest(); setGooglePacVisible(false);}, 120);
     });
 
 
@@ -396,13 +428,14 @@ document.addEventListener('DOMContentLoaded', function () {
 
     // 放大鏡搜尋：若使用者沒選下拉選項，也能用文字查
     function doSearchByText() {
+      closeSuggest();
       var q = (input.value || '').trim();
       if (!q) return;
 
       // 1) 先找「我自己的標註點」
       var hit = findBestLocalPlace(q);
       if (hit) {
-        hideGooglePac();// ★關掉 Google 的下拉選單（避免重疊）
+        setGooglePacVisible(false);// ★關掉 Google 的下拉選單（避免重疊）
         focusAndOpenMyPlace(hit);// 命中：直接開我的資訊抽屜（不走 Google）
         syncClearBtn();
         return;
@@ -1390,11 +1423,6 @@ document.addEventListener('DOMContentLoaded', function () {
   function toYesNo(v) {
     return (String(v || '').toUpperCase() === 'Y') ? '是' : '否';
   }
-
-  function safeText(v) {
-    return (v === undefined || v === null || v === '') ? '—' : String(v);
-  }
-
 
   function castId(id) {
     if (id === '__me') return '__me';
