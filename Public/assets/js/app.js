@@ -581,24 +581,21 @@ document.addEventListener('DOMContentLoaded', function () {
     try {
       if (!sheetEl) return;
 
-      // 抽屜高度（目前 open 狀態下的實際高度）
       var rect = sheetEl.getBoundingClientRect();
       var sheetH = rect && rect.height ? rect.height : 0;
       if (!sheetH) return;
 
-      // 你希望點位在抽屜上方留一些空間（可調）
-      var padding = 24;
+      // 可調參數
+      var padding = 24; // 抽屜上緣留白
+      var extra = 0;    // 整體再多推一點（你要調高度就調這個）
 
-      // 把中心往上推：推「抽屜高度的一半 + padding」通常手感最好
-      var offsetY = Math.round((sheetH / 2) + padding);
+      var offsetY = Math.round((sheetH / 2) + padding + extra);
 
-      // MapModule 若有提供 panBy 就用；否則退回直接找 google map instance（看你 MapModule 的實作）
       if (MapModule && typeof MapModule.panBy === 'function') {
         MapModule.panBy(0, -offsetY);
         return;
       }
 
-      // 若 MapModule 有 getMap() 可取回原生 map（可選）
       if (MapModule && typeof MapModule.getMap === 'function') {
         var map = MapModule.getMap();
         if (map && typeof map.panBy === 'function') {
@@ -1161,6 +1158,14 @@ document.addEventListener('DOMContentLoaded', function () {
     collapsePlaceDetails(true);
 
     openSheet('sheet-place');
+
+    requestAnimationFrame(function () {
+      setTimeout(function () {
+        panUpForBottomSheet(sheetPlace);
+        setTimeout(function () { panUpForBottomSheet(sheetPlace); }, 120);
+      }, 320);
+    });
+
   }
 
   function handleMarkerClickInRoutePlanningMode(place) {
