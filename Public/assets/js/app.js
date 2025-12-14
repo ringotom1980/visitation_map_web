@@ -68,6 +68,17 @@ document.addEventListener('DOMContentLoaded', function () {
     setTimeout(apply, 250);
   })();
 
+  // ===== FIX: mobile 100vh 不準（特別是 iOS/LINE 內建瀏覽器）=====
+  (function syncViewportVh() {
+    function apply() {
+      var vh = window.innerHeight * 0.01;
+      document.documentElement.style.setProperty('--vh', vh + 'px');
+    }
+    apply();
+    window.addEventListener('resize', apply, { passive: true });
+    window.addEventListener('orientationchange', apply, { passive: true });
+  })();
+
   if (typeof MapModule === 'undefined') {
     console.error('MapModule 未定義，請確認 map.js 是否有正確載入。');
     return;
@@ -1195,7 +1206,7 @@ document.addEventListener('DOMContentLoaded', function () {
     openModal('modal-place-form');
   }
 
-    function handleMarkerClickInBrowseMode(place) {
+  function handleMarkerClickInBrowseMode(place) {
     if (state.mode !== Mode.BROWSE) return;
 
     closeSheet('sheet-poi');

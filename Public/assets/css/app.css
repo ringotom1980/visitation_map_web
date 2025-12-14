@@ -13,15 +13,26 @@
 /* ========== 基本佈局 ========== */
 .app-page {
   background: #f5f5f5;
-  min-height: 100vh;
+  min-height: 100dvh;
 }
 
 .app-main {
   display: flex;
   flex-direction: column;
-  min-height: 100vh;
-  height: 100vh;
-  overflow: hidden; /* 整個主框架不捲動 */
+  min-height: 100dvh;
+  height: 100dvh;
+  overflow: hidden;
+}
+
+/* 若瀏覽器不支援 dvh（或 webview 表現不穩），走 JS 設定的 --vh */
+@supports not (height: 100dvh) {
+  .app-page {
+    min-height: calc(var(--vh, 1vh) * 100);
+  }
+  .app-main {
+    min-height: calc(var(--vh, 1vh) * 100);
+    height: calc(var(--vh, 1vh) * 100);
+  }
 }
 
 /* 上方工具列 */
@@ -29,7 +40,10 @@
   display: flex;
   align-items: center;
   gap: 16px;
-  padding: 8px 16px;
+  padding-top: calc(8px + var(--safe-top));
+  padding-right: calc(16px + var(--safe-right));
+  padding-left: calc(16px + var(--safe-left));
+  padding-bottom: 8px;
   background: #ffffff;
   box-shadow: 0 2px 4px rgba(0, 0, 0, 0.06);
   z-index: 10;
@@ -76,7 +90,7 @@
   padding-right: 64px; /* 右側預留兩顆按鈕空間 */
 }
 
-.search-bar__btn{
+.search-bar__btn {
   position: absolute;
   top: 50%;
   transform: translateY(-50%);
@@ -89,15 +103,15 @@
   color: #444;
 }
 
-.search-bar__btn--search{
+.search-bar__btn--search {
   right: 10px;
 }
 
-.search-bar__btn--clear{
+.search-bar__btn--clear {
   right: 38px;
   display: none; /* 預設隱藏，有輸入才顯示 */
 }
-.search-bar__btn--clear.is-show{
+.search-bar__btn--clear.is-show {
   display: inline-block;
 }
 
@@ -133,8 +147,8 @@
 }
 
 /* ========== 浮動按鈕（FAB）改為文字 Pill ========== */
-.fab{
-  position: fixed;          /* ★ 由 absolute 改 fixed：不會被地圖容器/高度裁切 */
+.fab {
+  position: fixed; /* ★ 由 absolute 改 fixed：不會被地圖容器/高度裁切 */
   right: 16px;
   min-width: 90px;
   height: 40px;
@@ -148,7 +162,7 @@
   justify-content: center;
   box-shadow: 0 4px 10px rgba(0, 0, 0, 0.18);
   transition: transform 0.1s ease, box-shadow 0.1s ease, background 0.1s ease;
-  z-index: 1300;            /* ★ 一定要高於 Google Map */
+  z-index: 1300; /* ★ 一定要高於 Google Map */
 }
 
 .fab:hover {
@@ -253,29 +267,28 @@
 }
 
 /* 兩欄 split：左右各一欄 */
-.field-row--split{
+.field-row--split {
   display: flex;
   gap: 12px;
   align-items: flex-start;
 }
 
 /* split 內的欄位 */
-.field-row--split .field-col{
+.field-row--split .field-col {
   flex: 1 1 0;
   min-width: 0; /* 避免內容撐破導致不分欄 */
 }
 
 /* split 欄位內：label 在上、value 在下 */
-.field-row--split .field-label{
+.field-row--split .field-label {
   flex: none;
   width: auto;
   margin-bottom: 2px;
 }
 
-.field-row--split .field-value{
+.field-row--split .field-value {
   flex: none;
 }
-
 
 .field-row:last-child {
   border-bottom: none;
@@ -292,13 +305,12 @@
   font-size: 13px;
 }
 
-@media (max-width: 420px){
-  .field-row--split{
+@media (max-width: 420px) {
+  .field-row--split {
     flex-direction: column;
     gap: 8px;
   }
 }
-
 
 /* 路線列表 */
 .route-list {
@@ -423,7 +435,7 @@
 /* Modal：手機左右留白，不貼邊 */
 .modal__dialog {
   position: relative;
-  width: calc(100% - 24px);   /* 左右各 12px */
+  width: calc(100% - 24px); /* 左右各 12px */
   max-width: 480px;
   max-height: 90vh;
   background: #ffffff;
@@ -438,16 +450,18 @@
 /* iPhone 有瀏海時，再多吃 safe-area，避免貼邊 */
 @supports (padding: max(0px)) {
   .modal__dialog {
-    width: calc(100% - max(24px, calc(var(--safe-left, 0px) + var(--safe-right, 0px) + 24px)));
+    width: calc(
+      100% -
+        max(24px, calc(var(--safe-left, 0px) + var(--safe-right, 0px) + 24px))
+    );
   }
 }
 
 /* 補 safe-area 左右變數（你目前只有 top/bottom） */
-:root{
+:root {
   --safe-left: env(safe-area-inset-left, 0px);
   --safe-right: env(safe-area-inset-right, 0px);
 }
-
 
 .modal__header {
   display: flex;
@@ -592,35 +606,37 @@
    + Bottom Sheet / Route Actions 固定在底部（只吃 safe-area）
    =============================== */
 
-:root{
+:root {
   --safe-top: env(safe-area-inset-top, 0px);
   --safe-bottom: env(safe-area-inset-bottom, 0px);
-  --toolbar-h: 64px;   /* 會由 JS 動態覆蓋成實際 toolbar 高度 */
+  --toolbar-h: 64px; /* 會由 JS 動態覆蓋成實際 toolbar 高度 */
   --fab-gap: 12px;
-  --fab-step: 52px;    /* 40(按鈕高) + 12(間距) */
+  --fab-step: 52px; /* 40(按鈕高) + 12(間距) */
 }
 
 /* 兩顆按鈕：固定在視窗右上角，但一定在 toolbar 下方 */
-.fab{
+.fab {
   position: fixed;
   right: 12px;
   z-index: 1300;
 }
 
 /* 第一顆：目前位置 */
-.fab-primary{
+.fab-primary {
   top: calc(var(--safe-top) + var(--toolbar-h) + var(--fab-gap));
   bottom: auto;
 }
 
 /* 第二顆：路線規劃 */
-.fab-secondary{
-  top: calc(var(--safe-top) + var(--toolbar-h) + var(--fab-gap) + var(--fab-step));
+.fab-secondary {
+  top: calc(
+    var(--safe-top) + var(--toolbar-h) + var(--fab-gap) + var(--fab-step)
+  );
   bottom: auto;
 }
 
 /* Bottom Sheet：固定在視窗底部 */
-.bottom-sheet{
+.bottom-sheet {
   position: fixed;
   left: 0;
   right: 0;
@@ -629,30 +645,29 @@
   pointer-events: none; /* 關閉時不可操作 */
 }
 
-.bottom-sheet.bottom-sheet--open{
+.bottom-sheet.bottom-sheet--open {
   pointer-events: auto;
 }
 
-.bottom-sheet__inner{
+.bottom-sheet__inner {
   position: relative;
   margin: 0 auto;
   max-width: 720px;
 
   background: #ffffff;
   border-radius: 14px 14px 0 0;
-  box-shadow: 0 -4px 16px rgba(0,0,0,.12);
-
-  padding: 12px 16px calc(16px + var(--safe-bottom));
+  box-shadow: 0 -4px 16px rgba(0, 0, 0, 0.12);
+  padding: 12px 16px calc(16px + var(--safe-bottom) + 10px);
   transform: translateY(100%);
-  transition: transform .22s ease-out;
+  transition: transform 0.22s ease-out;
 }
 
-.bottom-sheet--open .bottom-sheet__inner{
+.bottom-sheet--open .bottom-sheet__inner {
   transform: translateY(0);
 }
 
 /* S3 route-actions：固定在底部，吃 safe-area */
-.route-actions{
+.route-actions {
   position: fixed;
   left: 0;
   right: 0;
@@ -660,33 +675,30 @@
   z-index: 1250;
 
   display: none;
-  padding: 10px 12px calc(10px + var(--safe-bottom));
-  background: rgba(255,255,255,.96);
+  padding: 10px 12px calc(10px + var(--safe-bottom) + 10px);
+  background: rgba(255, 255, 255, 0.96);
   border-top: 1px solid #eee;
-  box-shadow: 0 -6px 18px rgba(0,0,0,.10);
+  box-shadow: 0 -6px 18px rgba(0, 0, 0, 0.1);
 }
 
-.route-actions[aria-hidden="false"]{
+.route-actions[aria-hidden="false"] {
   display: flex;
   justify-content: center;
   gap: 10px;
 }
 
 /* ===== Map custom name label (OverlayView) ===== */
-.map-name-label{
+.map-name-label {
   position: absolute;
   transform: translate(12px, -50%);
   white-space: nowrap;
-  font-family: "Microsoft JhengHei","Noto Sans TC",sans-serif;
+  font-family: "Microsoft JhengHei", "Noto Sans TC", sans-serif;
   font-size: 16px;
   font-weight: 700;
   color: #ca02a9;
-  text-shadow:
-    0 1px 0 rgba(255,255,255,0.95),
-    1px 0 0 rgba(255,255,255,0.95),
-    0 -1px 0 rgba(255,255,255,0.95),
-    -1px 0 0 rgba(255,255,255,0.95),
-    1px 1px 2px rgba(255,255,255,0.9);
+  text-shadow: 0 1px 0 rgba(255, 255, 255, 0.95),
+    1px 0 0 rgba(255, 255, 255, 0.95), 0 -1px 0 rgba(255, 255, 255, 0.95),
+    -1px 0 0 rgba(255, 255, 255, 0.95), 1px 1px 2px rgba(255, 255, 255, 0.9);
   background: transparent;
   border: none;
   pointer-events: none;
@@ -696,17 +708,17 @@
    C2：S1 抽屜「詳細」展開/收合
    =============================== */
 
-.place-details__divider{
+.place-details__divider {
   height: 1px;
   background: #eeeeee;
   margin: 10px 0;
 }
 
-.place-details.is-collapsed{
+.place-details.is-collapsed {
   display: none;
 }
 
-.place-details.is-expanded{
+.place-details.is-expanded {
   display: block;
 }
 
@@ -717,23 +729,23 @@
 }
 
 /* 起點：把原本的圓形 index 變成「標籤」 */
-.route-item__index.route-item__index--start{
-  width: auto;              /* 解除固定寬 */
-  min-width: 44px;          /* 避免太窄 */
-  height: 22px;             /* 比原本圓形小一點也可以 */
+.route-item__index.route-item__index--start {
+  width: auto; /* 解除固定寬 */
+  min-width: 44px; /* 避免太窄 */
+  height: 22px; /* 比原本圓形小一點也可以 */
   line-height: 22px;
-  padding: 0 8px;           /* 左右留白 */
-  border-radius: 999px;     /* 膠囊 */
+  padding: 0 8px; /* 左右留白 */
+  border-radius: 999px; /* 膠囊 */
   font-size: 12px;
   font-weight: 700;
-  white-space: nowrap;      /* 不換行 */
+  white-space: nowrap; /* 不換行 */
   overflow: hidden;
-  text-overflow: ellipsis;  /* 超長才省略 */
+  text-overflow: ellipsis; /* 超長才省略 */
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  background: #7c62ee;   /* 淡綠底 */
-  color: #ffffff;        /* 深綠字 */
+  background: #7c62ee; /* 淡綠底 */
+  color: #ffffff; /* 深綠字 */
 }
 
 /* =========================================
@@ -746,7 +758,7 @@
   background: rgba(0, 0, 0, 0.28);
   opacity: 0;
   pointer-events: none;
-  transition: opacity .18s ease;
+  transition: opacity 0.18s ease;
   z-index: 1150; /* 介於地圖(較低) 與 bottom-sheet(1200) 之間 */
 }
 
@@ -766,7 +778,8 @@ body.is-modal-open .fab {
    =============================== */
 
 /* 防止 iOS 自動調整字體大小造成視覺變形 */
-html, body {
+html,
+body {
   -webkit-text-size-adjust: 100%;
   text-size-adjust: 100%;
 }
@@ -790,7 +803,7 @@ textarea {
 /* =========================================
    My Places Suggest Dropdown (above Google pac-container)
    ========================================= */
-.my-suggest{
+.my-suggest {
   position: absolute;
   left: 0;
   right: 0;
@@ -798,35 +811,35 @@ textarea {
   background: #ffffff;
   border: 1px solid #e6e6e6;
   border-radius: 14px;
-  box-shadow: 0 10px 22px rgba(0,0,0,.12);
+  box-shadow: 0 10px 22px rgba(0, 0, 0, 0.12);
   overflow: hidden;
   z-index: 2000; /* 高於 Google Map / pac-container */
 }
 
-.my-suggest__item{
+.my-suggest__item {
   padding: 10px 12px;
   cursor: pointer;
   user-select: none;
 }
 
-.my-suggest__item + .my-suggest__item{
+.my-suggest__item + .my-suggest__item {
   border-top: 1px solid #f1f1f1;
 }
 
-.my-suggest__title{
+.my-suggest__title {
   font-size: 14px;
   font-weight: 700;
   color: #111827;
   line-height: 1.2;
 }
 
-.my-suggest__sub{
+.my-suggest__sub {
   margin-top: 4px;
   font-size: 12px;
   color: #6b7280;
   line-height: 1.2;
 }
 
-.my-suggest__item.is-active{
+.my-suggest__item.is-active {
   background: #f3f7ff;
 }
