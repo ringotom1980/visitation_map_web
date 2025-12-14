@@ -692,7 +692,7 @@ document.addEventListener('DOMContentLoaded', function () {
 
   function handleMarkerClickInBrowseMode(place) {
     if (state.mode !== Mode.BROWSE) return;
-
+    closeSheet('sheet-poi');
     state.currentPlace = place;
 
     fillPlaceSheet(place);
@@ -879,7 +879,7 @@ document.addEventListener('DOMContentLoaded', function () {
       console.warn('fetchPoiPhoto fail:', e);
     }
   }
-  
+
   function setText(id, text) {
     var el = document.getElementById(id);
     if (!el) return;
@@ -1224,13 +1224,15 @@ document.addEventListener('DOMContentLoaded', function () {
     if (id === 'sheet-place' && state.mode !== Mode.BROWSE) return;
     if (id === 'sheet-poi' && state.mode !== Mode.BROWSE) return;
 
+    // ★互斥：開哪個就先關另一個
+    if (id === 'sheet-place') closeSheet('sheet-poi');
+    if (id === 'sheet-poi') closeSheet('sheet-place');
+
     el.classList.add('bottom-sheet--open');
 
-    // ❌ S1 資訊抽屜「不要」開 backdrop，地圖必須可操作
-    if (id === 'sheet-place') {
-      setPlaceSheetBackdrop(false);
-    }
+    if (id === 'sheet-place') setPlaceSheetBackdrop(false);
   }
+
 
   function closeSheet(id) {
     var el = document.getElementById(id);
