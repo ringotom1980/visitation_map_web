@@ -238,23 +238,33 @@ $pageCss = [
               </div>
 
               <div class="form-row">
-                <label for="place-category">類別</label>
+                <label for="place-category">類別（必選）</label>
                 <select id="place-category" name="category" required>
                   <option value="">請選擇</option>
-                  <option value="DEPENDENT">遺眷</option>
-                  <option value="DISABLED_VET">身心障礙官兵</option>
-                  <option value="OTHER">其他</option>
+
+                  <optgroup label="身心障礙官兵">
+                    <option value="身心障礙官兵-因公">身心障礙官兵－因公</option>
+                    <option value="身心障礙官兵-意外">身心障礙官兵－意外</option>
+                    <option value="身心障礙官兵-因病">身心障礙官兵－因病</option>
+                    <option value="身心障礙官兵-作戰">身心障礙官兵－作戰</option>
+                  </optgroup>
+
+                  <optgroup label="死亡">
+                    <option value="因公死亡">因公死亡</option>
+                    <option value="意外死亡">意外死亡</option>
+                    <option value="因病死亡">因病死亡</option>
+                  </optgroup>
                 </select>
+              </div>
+
+              <div class="form-row">
+                <label for="place-visit-name">受益人（必填）</label>
+                <input id="place-visit-name" name="visit_name" type="text" required />
               </div>
 
               <div class="form-row">
                 <label for="place-visit-target">與官兵關係</label>
                 <input id="place-visit-target" name="visit_target" type="text" />
-              </div>
-
-              <div class="form-row">
-                <label for="place-visit-name">實際受訪姓名</label>
-                <input id="place-visit-name" name="visit_name" type="text" required />
               </div>
 
               <div class="form-row">
