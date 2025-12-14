@@ -361,12 +361,15 @@ document.addEventListener('DOMContentLoaded', function () {
       var nodes = document.querySelectorAll('.pac-container');
       nodes.forEach(function (el) {
         el.style.display = visible ? '' : 'none';
+        el.style.visibility = visible ? '' : 'hidden';
+        el.style.pointerEvents = visible ? '' : 'none';
       });
 
-      // Google 有時會在同一個 frame 又把它打開，所以多壓一拍
       if (!visible) raf2(function () {
         document.querySelectorAll('.pac-container').forEach(function (el) {
           el.style.display = 'none';
+          el.style.visibility = 'hidden';
+          el.style.pointerEvents = 'none';
         });
       });
     }
@@ -397,6 +400,21 @@ document.addEventListener('DOMContentLoaded', function () {
       else btnClear.classList.remove('is-show');
     }
 
+    // ===== FIX: Mobile 上 Google 會自己把 pac-container 再打開，用 Observer 壓回去 =====
+    (function bindPacObserver() {
+      var mo = new MutationObserver(function () {
+        // 任何 DOM 變動（pac-container 新增 / style 改變）都重新仲裁一次
+        try { arbitratePacByState(); } catch (e) { }
+      });
+
+      mo.observe(document.body, {
+        childList: true,
+        subtree: true,
+        attributes: true,
+        attributeFilter: ['style', 'class']
+      });
+    })();
+
     // 任何輸入變更 => 控制 X
     input.addEventListener('input', function () {
       syncClearBtn();
@@ -411,7 +429,7 @@ document.addEventListener('DOMContentLoaded', function () {
 
     input.addEventListener('blur', function () {
       // 延遲關閉，讓 click 能先觸發
-      setTimeout(function () { closeSuggest(); setGooglePacVisible(false);}, 120);
+      setTimeout(function () { closeSuggest(); setGooglePacVisible(false); }, 120);
     });
 
 
