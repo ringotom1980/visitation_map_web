@@ -389,7 +389,6 @@ document.addEventListener('DOMContentLoaded', function () {
         input.value = '';
         syncClearBtn();
         closeSuggest();
-        showGooglePac();
         if (MapModule && MapModule.clearSearchPin) MapModule.clearSearchPin();
         input.focus();
       });
