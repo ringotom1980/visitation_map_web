@@ -596,45 +596,41 @@ document.addEventListener('DOMContentLoaded', function () {
       if (!sheetEl) return;
       if (!sheetEl.classList.contains('bottom-sheet--open')) return;
 
-      var gap = (opts && isFinite(opts.gap)) ? Number(opts.gap) : 16; // 抽屜上緣留白（可微調）
+      var gap = (opts && isFinite(opts.gap)) ? Number(opts.gap) : 16;
 
-      var mapEl = getMapViewportEl();
-      var viewportH = mapEl ? mapEl.getBoundingClientRect().height : window.innerHeight;
-      if (!viewportH) viewportH = window.innerHeight || 800;
+      // 1) 取得 Google Map 的實際 DOM（這才是正確 viewport）
+      var map = (MapModule && typeof MapModule.getMap === 'function') ? MapModule.getMap() : null;
+      var mapDiv = map && typeof map.getDiv === 'function' ? map.getDiv() : null;
+      if (!mapDiv) return;
 
+      var mapRect = mapDiv.getBoundingClientRect();
+      if (!mapRect || !mapRect.height) return;
+
+      // 2) 抽屜「上緣」的 Y（視窗座標）
       var sheetRect = sheetEl.getBoundingClientRect();
-      var sheetH = sheetRect && sheetRect.height ? sheetRect.height : 0;
-      if (!sheetH) return;
+      var targetY_win = sheetRect.top - gap;
 
-      // 目標：點位落在抽屜上緣上方 gap 像素
-      var desiredMarkerY = Math.round(viewportH - sheetH - gap);
+      // 3) marker 在 focusPlace() 後，會落在「mapDiv 的中心」
+      //    以視窗座標表示就是：mapRect.top + mapRect.height/2
+      var markerY_win = mapRect.top + (mapRect.height / 2);
 
-      // Google map panTo 後點位大致在視窗中心
-      var centerY = Math.round(viewportH / 2);
+      // 4) 需要把 marker 往上推到 targetY（delta > 0 才需要推）
+      var delta = Math.round(markerY_win - targetY_win);
 
-      // 若 desiredMarkerY 在中心下方（抽屜很矮/桌機），不需要推
-      if (desiredMarkerY >= centerY) return;
+      // 若 marker 已經在抽屜上緣之上，就不用推
+      if (delta <= 0) return;
 
-      // 需要把點「往上」移：Google Maps panBy 的 y 正值會讓點往上
-      var delta = Math.round(centerY - desiredMarkerY);
-
-      // 避免極端值
-      var maxDelta = Math.round(viewportH * 0.45);
+      // 避免極端值（最多推 map 高度 45%）
+      var maxDelta = Math.round(mapRect.height * 0.45);
       if (delta > maxDelta) delta = maxDelta;
-      if (delta < 0) delta = 0;
-
-      if (!delta) return;
 
       if (MapModule && typeof MapModule.panBy === 'function') {
         MapModule.panBy(0, delta);
         return;
       }
 
-      if (MapModule && typeof MapModule.getMap === 'function') {
-        var map = MapModule.getMap();
-        if (map && typeof map.panBy === 'function') {
-          map.panBy(0, delta);
-        }
+      if (map && typeof map.panBy === 'function') {
+        map.panBy(0, delta);
       }
     } catch (e) {
       console.warn('panMarkerAboveSheetOnce fail:', e);
