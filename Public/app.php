@@ -149,6 +149,23 @@ $pageCss = [
         </div>
       </div>
 
+      <div id="sheet-poi" class="bottom-sheet bottom-sheet--poi" aria-hidden="true">
+        <div class="bottom-sheet__inner">
+          <header class="bottom-sheet__header">
+            <div>
+              <div class="bottom-sheet__title" id="sheet-poi-name">—</div>
+              <div class="bottom-sheet__subtitle" id="sheet-poi-address">—</div>
+            </div>
+            <button type="button" class="bottom-sheet__close" data-sheet-close="sheet-poi">✕</button>
+          </header>
+
+          <div class="bottom-sheet__body">
+            <img id="sheet-poi-photo" alt="photo"
+              style="display:none; width:100%; border-radius:12px;" />
+          </div>
+        </div>
+      </div>
+
       <!-- S2 路線規劃抽屜 -->
       <div id="sheet-route" class="bottom-sheet bottom-sheet--route">
         <div class="bottom-sheet__inner">
