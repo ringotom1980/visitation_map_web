@@ -176,6 +176,178 @@ document.addEventListener('DOMContentLoaded', function () {
       }
     }
 
+    // ===== 我的點下拉候選（顯示在 Google pac-container 之前）=====
+    var suggestWrap = null;
+    var suggestOpen = false;
+    var suggestItems = [];
+    var activeIndex = -1;
+
+    function ensureSuggestWrap() {
+      if (suggestWrap) return suggestWrap;
+
+      // search-bar 是 position:relative，可直接把 dropdown 掛在裡面
+      var bar = input.closest ? input.closest('.search-bar') : null;
+      if (!bar) return null;
+
+      suggestWrap = document.createElement('div');
+      suggestWrap.className = 'my-suggest';
+      suggestWrap.setAttribute('aria-hidden', 'true');
+      suggestWrap.style.display = 'none';
+
+      // 用 mousedown/pointerdown 阻止 blur，避免點候選時 input 先失焦導致列表關閉
+      suggestWrap.addEventListener('pointerdown', function (e) {
+        e.preventDefault();
+      });
+
+      bar.appendChild(suggestWrap);
+      return suggestWrap;
+    }
+
+    function buildLocalSuggestions(query) {
+      var q = norm(query);
+      if (!q) return [];
+
+      if (!Array.isArray(state.placesCache) || state.placesCache.length === 0) return [];
+
+      var out = [];
+      for (var i = 0; i < state.placesCache.length; i++) {
+        var p = state.placesCache[i];
+        var text = placeTextBundle(p);
+        var s = scoreMatch(q, text);
+
+        // 欄位加權（你原本邏輯沿用）
+        var sName = scoreMatch(q, norm(p && (p.serviceman_name || p.soldier_name)));
+        var sVisit = scoreMatch(q, norm(p && p.visit_name));
+        var sAddr = scoreMatch(q, norm(p && (p.address_text || p.address)));
+        s = Math.max(s, sName + 200, sVisit + 150, sAddr + 100);
+
+        // 門檻：避免打「一」就亂跳
+        if (s >= 250) out.push({ p: p, score: s });
+      }
+
+      out.sort(function (a, b) { return b.score - a.score; });
+      // 顯示前 N 筆即可
+      return out.slice(0, 6).map(function (x) { return x.p; });
+    }
+
+    function getPrimaryTitle(p) {
+      // 主要顯示：官兵姓名 / 受益人 / 類別
+      var a = (p.serviceman_name || p.soldier_name || '').trim();
+      var b = (p.visit_name || '').trim();
+      var c = (p.category_label || p.category || '').trim();
+
+      var t = a;
+      if (b) t += '｜' + b;
+      if (c) t += '（' + c + '）';
+      return t || '（未命名）';
+    }
+
+    function getSubTitle(p) {
+      // 次要顯示：地址 / 行政區 / 慰問令
+      var addr = (p.address_text || p.address || '').trim();
+      var md = (p.managed_district || '').trim();
+      var co = (p.condolence_order_no || '').trim();
+
+      var parts = [];
+      if (addr) parts.push(addr);
+      if (md) parts.push(md);
+      if (co) parts.push('慰問令:' + co);
+
+      return parts.join(' ｜ ') || '';
+    }
+
+    function openSuggest() {
+      var el = ensureSuggestWrap();
+      if (!el) return;
+      suggestOpen = true;
+      el.style.display = 'block';
+      el.setAttribute('aria-hidden', 'false');
+    }
+
+    function closeSuggest() {
+      if (!suggestWrap) return;
+      suggestOpen = false;
+      suggestItems = [];
+      activeIndex = -1;
+      suggestWrap.innerHTML = '';
+      suggestWrap.style.display = 'none';
+      suggestWrap.setAttribute('aria-hidden', 'true');
+    }
+
+    function setActive(idx) {
+      activeIndex = idx;
+      if (!suggestWrap) return;
+
+      var nodes = suggestWrap.querySelectorAll('.my-suggest__item');
+      for (var i = 0; i < nodes.length; i++) {
+        if (i === activeIndex) nodes[i].classList.add('is-active');
+        else nodes[i].classList.remove('is-active');
+      }
+    }
+
+    function renderSuggest(list) {
+      var el = ensureSuggestWrap();
+      if (!el) return;
+
+      suggestItems = Array.isArray(list) ? list : [];
+      el.innerHTML = '';
+
+      if (suggestItems.length === 0) {
+        closeSuggest();
+        return;
+      }
+
+      openSuggest();
+
+      for (var i = 0; i < suggestItems.length; i++) {
+        (function (idx) {
+          var p = suggestItems[idx];
+
+          var item = document.createElement('div');
+          item.className = 'my-suggest__item';
+          item.setAttribute('role', 'option');
+
+          var title = document.createElement('div');
+          title.className = 'my-suggest__title';
+          title.textContent = getPrimaryTitle(p);
+
+          var sub = document.createElement('div');
+          sub.className = 'my-suggest__sub';
+          sub.textContent = getSubTitle(p);
+
+          item.appendChild(title);
+          if (sub.textContent) item.appendChild(sub);
+
+          item.addEventListener('click', function () {
+            // 選中：優先開你的點
+            closeSuggest();
+
+            // 讓輸入框顯示較合理的文字（非必須）
+            input.value = (p.serviceman_name || p.soldier_name || '').trim() || input.value;
+            syncClearBtn();
+
+            focusAndOpenMyPlace(p);
+          });
+
+          el.appendChild(item);
+        })(i);
+      }
+
+      // 預設不主動選中任何一筆（避免 Enter 直接跳）
+      setActive(-1);
+    }
+
+    function refreshSuggestByInput() {
+      // 只在 focus 且有輸入時顯示（可依你喜好改成 focus 就顯示）
+      var q = (input.value || '').trim();
+      if (!q) {
+        closeSuggest();
+        return;
+      }
+      var list = buildLocalSuggestions(q);
+      renderSuggest(list);
+    }
+
     function syncClearBtn() {
       if (!btnClear) return;
       var has = (input.value || '').trim().length > 0;
@@ -186,13 +358,25 @@ document.addEventListener('DOMContentLoaded', function () {
     // 任何輸入變更 => 控制 X
     input.addEventListener('input', function () {
       syncClearBtn();
+      refreshSuggestByInput();
     }, { passive: true });
+
+    input.addEventListener('focus', function () {
+      refreshSuggestByInput();
+    });
+
+    input.addEventListener('blur', function () {
+      // 延遲關閉，讓 click 能先觸發
+      setTimeout(function () { closeSuggest(); }, 120);
+    });
+
 
     // 按 X：清空 + 清 pin
     if (btnClear) {
       btnClear.addEventListener('click', function () {
         input.value = '';
         syncClearBtn();
+        closeSuggest();
         if (MapModule && MapModule.clearSearchPin) MapModule.clearSearchPin();
         input.focus();
       });
@@ -230,9 +414,46 @@ document.addEventListener('DOMContentLoaded', function () {
 
     // Enter 也觸發搜尋（符合一般搜尋習慣）
     input.addEventListener('keydown', function (e) {
+      if (e.key === 'ArrowDown') {
+        if (!suggestOpen) refreshSuggestByInput();
+        if (suggestItems.length) {
+          e.preventDefault();
+          var next = activeIndex + 1;
+          if (next >= suggestItems.length) next = 0;
+          setActive(next);
+        }
+        return;
+      }
+
+      if (e.key === 'ArrowUp') {
+        if (suggestItems.length) {
+          e.preventDefault();
+          var prev = activeIndex - 1;
+          if (prev < 0) prev = suggestItems.length - 1;
+          setActive(prev);
+        }
+        return;
+      }
+
       if (e.key === 'Enter') {
+        // 若有選中我的候選 → 直接開我的點，不走 Google
+        if (suggestOpen && suggestItems.length && activeIndex >= 0) {
+          e.preventDefault();
+          var p = suggestItems[activeIndex];
+          closeSuggest();
+          input.value = (p.serviceman_name || p.soldier_name || '').trim() || input.value;
+          syncClearBtn();
+          focusAndOpenMyPlace(p);
+          return;
+        }
+
         e.preventDefault();
+        closeSuggest(); // ★避免 Enter 後清單殘留
         doSearchByText();
+      }
+
+      if (e.key === 'Escape') {
+        closeSuggest();
       }
     });
 
