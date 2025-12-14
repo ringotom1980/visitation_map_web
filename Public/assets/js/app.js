@@ -586,8 +586,8 @@ document.addEventListener('DOMContentLoaded', function () {
       if (!sheetH) return;
 
       // 可調參數
-      var padding = 24; // 抽屜上緣留白
-      var extra = -65;    // 整體再多推一點（你要調高度就調這個）
+      var padding = 124; // 抽屜上緣留白
+      var extra = -165;    // 整體再多推一點（你要調高度就調這個）
 
       var offsetY = Math.round((sheetH / 2) + padding + extra);
 
