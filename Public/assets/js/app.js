@@ -86,6 +86,95 @@ document.addEventListener('DOMContentLoaded', function () {
     var btnGo = document.getElementById('btn-search-go');
     var btnClear = document.getElementById('btn-search-clear');
     if (!input) return;
+    // ===== 本地優先：先命中「我自己的標註點」(placesCache) =====
+    function norm(s) {
+      return String(s || '').trim().toLowerCase();
+    }
+
+    function placeTextBundle(p) {
+      if (!p) return '';
+      // 你自己的點：把最常搜的欄位全部串起來做比對
+      return norm([
+        p.serviceman_name, p.soldier_name,
+        p.visit_name,
+        p.visit_target, p.target_name,
+        p.address_text, p.address,
+        p.condolence_order_no,
+        p.managed_district,
+        p.note,
+        p.category, p.category_label,
+        p.organization_name, p.organization_county
+      ].join(' '));
+    }
+
+    function scoreMatch(q, text) {
+      // 分數越高越優先
+      if (!q || !text) return 0;
+      if (text === q) return 1000;           // 完全相等
+      if (text.indexOf(q) === 0) return 700; // 前綴命中
+      var idx = text.indexOf(q);
+      if (idx >= 0) return 300 - Math.min(idx, 100); // 越前面越好
+      return 0;
+    }
+
+    function findBestLocalPlace(query) {
+      var q = norm(query);
+      if (!q) return null;
+      if (!Array.isArray(state.placesCache) || state.placesCache.length === 0) return null;
+
+      var best = null;
+      var bestScore = 0;
+
+      for (var i = 0; i < state.placesCache.length; i++) {
+        var p = state.placesCache[i];
+        var text = placeTextBundle(p);
+        var s = scoreMatch(q, text);
+
+        // 額外加權：官兵姓名/受益人/地址「精準命中」更優先
+        var sName = scoreMatch(q, norm(p && (p.serviceman_name || p.soldier_name)));
+        var sVisit = scoreMatch(q, norm(p && p.visit_name));
+        var sAddr = scoreMatch(q, norm(p && (p.address_text || p.address)));
+        s = Math.max(s, sName + 200, sVisit + 150, sAddr + 100);
+
+        if (s > bestScore) {
+          bestScore = s;
+          best = p;
+        }
+      }
+
+      // 門檻：避免打「一」也亂命中
+      if (bestScore < 250) return null;
+      return best;
+    }
+
+    function focusAndOpenMyPlace(place) {
+      if (!place) return;
+
+      // 互斥：先確保 POI 抽屜關閉（你剛剛遇到的疊加問題就是這裡）
+      closeSheet('sheet-poi');
+
+      state.currentPlace = place;
+      fillPlaceSheet(place);
+      collapsePlaceDetails(true);
+      openSheet('sheet-place');
+
+      // 地圖聚焦（不強依賴 map.js 的 API，能用就用）
+      var lat = (place.lat !== undefined && place.lat !== null) ? Number(place.lat) : null;
+      var lng = (place.lng !== undefined && place.lng !== null) ? Number(place.lng) : null;
+
+      try {
+        if (MapModule && MapModule.panToPlace) {
+          MapModule.panToPlace(place);
+        } else if (MapModule && MapModule.panToLatLng && isFinite(lat) && isFinite(lng)) {
+          MapModule.panToLatLng(lat, lng);
+        } else if (MapModule && MapModule.setCenter && isFinite(lat) && isFinite(lng)) {
+          MapModule.setCenter(lat, lng);
+        }
+      } catch (e) {
+        // 不影響主流程：抽屜先正常打開
+        console.warn('focus map fail:', e);
+      }
+    }
 
     function syncClearBtn() {
       if (!btnClear) return;
@@ -114,13 +203,22 @@ document.addEventListener('DOMContentLoaded', function () {
       var q = (input.value || '').trim();
       if (!q) return;
 
+      // 1) 先找「我自己的標註點」
+      var hit = findBestLocalPlace(q);
+      if (hit) {
+        // 命中：直接開我的資訊抽屜（不走 Google）
+        focusAndOpenMyPlace(hit);
+        syncClearBtn();
+        return;
+      }
+
+      // 2) 沒命中才交給 Google
       if (MapModule && MapModule.searchByText) {
         MapModule.searchByText(q, function (err, info) {
           if (err) {
             alert('查無結果，請輸入更完整的地址或地標名稱。');
             return;
           }
-          // 若你想：搜尋成功後保留文字、保持 X 顯示
           syncClearBtn();
         });
       }

@@ -173,7 +173,7 @@ $pageCss = [
             <div>
               <div class="bottom-sheet__title">路線規劃</div>
               <div class="bottom-sheet__subtitle" id="route-mode-hint">
-                已進入路線規劃模式，請依順序點選要拜訪的地點（點已加入可移除）。
+                已進入路線規劃模式，請依順序點選要拜訪的地點（再點一次可移除）。
               </div>
             </div>
             <button id="btn-route-close" type="button" class="bottom-sheet__close">
@@ -270,7 +270,6 @@ $pageCss = [
               <div class="form-row">
                 <label for="place-condolence-order-no">撫卹令號</label>
                 <input id="place-condolence-order-no" name="condolence_order_no" type="text" />
-                <small class="form-help">同一撫卹令號可能有多位受益人，所以不做唯一。</small>
               </div>
 
               <div class="form-row">
