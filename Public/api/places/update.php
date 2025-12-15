@@ -60,6 +60,16 @@ if (($hasLat && !is_numeric($lat)) || ($hasLng && !is_numeric($lng))) {
 }
 if ($over65 !== 'Y' && $over65 !== 'N') $over65 = 'N';
 
+// 空字串轉 NULL（避免寫入 ''）
+if ($mdist === '') $mdist = null;
+if ($mtownCode === '') $mtownCode = null;
+if ($mcountyCode === '') $mcountyCode = null;
+if ($targetName === '') $targetName = null;
+if ($visitName === '') $visitName = null;
+if ($condNo === '') $condNo = null;
+if ($address === '') $address = null;
+if ($note === '') $note = null;
+
 $pdo = db();
 
 try {
@@ -70,7 +80,7 @@ try {
                 LIMIT 1';
     $stmtOrig = $pdo->prepare($sqlOrig);
     $stmtOrig->execute([':id' => $id]);
-    $orig = $stmtOrig->fetch();
+    $orig = $stmtOrig->fetch(PDO::FETCH_ASSOC);
 
     if (!$orig) {
         json_error('找不到要編輯的標記', 404);
@@ -85,6 +95,13 @@ try {
     $finalLat = $hasLat ? (float)$lat : (float)$orig['lat'];
     $finalLng = $hasLng ? (float)$lng : (float)$orig['lng'];
 
+    // 若有 town_code 但未帶 county_code → 由 admin_towns 推得
+    if ($mtownCode && !$mcountyCode) {
+        $stmtCC = $pdo->prepare('SELECT county_code FROM admin_towns WHERE town_code = :tc LIMIT 1');
+        $stmtCC->execute([':tc' => $mtownCode]);
+        $mcountyCode = $stmtCC->fetchColumn() ?: null;
+    }
+
     $sql = 'UPDATE places
             SET
                 updated_by_user_id = :updated_by,
@@ -98,11 +115,9 @@ try {
                 lat = :lat,
                 lng = :lng,
                 address_text = :address_text,
-
                 managed_district = :mdist,
                 managed_town_code = :mtown_code,
                 managed_county_code = :mcounty_code,
-
                 updated_at = NOW()
             WHERE id = :id';
 
@@ -111,49 +126,55 @@ try {
         ':updated_by'      => (int)$user['id'],
         ':serviceman_name' => $soldierName,
         ':category'        => $category,
-        ':visit_target'    => ($targetName !== '' ? $targetName : null),
-        ':cond_no'         => ($condNo !== '' ? $condNo : null),
-        ':visit_name'      => ($visitName !== '' ? $visitName : null),
+        ':visit_target'    => $targetName,
+        ':cond_no'         => $condNo,
+        ':visit_name'      => $visitName,
         ':over65'          => $over65,
-        ':note'            => ($note !== '' ? $note : null),
+        ':note'            => $note,
         ':lat'             => $finalLat,
         ':lng'             => $finalLng,
-        ':address_text'    => ($address !== '' ? $address : null),
-
-        ':mdist'           => ($mdist !== '' ? $mdist : null),
-        ':mtown_code'      => ($mtownCode !== '' ? $mtownCode : null),
-        ':mcounty_code'    => ($mcountyCode !== '' ? $mcountyCode : null),
+        ':address_text'    => $address,
+        ':mdist'           => $mdist,
+        ':mtown_code'      => $mtownCode,
+        ':mcounty_code'    => $mcountyCode,
     ];
 
     $stmt = $pdo->prepare($sql);
     $stmt->execute($params);
 
-    // 回傳更新後資料（帶回三欄）
+    // 回傳更新後資料（含 legacy alias）
     $sqlGet = 'SELECT
-                    id,
+                    p.id,
+                    p.serviceman_name,
+                    p.category,
+                    p.visit_target,
+                    p.visit_name,
+                    p.condolence_order_no,
+                    p.beneficiary_over65,
+                    p.address_text,
+                    p.managed_district,
+                    p.managed_town_code,
+                    p.managed_county_code,
+                    p.note,
+                    p.lat,
+                    p.lng,
+                    p.organization_id,
+                    p.updated_by_user_id,
+                    p.created_at,
+                    p.updated_at,
 
-                    serviceman_name,
-                    category,
-                    visit_target,
-                    visit_name,
-                    condolence_order_no,
-                    beneficiary_over65,
-                    address_text,
+                    o.name AS organization_name,
+                    u.name AS updated_by_user_name,
 
-                    managed_district,
-                    managed_town_code,
-                    managed_county_code,
-
-                    note,
-                    lat,
-                    lng,
-                    organization_id,
-                    updated_by_user_id,
-                    created_at,
-                    updated_at
-               FROM places
-               WHERE id = :id
+                    p.serviceman_name AS soldier_name,
+                    p.visit_target AS target_name,
+                    p.address_text AS address
+               FROM places p
+               LEFT JOIN organizations o ON o.id = p.organization_id
+               LEFT JOIN users u ON u.id = p.updated_by_user_id
+               WHERE p.id = :id
                LIMIT 1';
+
     $stmtGet = $pdo->prepare($sqlGet);
     $stmtGet->execute([':id' => $id]);
     $row = $stmtGet->fetch(PDO::FETCH_ASSOC);

@@ -28,6 +28,7 @@ try {
     $sql = 'SELECT
             p.id,
 
+            -- canonical
             p.serviceman_name,
             p.category,
             p.visit_target,
@@ -48,9 +49,11 @@ try {
             p.created_at,
             p.updated_at,
 
+            -- join
             o.name AS organization_name,
             u.name AS updated_by_user_name,
 
+            -- legacy aliases（維持前端舊 JS 相容）
             p.serviceman_name AS soldier_name,
             p.visit_target AS target_name,
             p.address_text AS address

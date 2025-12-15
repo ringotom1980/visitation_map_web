@@ -35,10 +35,10 @@ if ($id <= 0) {
 $pdo = db();
 
 try {
-    $sqlOrig = 'SELECT id, organization_id FROM places WHERE id = :id';
+    $sqlOrig = 'SELECT id, organization_id FROM places WHERE id = :id LIMIT 1';
     $stmtOrig = $pdo->prepare($sqlOrig);
     $stmtOrig->execute([':id' => $id]);
-    $orig = $stmtOrig->fetch();
+    $orig = $stmtOrig->fetch(PDO::FETCH_ASSOC);
 
     if (!$orig) {
         json_error('標記不存在', 404);
