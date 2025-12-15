@@ -1661,7 +1661,7 @@ document.addEventListener('DOMContentLoaded', function () {
 
     el.classList.add('bottom-sheet--open');
 
-    if (id === 'sheet-place') setPlaceSheetBackdrop(false);
+    if (id === 'sheet-place') setPlaceSheetBackdrop(true);
   }
 
 
