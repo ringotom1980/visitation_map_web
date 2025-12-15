@@ -931,13 +931,19 @@ document.addEventListener('DOMContentLoaded', function () {
 
   function loadMeNonBlocking() {
     apiRequest('/auth/me', 'GET')
-      .then(function (me) {
-        state.me = me || null;
+      .then(function (payload) {
+        // ✅ apiRequest 回的是 {success, data}
+        var me = (payload && payload.data) ? payload.data : null;
+
+        state.me = me;
+
         if (window.PlaceForm) PlaceForm.setMe(state.me);
 
         if (navUserNameEl) {
           var displayName =
-            (me && (me.name || me.full_name || me.username || me.email)) ? (me.name || me.full_name || me.username || me.email) : '';
+            (me && (me.name || me.full_name || me.username || me.email))
+              ? (me.name || me.full_name || me.username || me.email)
+              : '';
           navUserNameEl.textContent = displayName ? String(displayName) : '—';
         }
 
