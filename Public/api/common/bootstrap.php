@@ -37,3 +37,15 @@ function json_error(string $message, int $httpStatus = 400, $code = null): void
     ], JSON_UNESCAPED_UNICODE);
     exit;
 }
+
+function json_ok($payload = null): void
+{
+    // 讓既有程式碼 json_ok(...) 不會炸；同等於 json_success(...)
+    json_success($payload);
+}
+
+function json_fail(string $message, int $httpStatus = 400, $code = null): void
+{
+    // 可選：若你其他檔案有人用 json_fail
+    json_error($message, $httpStatus, $code);
+}

@@ -281,8 +281,18 @@ $pageCss = [
               </div>
 
               <div class="form-row">
-                <label for="place-managed-district">列管鄉鎮市區</label>
-                <input id="place-managed-district" name="managed_district" type="text" />
+                <label for="place-managed-district-select">列管鄉鎮市區</label>
+
+                <select id="place-managed-district-select">
+                  <option value="">載入中...</option>
+                </select>
+
+                <!-- 真正送到 places API 的三個欄位 -->
+                <input id="place-managed-district" name="managed_district" type="hidden" />
+                <input id="place-managed-town-code" name="managed_town_code" type="hidden" />
+                <input id="place-managed-county-code" name="managed_county_code" type="hidden" />
+
+                <small class="form-help">選單內容會依你所屬單位限制。</small>
               </div>
 
               <div class="form-row">
@@ -308,10 +318,10 @@ $pageCss = [
   </main>
 
   <script src="https://maps.googleapis.com/maps/api/js?key=<?= htmlspecialchars(google_maps_key(), ENT_QUOTES) ?>&libraries=places"></script>
-
   <script src="<?= asset_url('assets/js/api.js') ?>"></script>
   <script src="<?= asset_url('assets/js/places.js') ?>"></script>
   <script src="<?= asset_url('assets/js/map.js') ?>"></script>
+  <script src="<?= asset_url('assets/js/place_form.js') ?>"></script>
   <script src="<?= asset_url('assets/js/app.js') ?>"></script>
 </body>
 

@@ -88,9 +88,6 @@ document.addEventListener('DOMContentLoaded', function () {
     onSearchPlaceSelected: handleSearchPlaceSelected,
     onMapLongPressForNewPlace: handleMapLongPressForNewPlace
   });
-  if (window.PlaceForm) {
-    PlaceForm.init({ MapModule: MapModule, PlacesApi: PlacesApi, apiRequest: apiRequest });
-  }
 
   // ===== 搜尋列（Google Map 風格）：放大鏡搜尋 + 動態 X 清除 =====
   (function bindSearchBarUX() {
@@ -717,10 +714,7 @@ document.addEventListener('DOMContentLoaded', function () {
   }
 
   if (btnPlaceSave) {
-    btnPlaceSave.addEventListener('click', function () {
-      if (!window.PlaceForm) return;
-      PlaceForm.submit(state.currentPlace); // 編輯時讓它可以沿用 currentPlace 的 lat/lng
-    });
+    btnPlaceSave.addEventListener('click', handlePlaceSave);
   }
 
   if (btnPlaceEdit) {
@@ -734,7 +728,7 @@ document.addEventListener('DOMContentLoaded', function () {
       collapsePlaceDetails(true);       // 收合詳細區，避免下次打開狀態錯亂
 
       // ✅ 再開啟編輯 Modal
-      if (window.PlaceForm) PlaceForm.openForEdit(state.currentPlace);
+      openPlaceFormForEdit(state.currentPlace);
     });
   }
 
@@ -851,13 +845,6 @@ document.addEventListener('DOMContentLoaded', function () {
     }
   });
 
-  document.addEventListener('placeForm:saved', function () {
-    closeSheet('sheet-place');
-    state.currentPlace = null;
-    collapsePlaceDetails(true);
-    refreshPlaces();
-  });
-
   // ===== map:blankClick 統一入口（唯一監聽）=====
   document.addEventListener('map:blankClick', function () {
 
@@ -905,7 +892,6 @@ document.addEventListener('DOMContentLoaded', function () {
     apiRequest('/auth/me', 'GET')
       .then(function (me) {
         state.me = me || null;
-        if (window.PlaceForm) PlaceForm.setMe(state.me);
 
         if (navUserNameEl && me && me.name) {
           navUserNameEl.textContent = me.name;
@@ -1198,8 +1184,22 @@ document.addEventListener('DOMContentLoaded', function () {
 
   function handleMapLongPressForNewPlace(latLng, address) {
     if (state.mode !== Mode.BROWSE) return;
-    if (!window.PlaceForm) return;
-    PlaceForm.openForCreate(latLng, address);
+
+    if (placeForm && placeForm.reset) placeForm.reset();
+
+    var idInput = document.getElementById('place-id');
+    var addrInput = document.getElementById('place-address-text');
+    var titleEl = document.getElementById('modal-place-title');
+
+    // ★新增：預設 65+ 為 N
+    var over65Select = document.getElementById('place-beneficiary-over65');
+    if (over65Select) over65Select.value = 'N';
+
+    if (idInput) idInput.value = '';
+    if (addrInput) addrInput.value = address || '';
+    if (titleEl) titleEl.textContent = '新增標記';
+
+    openModal('modal-place-form');
   }
 
   function handleMarkerClickInBrowseMode(place) {
