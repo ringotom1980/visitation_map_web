@@ -35,7 +35,11 @@ try {
             p.condolence_order_no,
             p.beneficiary_over65,
             p.address_text,
+
             p.managed_district,
+            p.managed_town_code,
+            p.managed_county_code,
+
             p.note,
             p.lat,
             p.lng,
@@ -55,7 +59,6 @@ try {
         LEFT JOIN users u ON u.id = p.updated_by_user_id
         WHERE p.id = :id
         LIMIT 1';
-
 
     $stmt = $pdo->prepare($sql);
     $stmt->execute([':id' => $id]);

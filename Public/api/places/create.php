@@ -27,15 +27,19 @@ if (empty($input)) {
     }
 }
 
-$soldierName = trim((string)($input['soldier_name'] ?? ''));
+$soldierName = trim((string)($input['serviceman_name'] ?? $input['soldier_name'] ?? ''));
 $category    = trim((string)($input['category'] ?? ''));
-$targetName  = trim((string)($input['target_name'] ?? ''));
+$targetName  = trim((string)($input['visit_target'] ?? $input['target_name'] ?? ''));
 $visitName   = trim((string)($input['visit_name'] ?? ''));
 $condNo      = trim((string)($input['condolence_order_no'] ?? ''));
 $over65      = strtoupper(trim((string)($input['beneficiary_over65'] ?? 'N')));
-$address     = trim((string)($input['address'] ?? ''));
-$mdist       = trim((string)($input['managed_district'] ?? ($input['township'] ?? ''))); // 先相容舊欄位名
+$address     = trim((string)($input['address_text'] ?? $input['address'] ?? ''));
 $note        = trim((string)($input['note'] ?? ''));
+
+// ✅ 列管三欄
+$mdist       = trim((string)($input['managed_district'] ?? ($input['township'] ?? '')));
+$mtownCode   = trim((string)($input['managed_town_code'] ?? ''));
+$mcountyCode = trim((string)($input['managed_county_code'] ?? ''));
 
 $lat = $input['lat'] ?? null;
 $lng = $input['lng'] ?? null;
@@ -65,7 +69,11 @@ try {
                 lat,
                 lng,
                 address_text,
+
                 managed_district,
+                managed_town_code,
+                managed_county_code,
+
                 created_at,
                 updated_at
             ) VALUES (
@@ -81,7 +89,11 @@ try {
                 :lat,
                 :lng,
                 :address_text,
+
                 :mdist,
+                :mtown_code,
+                :mcounty_code,
+
                 NOW(),
                 NOW()
             )';
@@ -99,24 +111,32 @@ try {
         ':lat'             => (float)$lat,
         ':lng'             => (float)$lng,
         ':address_text'    => ($address !== '' ? $address : null),
+
         ':mdist'           => ($mdist !== '' ? $mdist : null),
+        ':mtown_code'      => ($mtownCode !== '' ? $mtownCode : null),
+        ':mcounty_code'    => ($mcountyCode !== '' ? $mcountyCode : null),
     ];
 
     $stmt = $pdo->prepare($sql);
     $stmt->execute($params);
     $newId = (int)$pdo->lastInsertId();
 
-    // 回傳新資料（維持前端 alias）
+    // 回傳新資料（帶回三欄）
     $sqlGet = 'SELECT
                     id,
-                    serviceman_name AS soldier_name,
+
+                    serviceman_name,
                     category,
-                    visit_target AS target_name,
+                    visit_target,
                     visit_name,
                     condolence_order_no,
                     beneficiary_over65,
-                    address_text AS address,
+                    address_text,
+
                     managed_district,
+                    managed_town_code,
+                    managed_county_code,
+
                     note,
                     lat,
                     lng,
@@ -129,12 +149,11 @@ try {
                LIMIT 1';
     $stmtGet = $pdo->prepare($sqlGet);
     $stmtGet->execute([':id' => $newId]);
-    $row = $stmtGet->fetch();
+    $row = $stmtGet->fetch(PDO::FETCH_ASSOC);
 
     json_success($row);
 
 } catch (Throwable $e) {
-    // MariaDB duplicate key 常見：1062
     $msg = $e->getMessage();
     if (strpos($msg, 'Duplicate') !== false || strpos($msg, '1062') !== false) {
         json_error('同單位下「官兵姓名 + 受益人姓名」已存在，請確認是否重複。', 409);

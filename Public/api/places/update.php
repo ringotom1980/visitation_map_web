@@ -2,9 +2,6 @@
 /**
  * Path: Public/api/places/update.php
  * 說明: 編輯標記（新版 places schema）
- * - 權限：ADMIN 可編輯全部；一般使用者只能編輯自己單位
- * - lat/lng 可選：未帶則沿用 DB
- * - 每次更新都寫 updated_by_user_id
  */
 
 declare(strict_types=1);
@@ -31,18 +28,20 @@ if (empty($input)) {
 }
 
 $id          = isset($input['id']) ? (int)$input['id'] : 0;
-// $soldierName = trim((string)($input['soldier_name'] ?? ''));
 $category    = trim((string)($input['category'] ?? ''));
-// $targetName  = trim((string)($input['target_name'] ?? ''));
 $visitName   = trim((string)($input['visit_name'] ?? ''));
 $condNo      = trim((string)($input['condolence_order_no'] ?? ''));
 $over65      = strtoupper(trim((string)($input['beneficiary_over65'] ?? 'N')));
-// $address     = trim((string)($input['address'] ?? ''));
-$mdist       = trim((string)($input['managed_district'] ?? ($input['township'] ?? ''))); // 先相容舊欄位名
 $note        = trim((string)($input['note'] ?? ''));
+
 $soldierName = trim((string)($input['serviceman_name'] ?? $input['soldier_name'] ?? ''));
-$targetName = trim((string)($input['visit_target'] ?? $input['target_name'] ?? ''));
-$address = trim((string)($input['address_text'] ?? $input['address'] ?? ''));
+$targetName  = trim((string)($input['visit_target'] ?? $input['target_name'] ?? ''));
+$address     = trim((string)($input['address_text'] ?? $input['address'] ?? ''));
+
+// ✅ 列管三欄（district + 兩個 code）
+$mdist       = trim((string)($input['managed_district'] ?? ($input['township'] ?? '')));
+$mtownCode   = trim((string)($input['managed_town_code'] ?? ''));
+$mcountyCode = trim((string)($input['managed_county_code'] ?? ''));
 
 // lat/lng：可選（若未帶，沿用 DB）
 $hasLat = array_key_exists('lat', $input) && $input['lat'] !== '' && $input['lat'] !== null;
@@ -99,7 +98,11 @@ try {
                 lat = :lat,
                 lng = :lng,
                 address_text = :address_text,
+
                 managed_district = :mdist,
+                managed_town_code = :mtown_code,
+                managed_county_code = :mcounty_code,
+
                 updated_at = NOW()
             WHERE id = :id';
 
@@ -116,23 +119,31 @@ try {
         ':lat'             => $finalLat,
         ':lng'             => $finalLng,
         ':address_text'    => ($address !== '' ? $address : null),
+
         ':mdist'           => ($mdist !== '' ? $mdist : null),
+        ':mtown_code'      => ($mtownCode !== '' ? $mtownCode : null),
+        ':mcounty_code'    => ($mcountyCode !== '' ? $mcountyCode : null),
     ];
 
     $stmt = $pdo->prepare($sql);
     $stmt->execute($params);
 
-    // 回傳更新後資料
+    // 回傳更新後資料（帶回三欄）
     $sqlGet = 'SELECT
                     id,
-                    serviceman_name AS soldier_name,
+
+                    serviceman_name,
                     category,
-                    visit_target AS target_name,
+                    visit_target,
                     visit_name,
                     condolence_order_no,
                     beneficiary_over65,
-                    address_text AS address,
+                    address_text,
+
                     managed_district,
+                    managed_town_code,
+                    managed_county_code,
+
                     note,
                     lat,
                     lng,
@@ -145,7 +156,7 @@ try {
                LIMIT 1';
     $stmtGet = $pdo->prepare($sqlGet);
     $stmtGet->execute([':id' => $id]);
-    $row = $stmtGet->fetch();
+    $row = $stmtGet->fetch(PDO::FETCH_ASSOC);
 
     json_success($row);
 

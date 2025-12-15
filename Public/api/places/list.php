@@ -31,7 +31,11 @@ try {
         p.condolence_order_no,
         p.beneficiary_over65,
         p.address_text,
+
         p.managed_district,
+        p.managed_town_code,
+        p.managed_county_code,
+
         p.note,
         p.lat,
         p.lng,
@@ -62,7 +66,6 @@ try {
         $params[':org_id'] = (int)$user['organization_id'];
     }
 
-    // ★ 這行是關鍵修正
     $sql .= ' ORDER BY p.id DESC';
 
     $stmt = $pdo->prepare($sql);
