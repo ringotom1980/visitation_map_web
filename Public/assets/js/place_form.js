@@ -353,46 +353,44 @@
         _syncSelectFromHidden: function () {
             if (!this._selectTown) return;
 
-            var townCode = (this._hidTownCode && this._hidTownCode.value) ? String(this._hidTownCode.value) : '';
-            var district = (this._hidDistrict && this._hidDistrict.value) ? String(this._hidDistrict.value) : '';
-            var countyCode = (this._hidCountyCode && this._hidCountyCode.value) ? String(this._hidCountyCode.value) : '';
+            var townCode = this._hidTownCode ? String(this._hidTownCode.value || '') : '';
+            var district = this._hidDistrict ? String(this._hidDistrict.value || '') : '';
 
-            // 沒值就回到預設
-            if (!townCode) {
-                this._selectTown.value = '';
-                // 確保 hidden 也是一致（避免殘值）
-                this._setTownHidden(district || '', '', countyCode || '');
-                return;
-            }
-
-            // 嘗試對回 select
-            this._selectTown.value = townCode;
-
-            // 若 value 設不上（代表該 town_code 不在 options）
-            if (this._selectTown.value !== townCode) {
-                // 插入一個「不可選但可顯示」的 option，避免使用者誤判資料被清空
-                var op = document.createElement('option');
-                op.value = townCode;
-
-                // 顯示名稱：優先用 hidden 的 district（若後端有存），沒有就用 town_code
-                op.textContent = (district ? (district + '（不在可選清單）') : (townCode + '（不在可選清單）'));
-                op.disabled = true;
-                op.selected = true;
-
-                // county_code 若有，保留給同步 hidden 用（雖然 disabled，但我們會手動同步）
-                if (countyCode) op.dataset.countyCode = countyCode;
-                if (district) op.dataset.townName = district;
-
-                // 插在最前面，避免被「請選擇」蓋掉視覺
-                this._selectTown.insertBefore(op, this._selectTown.firstChild);
+            // ① 有 town_code → 直接用（最佳情況）
+            if (townCode) {
                 this._selectTown.value = townCode;
 
-                // 這種情況：不要改寫 hidden（維持原資料），但至少 UI 能顯示
+                // 若成功對到 option
+                if (this._selectTown.value === townCode) {
+                    this._onTownChanged();
+                    return;
+                }
+            }
+
+            // ② 沒有 town_code，但有 managed_district → 用名稱反找
+            if (district) {
+                for (var i = 0; i < this._selectTown.options.length; i++) {
+                    var opt = this._selectTown.options[i];
+                    if ((opt.dataset.townName || '') === district) {
+                        this._selectTown.selectedIndex = i;
+                        this._onTownChanged();
+                        return;
+                    }
+                }
+
+                // ③ 找不到（舊資料 or 不在可選清單）→ 插入顯示用 option
+                var op = document.createElement('option');
+                op.value = '';
+                op.textContent = district + '（既有資料）';
+                op.selected = true;
+                op.disabled = true;
+
+                this._selectTown.insertBefore(op, this._selectTown.firstChild);
                 return;
             }
 
-            // value 成功對到 → 用選到的 option 反推 hidden（確保 county_code / district 一致）
-            this._onTownChanged();
+            // ④ 真的完全沒資料（才回到預設）
+            this._selectTown.value = '';
         },
 
         _setValue: function (id, v) {
