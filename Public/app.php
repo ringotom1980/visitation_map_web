@@ -283,7 +283,7 @@ $pageCss = [
               <div class="form-row">
                 <label for="place-managed-district-select">列管鄉鎮市區</label>
 
-                <select id="place-managed-district-select">
+                <select id="place-managed-district-select" required aria-required="true">
                   <option value="">載入中...</option>
                 </select>
 

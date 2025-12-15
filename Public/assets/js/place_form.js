@@ -169,8 +169,15 @@
                 payload.beneficiary_over65 = 'N';
             }
 
-            // 如果你要求列管必選，可打開這段：
-            // if (!payload.managed_district) { alert('請選擇列管鄉鎮市區'); return; }
+            if (!payload.managed_town_code) {
+                if (this._selectTown) {
+                    this._selectTown.setCustomValidity('請選擇列管鄉鎮市區');
+                    this._selectTown.reportValidity();
+                } else {
+                    alert('請選擇列管鄉鎮市區');
+                }
+                return;
+            }
 
             var latLng = (this._MapModule && this._MapModule.getTempNewPlaceLatLng)
                 ? this._MapModule.getTempNewPlaceLatLng()
@@ -342,6 +349,8 @@
 
             // managed_district 顯示名稱（你目前 places 表格顯示的是這個）
             this._setTownHidden(townName, townCode, countyCode);
+            // ✅ 一旦使用者有變更選單，就清掉先前的必填錯誤訊息
+            this._selectTown.setCustomValidity('');
         },
 
         _setTownHidden: function (district, townCode, countyCode) {

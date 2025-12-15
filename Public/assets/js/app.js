@@ -735,10 +735,13 @@ document.addEventListener('DOMContentLoaded', function () {
 
       try {
         // ✅ 先抓最新單筆（確保 managed_town_code / managed_county_code 有值）
-        var fresh = await apiRequest('/places/get?id=' + encodeURIComponent(id), 'GET');
+        var res = await apiRequest('/places/get?id=' + encodeURIComponent(id), 'GET');
+
+        // apiRequest 回傳的是 {success, data}，真正的 place 在 res.data
+        var place = (res && res.data) ? res.data : null;
 
         // 更新 currentPlace，避免後續 submit 沿用舊資料
-        state.currentPlace = fresh || state.currentPlace;
+        state.currentPlace = place || state.currentPlace;
 
         if (window.PlaceForm) PlaceForm.openForEdit(state.currentPlace);
       } catch (err) {
@@ -1633,7 +1636,7 @@ document.addEventListener('DOMContentLoaded', function () {
     routeBadgeEl.style.display = n > 0 ? 'inline-flex' : 'none';
   }
 
-   async function handlePlaceDelete() {
+  async function handlePlaceDelete() {
     if (!state.currentPlace) return;
     if (!confirm('確定要刪除這個地點嗎？此動作無法復原。')) return;
 
@@ -1682,65 +1685,65 @@ document.addEventListener('DOMContentLoaded', function () {
     }
   }
 
-    // 防止點擊抽屜內容誤觸外層關閉，但「允許」點 X 正常關閉
-    (function bindSheetStopPropagation() {
-      var sheet = document.getElementById('sheet-place');
-      if (!sheet) return;
+  // 防止點擊抽屜內容誤觸外層關閉，但「允許」點 X 正常關閉
+  (function bindSheetStopPropagation() {
+    var sheet = document.getElementById('sheet-place');
+    if (!sheet) return;
 
-      sheet.addEventListener('click', function (e) {
-        // ✅ 點到任何帶 data-sheet-close 的元素（或其子元素）時，不要阻擋冒泡
-        // 讓 body 的委派可以收到事件並關閉抽屜
-        if (e.target && e.target.closest && e.target.closest('[data-sheet-close]')) return;
+    sheet.addEventListener('click', function (e) {
+      // ✅ 點到任何帶 data-sheet-close 的元素（或其子元素）時，不要阻擋冒泡
+      // 讓 body 的委派可以收到事件並關閉抽屜
+      if (e.target && e.target.closest && e.target.closest('[data-sheet-close]')) return;
 
-        // 其他點擊才阻擋冒泡
-        e.stopPropagation();
-      });
-    })();
+      // 其他點擊才阻擋冒泡
+      e.stopPropagation();
+    });
+  })();
 
-// ===== S1：點「抽屜以外」關閉資訊抽屜（不影響 marker / 地圖操作）=====
-(function bindOutsideClickForPlaceSheet() {
-  document.addEventListener('pointerdown', function (e) {
-    // 只在 BROWSE
-    if (state.mode !== Mode.BROWSE) return;
+  // ===== S1：點「抽屜以外」關閉資訊抽屜（不影響 marker / 地圖操作）=====
+  (function bindOutsideClickForPlaceSheet() {
+    document.addEventListener('pointerdown', function (e) {
+      // 只在 BROWSE
+      if (state.mode !== Mode.BROWSE) return;
 
-    // 抽屜沒開，不處理
-    if (!sheetPlace || !sheetPlace.classList.contains('bottom-sheet--open')) return;
+      // 抽屜沒開，不處理
+      if (!sheetPlace || !sheetPlace.classList.contains('bottom-sheet--open')) return;
 
-    // 點在抽屜內 → 不關
-    if (sheetPlace.contains(e.target)) return;
+      // 點在抽屜內 → 不關
+      if (sheetPlace.contains(e.target)) return;
 
-    // 點在 marker（Google Maps 會用 img / button / aria-role）
-    if (e.target.closest('[role="button"], img, canvas')) return;
+      // 點在 marker（Google Maps 會用 img / button / aria-role）
+      if (e.target.closest('[role="button"], img, canvas')) return;
 
-    // 點在 modal / toolbar / 搜尋列
-    if (e.target.closest('.app-toolbar, .modal, .pac-container')) return;
+      // 點在 modal / toolbar / 搜尋列
+      if (e.target.closest('.app-toolbar, .modal, .pac-container')) return;
 
-    closeSheet('sheet-place');
-    state.currentPlace = null;
-    collapsePlaceDetails(true);
-  }, { passive: true });
-})();
+      closeSheet('sheet-place');
+      state.currentPlace = null;
+      collapsePlaceDetails(true);
+    }, { passive: true });
+  })();
 
-// ===== POI：點「抽屜以外」關閉 POI 抽屜（不影響 marker / 地圖操作）=====
-(function bindOutsideClickForPoiSheet() {
-  document.addEventListener('pointerdown', function (e) {
-    if (state.mode !== Mode.BROWSE) return;
+  // ===== POI：點「抽屜以外」關閉 POI 抽屜（不影響 marker / 地圖操作）=====
+  (function bindOutsideClickForPoiSheet() {
+    document.addEventListener('pointerdown', function (e) {
+      if (state.mode !== Mode.BROWSE) return;
 
-    if (!sheetPoi || !sheetPoi.classList.contains('bottom-sheet--open')) return;
-    if (sheetPoi.contains(e.target)) return;
+      if (!sheetPoi || !sheetPoi.classList.contains('bottom-sheet--open')) return;
+      if (sheetPoi.contains(e.target)) return;
 
-    if (e.target.closest('[role="button"], img, canvas')) return;
-    if (e.target.closest('.app-toolbar, .modal, .pac-container')) return;
+      if (e.target.closest('[role="button"], img, canvas')) return;
+      if (e.target.closest('.app-toolbar, .modal, .pac-container')) return;
 
-    closeSheet('sheet-poi');
-  }, { passive: true });
-})();
+      closeSheet('sheet-poi');
+    }, { passive: true });
+  })();
 
-function escapeHtml(str) {
-  return String(str)
-    .replace(/&/g, '&amp;')
-    .replace(/</g, '&lt;')
-    .replace(/>/g, '&gt;');
-}
+  function escapeHtml(str) {
+    return String(str)
+      .replace(/&/g, '&amp;')
+      .replace(/</g, '&lt;')
+      .replace(/>/g, '&gt;');
+  }
 
 });
