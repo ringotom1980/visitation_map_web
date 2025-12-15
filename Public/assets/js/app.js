@@ -724,17 +724,29 @@ document.addEventListener('DOMContentLoaded', function () {
   }
 
   if (btnPlaceEdit) {
-    btnPlaceEdit.addEventListener('click', function () {
+    btnPlaceEdit.addEventListener('click', async function () {
       if (state.mode !== Mode.BROWSE) return;
       if (!state.currentPlace) return;
 
-      // ✅ 先把資訊抽屜完整收掉（避免和 Modal 疊在一起）
-      closeSheet('sheet-place');
-      setPlaceSheetBackdrop(false);     // 你目前設定 S1 不用 backdrop，但保險呼叫
-      collapsePlaceDetails(true);       // 收合詳細區，避免下次打開狀態錯亂
+      var id = state.currentPlace.id;
 
-      // ✅ 再開啟編輯 Modal
-      if (window.PlaceForm) PlaceForm.openForEdit(state.currentPlace);
+      closeSheet('sheet-place');
+      setPlaceSheetBackdrop(false);
+      collapsePlaceDetails(true);
+
+      try {
+        // ✅ 先抓最新單筆（確保 managed_town_code / managed_county_code 有值）
+        var fresh = await apiRequest('/places/get?id=' + encodeURIComponent(id), 'GET');
+
+        // 更新 currentPlace，避免後續 submit 沿用舊資料
+        state.currentPlace = fresh || state.currentPlace;
+
+        if (window.PlaceForm) PlaceForm.openForEdit(state.currentPlace);
+      } catch (err) {
+        console.error('load place detail fail:', err);
+        // 失敗才退回用 cache（至少不讓使用者卡住）
+        if (window.PlaceForm) PlaceForm.openForEdit(state.currentPlace);
+      }
     });
   }
 
@@ -907,8 +919,10 @@ document.addEventListener('DOMContentLoaded', function () {
         state.me = me || null;
         if (window.PlaceForm) PlaceForm.setMe(state.me);
 
-        if (navUserNameEl && me && me.name) {
-          navUserNameEl.textContent = me.name;
+        if (navUserNameEl) {
+          var displayName =
+            (me && (me.name || me.full_name || me.username || me.email)) ? (me.name || me.full_name || me.username || me.email) : '';
+          navUserNameEl.textContent = displayName ? String(displayName) : '—';
         }
 
         if (me && isFinite(me.county_center_lat) && isFinite(me.county_center_lng)) {
