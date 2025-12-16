@@ -51,21 +51,37 @@ $pageCss = [
           </header>
 
           <div class="filter-panel__body">
+
+            <!-- ① 居住鄉鎮市區（可多選） -->
             <div class="filter-row">
-              <label class="filter-label" for="filter-managed-town">列管鄉鎮市區（可多選）</label>
-              <select id="filter-managed-town" class="filter-select" multiple size="10">
-                <option value="">載入中...</option>
-              </select>
-              <div class="filter-help">依你所屬單位限制清單（managed_towns/list）。</div>
+              <label class="filter-label">居住鄉鎮市區（可多選）</label>
+              <!-- ✅ checkbox 容器：由 places.address_town_code / address_text 動態生成 -->
+              <div id="filter-reside-town" class="filter-checkgrid">
+                <div class="filter-loading">載入中...</div>
+              </div>
+              <div class="filter-help">依目前標記資料實際存在的「鄉鎮市區」生成（不顯示縣市）。</div>
             </div>
 
+            <!-- ② 列管鄉鎮市區（可多選） -->
             <div class="filter-row">
-              <label class="filter-label" for="filter-category">類別（可多選）</label>
-              <div id="filter-category" class="filter-checkbox-group">
+              <label class="filter-label">列管鄉鎮市區（可多選）</label>
+              <!-- ✅ checkbox 容器：由 managed_towns/list 與 places 實際存在值交集 -->
+              <div id="filter-managed-town" class="filter-checkgrid">
+                <div class="filter-loading">載入中...</div>
+              </div>
+              <div class="filter-help">依你所屬單位限制清單（managed_towns/list），且只顯示資料表實際有用到的鄉鎮市區。</div>
+            </div>
+
+            <!-- ③ 類別（可多選） -->
+            <div class="filter-row">
+              <label class="filter-label">類別（可多選）</label>
+              <!-- ✅ checkbox 容器：由 places.category 動態生成 -->
+              <div id="filter-category" class="filter-checkgrid">
                 <div class="filter-loading">載入中...</div>
               </div>
             </div>
 
+            <!-- ④ 是否 65 歲以上 -->
             <div class="filter-row">
               <label class="filter-label" for="filter-over65">是否 65 歲以上</label>
               <select id="filter-over65" class="filter-select">
@@ -75,10 +91,7 @@ $pageCss = [
               </select>
             </div>
 
-            <div class="filter-row">
-              <label class="filter-label" for="filter-keyword">關鍵字（姓名 / 受益人 / 地址）</label>
-              <input id="filter-keyword" class="filter-input" type="text" placeholder="輸入後即時篩選" autocomplete="off" />
-            </div>
+            <!-- ✅ 關鍵字搜尋整段移除（你說導覽列已有） -->
 
             <div class="filter-row">
               <label class="filter-label">篩選規則</label>
