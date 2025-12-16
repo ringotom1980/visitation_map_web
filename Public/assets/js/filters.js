@@ -1,159 +1,253 @@
-// Path: Public/assets/js/filters.js
-// 說明：篩選核心（只負責：保存狀態、計算可見/淡化、通知 map.js 與 UI）
-// - 條件：居住鄉鎮(可多)、列管鄉鎮(可多)、類別(可多)、65歲以上(單選：ALL/Y/N)
-// - 規則：固定 AND（不提供 AND/OR 切換）
-// - 路線點永遠顯示（不符合則淡化）
+// Path: Public/assets/js/filters_ui.js
+// 說明：篩選面板 UI（外掛）
+// - 依 /api/filters/options 動態產生 checkbox
+// - 任何選取變更 → FilterCore.setState(...)（FilterCore 內部會自動 apply）
+// - 65 歲以上：用 checkbox 做「單選」（ALL/Y/N）
 
-window.FilterCore = (function () {
-  var state = {
-    resideTowns: [],   // places.address_town_code
-    managedTowns: [],  // places.managed_town_code
-    categories: [],    // places.category
-    over65: 'ALL'      // ALL/Y/N
-  };
+(function () {
+  function $(id) { return document.getElementById(id); }
 
-  var places = [];       // from places:loaded
-  var routeKeepIds = []; // from route:changed (places ids)
-
-  function normalizeArray(v) {
-    if (!v) return [];
-    if (Array.isArray(v)) return v;
-    return [v];
+  function fetchJson(url) {
+    return fetch(url, {
+      method: 'GET',
+      credentials: 'same-origin',
+      headers: { 'Accept': 'application/json' }
+    }).then(function (r) { return r.json(); });
   }
 
-  function setState(partial) {
-    partial = partial || {};
-    if (partial.resideTowns !== undefined) state.resideTowns = normalizeArray(partial.resideTowns).map(String);
-    if (partial.managedTowns !== undefined) state.managedTowns = normalizeArray(partial.managedTowns).map(String);
-    if (partial.categories !== undefined) state.categories = normalizeArray(partial.categories).map(String);
-    if (partial.over65 !== undefined) state.over65 = String(partial.over65 || 'ALL');
-    apply();
-  }
+  function renderGrid(container, items, opts) {
+    opts = opts || {};
+    var name = opts.name || 'x';
+    var checked = opts.checked || {}; // {value:true}
+    var single = !!opts.single;
+    var keepOne = !!opts.keepOne; // 單選時：至少保留一個被勾選
 
-  function getState() {
-    return JSON.parse(JSON.stringify(state));
-  }
+    container.innerHTML = '';
 
-  function setPlaces(list) {
-    places = Array.isArray(list) ? list : [];
-    apply();
-  }
-
-  function setRouteKeepIds(ids) {
-    routeKeepIds = Array.isArray(ids) ? ids.map(String) : [];
-    apply();
-  }
-
-  function clear() {
-    state.resideTowns = [];
-    state.managedTowns = [];
-    state.categories = [];
-    state.over65 = 'ALL';
-    apply();
-  }
-
-  function matchPlace(p) {
-    // 居住鄉鎮（address_town_code）
-    if (state.resideTowns.length > 0) {
-      if (!p.address_town_code || state.resideTowns.indexOf(String(p.address_town_code)) === -1) return false;
+    if (!items || items.length === 0) {
+      var empty = document.createElement('div');
+      empty.className = 'filter-empty';
+      empty.textContent = '無可用選項';
+      container.appendChild(empty);
+      return;
     }
 
-    // 列管鄉鎮（managed_town_code）
-    if (state.managedTowns.length > 0) {
-      if (!p.managed_town_code || state.managedTowns.indexOf(String(p.managed_town_code)) === -1) return false;
-    }
+    items.forEach(function (it) {
+      var value = String(it.value);
+      var label = String(it.label);
 
-    // 類別
-    if (state.categories.length > 0) {
-      if (!p.category || state.categories.indexOf(String(p.category)) === -1) return false;
-    }
+      var wrap = document.createElement('label');
+      wrap.className = 'filter-checkitem';
 
-    // 65+
-    if (state.over65 !== 'ALL') {
-      var v = String(p.beneficiary_over65 || '');
-      if (state.over65 === 'Y' && v !== 'Y') return false;
-      if (state.over65 === 'N' && v !== 'N') return false;
-    }
+      var input = document.createElement('input');
+      input.type = 'checkbox';
+      input.name = name;
+      input.value = value;
+      input.checked = !!checked[value];
 
-    return true;
-  }
+      var text = document.createElement('span');
+      text.className = 'filter-checktext';
+      text.title = label;
+      text.textContent = label;
 
-  function buildFilterResult() {
-    var anyActive =
-      state.resideTowns.length > 0 ||
-      state.managedTowns.length > 0 ||
-      state.categories.length > 0 ||
-      (state.over65 !== 'ALL');
+      wrap.appendChild(input);
+      wrap.appendChild(text);
+      container.appendChild(wrap);
 
-    if (!anyActive) {
-      return {
-        active: false,
-        visibleIds: [],
-        dimIds: [],
-        countVisible: places.length,
-        countDimmed: 0
-      };
-    }
-
-    var visibleIds = [];
-    var dimIds = [];
-
-    for (var i = 0; i < places.length; i++) {
-      var p = places[i];
-      var id = String(p.id);
-      if (matchPlace(p)) visibleIds.push(id);
-      else dimIds.push(id);
-    }
-
-    return {
-      active: true,
-      visibleIds: visibleIds,
-      dimIds: dimIds,
-      countVisible: visibleIds.length,
-      countDimmed: dimIds.length
-    };
-  }
-
-  function apply() {
-    var res = buildFilterResult();
-
-    if (window.MapModule && typeof window.MapModule.setFilterVisibility === 'function') {
-      if (!res.active) {
-        window.MapModule.setFilterVisibility(null, []);
+      if (single) {
+        input.addEventListener('change', function () {
+          if (input.checked) {
+            var all = container.querySelectorAll('input[type="checkbox"][name="' + name + '"]');
+            Array.prototype.forEach.call(all, function (x) {
+              if (x !== input) x.checked = false;
+            });
+          } else if (keepOne) {
+            input.checked = true;
+          }
+          if (typeof opts.onChange === 'function') opts.onChange();
+        });
       } else {
-        // 傳 visibleIds + routeKeepIds（路線點永遠顯示）
-        window.MapModule.setFilterVisibility(res.visibleIds, routeKeepIds);
+        input.addEventListener('change', function () {
+          if (typeof opts.onChange === 'function') opts.onChange();
+        });
       }
+    });
+  }
+
+  function getCheckedValues(container) {
+    var list = [];
+    var nodes = container.querySelectorAll('input[type="checkbox"]');
+    Array.prototype.forEach.call(nodes, function (n) {
+      if (n.checked) list.push(String(n.value));
+    });
+    return list;
+  }
+
+  function getSingleValue(container, fallback) {
+    var nodes = container.querySelectorAll('input[type="checkbox"]');
+    for (var i = 0; i < nodes.length; i++) {
+      if (nodes[i].checked) return String(nodes[i].value);
+    }
+    return fallback;
+  }
+
+  function setAllUnchecked(container) {
+    var nodes = container.querySelectorAll('input[type="checkbox"]');
+    Array.prototype.forEach.call(nodes, function (n) { n.checked = false; });
+  }
+
+  function setSingleChecked(container, value) {
+    var nodes = container.querySelectorAll('input[type="checkbox"]');
+    Array.prototype.forEach.call(nodes, function (n) { n.checked = (String(n.value) === String(value)); });
+  }
+
+  document.addEventListener('DOMContentLoaded', function () {
+    if (!window.FilterCore) return;
+
+    window.FilterCore.init();
+
+    var btnOpen = $('btn-filter');
+    var panel = $('filter-panel');
+    var btnClear = $('btn-filter-clear');
+    var btnClose = $('btn-filter-close');
+
+    var elReside = $('filter-reside-town');
+    var elManaged = $('filter-managed-town');
+    var elCat = $('filter-category');
+    var elOver65 = $('filter-over65');
+
+    var elCntV = $('filter-count-visible');
+    var elCntD = $('filter-count-dimmed');
+
+    function openPanel() {
+      if (!panel) return;
+      panel.classList.add('is-open');
+      panel.setAttribute('aria-hidden', 'false');
+    }
+    function closePanel() {
+      if (!panel) return;
+      panel.classList.remove('is-open');
+      panel.setAttribute('aria-hidden', 'true');
     }
 
-    document.dispatchEvent(new CustomEvent('filters:stats', {
-      detail: { visible: res.countVisible, dimmed: res.countDimmed }
-    }));
-  }
+    if (btnOpen) btnOpen.addEventListener('click', openPanel);
+    if (btnClose) btnClose.addEventListener('click', closePanel);
 
-  function init() {
-    document.addEventListener('places:loaded', function (e) {
-      var list = (e && e.detail && e.detail.places) ? e.detail.places : [];
-      setPlaces(list);
+    if (panel) {
+      panel.addEventListener('click', function (e) {
+        var t = e.target;
+        if (!t) return;
+        if (t.classList && t.classList.contains('filter-panel__backdrop')) closePanel();
+        if (t.getAttribute && t.getAttribute('data-filter-close') === '1') closePanel();
+      });
+    }
+
+    document.addEventListener('filters:stats', function (e) {
+      var d = (e && e.detail) ? e.detail : {};
+      if (elCntV) elCntV.textContent = String(d.visible || 0);
+      if (elCntD) elCntD.textContent = String(d.dimmed || 0);
     });
 
-    // app.js emitRouteChanged 會帶：detail.routePoints = [{id,...}, ...]
-    document.addEventListener('route:changed', function (e) {
-      var pts = (e && e.detail && Array.isArray(e.detail.routePoints)) ? e.detail.routePoints : [];
-      var ids = pts.map(function (x) { return x && x.id ? String(x.id) : ''; })
-                   .filter(function (x) { return x !== ''; });
-      setRouteKeepIds(ids);
-    });
+    function syncStateFromUI() {
+      var reside = elReside ? getCheckedValues(elReside) : [];
+      var managed = elManaged ? getCheckedValues(elManaged) : [];
+      var cats = elCat ? getCheckedValues(elCat) : [];
+      var over65 = elOver65 ? getSingleValue(elOver65, 'ALL') : 'ALL';
 
-    document.addEventListener('mode:changed', apply);
-  }
+      window.FilterCore.setState({
+        resideTowns: reside,
+        managedTowns: managed,
+        categories: cats,
+        over65: over65
+      });
+    }
 
-  return {
-    init: init,
-    setState: setState,
-    getState: getState,
-    setPlaces: setPlaces,
-    clear: clear,
-    apply: apply
-  };
+    function loadOptions() {
+      if (elReside) elReside.innerHTML = '<div class="filter-loading">載入中...</div>';
+      if (elManaged) elManaged.innerHTML = '<div class="filter-loading">載入中...</div>';
+      if (elCat) elCat.innerHTML = '<div class="filter-loading">載入中...</div>';
+      if (elOver65) elOver65.innerHTML = '<div class="filter-loading">載入中...</div>';
+
+      // ✅ 改成絕對路徑 + 不帶 .php（避免 rewrite 變成 .php.php）
+      fetchJson('/api/filters/options').then(function (json) {
+        // 兼容 {success:true,data:{...}} / {ok:true,data:{...}} / 直接 data
+        var data = (json && json.data) ? json.data : json;
+        data = (data && data.data) ? data.data : data;
+
+        var st = window.FilterCore.getState();
+
+        var resideItems = (data.reside_towns || []).map(function (t) {
+          return { value: String(t.town_code), label: String(t.town_name) };
+        });
+        renderGrid(elReside, resideItems, {
+          name: 'filter-reside',
+          checked: (function () {
+            var m = {}; (st.resideTowns || []).forEach(function (v) { m[String(v)] = true; }); return m;
+          })(),
+          onChange: syncStateFromUI
+        });
+
+        var managedItems = (data.managed_towns || []).map(function (t) {
+          return { value: String(t.town_code), label: String(t.town_name) };
+        });
+        renderGrid(elManaged, managedItems, {
+          name: 'filter-managed',
+          checked: (function () {
+            var m = {}; (st.managedTowns || []).forEach(function (v) { m[String(v)] = true; }); return m;
+          })(),
+          onChange: syncStateFromUI
+        });
+
+        var catItems = (data.categories || []).map(function (c) {
+          return { value: String(c), label: String(c) };
+        });
+        renderGrid(elCat, catItems, {
+          name: 'filter-cat',
+          checked: (function () {
+            var m = {}; (st.categories || []).forEach(function (v) { m[String(v)] = true; }); return m;
+          })(),
+          onChange: syncStateFromUI
+        });
+
+        var overItems = (data.over65 || [
+          { value: 'ALL', label: '不限' },
+          { value: 'Y', label: '是' },
+          { value: 'N', label: '否' }
+        ]).map(function (x) {
+          return { value: String(x.value), label: String(x.label) };
+        });
+
+        var overChecked = {};
+        overChecked[String(st.over65 || 'ALL')] = true;
+
+        renderGrid(elOver65, overItems, {
+          name: 'filter-over65',
+          checked: overChecked,
+          single: true,
+          keepOne: true,
+          onChange: syncStateFromUI
+        });
+
+        syncStateFromUI(); // 首次套用
+      }).catch(function (err) {
+        console.error(err);
+        if (elReside) elReside.innerHTML = '<div class="filter-empty">載入失敗</div>';
+        if (elManaged) elManaged.innerHTML = '<div class="filter-empty">載入失敗</div>';
+        if (elCat) elCat.innerHTML = '<div class="filter-empty">載入失敗</div>';
+        if (elOver65) elOver65.innerHTML = '<div class="filter-empty">載入失敗</div>';
+      });
+    }
+
+    if (btnClear) {
+      btnClear.addEventListener('click', function () {
+        if (elReside) setAllUnchecked(elReside);
+        if (elManaged) setAllUnchecked(elManaged);
+        if (elCat) setAllUnchecked(elCat);
+        if (elOver65) setSingleChecked(elOver65, 'ALL');
+        window.FilterCore.clear();
+      });
+    }
+
+    loadOptions();
+  });
 })();

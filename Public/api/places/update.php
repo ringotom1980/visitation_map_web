@@ -37,6 +37,11 @@ $note        = trim((string)($input['note'] ?? ''));
 $soldierName = trim((string)($input['serviceman_name'] ?? $input['soldier_name'] ?? ''));
 $targetName  = trim((string)($input['visit_target'] ?? $input['target_name'] ?? ''));
 $address     = trim((string)($input['address_text'] ?? $input['address'] ?? ''));
+
+// ✅ 先拿 PDO，避免後面 address_parser 用到 $pdo 時未定義
+$pdo = db();
+
+// 地址解析（可選）
 require_once __DIR__ . '/../common/address_parser.php';
 
 $addressTownCode = null;
@@ -75,8 +80,6 @@ if ($visitName === '') $visitName = null;
 if ($condNo === '') $condNo = null;
 if ($address === '') $address = null;
 if ($note === '') $note = null;
-
-$pdo = db();
 
 try {
     // 先抓原始資料：權限 + 取得既有座標
@@ -124,26 +127,26 @@ try {
                 managed_district = :mdist,
                 managed_town_code = :mtown_code,
                 managed_county_code = :mcounty_code,
-                address_town_code, = :address_town_code,
+                address_town_code = :address_town_code,
                 updated_at = NOW()
             WHERE id = :id';
 
     $params = [
-        ':id'              => $id,
-        ':updated_by'      => (int)$user['id'],
-        ':serviceman_name' => $soldierName,
-        ':category'        => $category,
-        ':visit_target'    => $targetName,
-        ':cond_no'         => $condNo,
-        ':visit_name'      => $visitName,
-        ':over65'          => $over65,
-        ':note'            => $note,
-        ':lat'             => $finalLat,
-        ':lng'             => $finalLng,
-        ':address_text'    => $address,
-        ':mdist'           => $mdist,
-        ':mtown_code'      => $mtownCode,
-        ':mcounty_code'    => $mcountyCode,
+        ':id'                => $id,
+        ':updated_by'        => (int)$user['id'],
+        ':serviceman_name'   => $soldierName,
+        ':category'          => $category,
+        ':visit_target'      => $targetName,
+        ':cond_no'           => $condNo,
+        ':visit_name'        => $visitName,
+        ':over65'            => $over65,
+        ':note'              => $note,
+        ':lat'               => $finalLat,
+        ':lng'               => $finalLng,
+        ':address_text'      => $address,
+        ':mdist'             => $mdist,
+        ':mtown_code'        => $mtownCode,
+        ':mcounty_code'      => $mcountyCode,
         ':address_town_code' => $addressTownCode,
     ];
 
