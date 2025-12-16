@@ -143,7 +143,7 @@ window.FilterCore = (function () {
 
     // 2) 若你有 Places 模組（不改 app.js，只是「有就用」）
     if (!list && window.PlacesModule && typeof window.PlacesModule.getPlaces === 'function') {
-      try { list = window.PlacesModule.getPlaces(); } catch (e) {}
+      try { list = window.PlacesModule.getPlaces(); } catch (e) { }
     }
 
     if (Array.isArray(list) && list.length) {
@@ -166,8 +166,9 @@ window.FilterCore = (function () {
 
     document.addEventListener('route:changed', function (e) {
       var pts = (e && e.detail && Array.isArray(e.detail.routePoints)) ? e.detail.routePoints : [];
-      var ids = pts.map(function (x) { return x && x.id ? String(x.id) : ''; })
-                   .filter(function (x) { return x !== ''; });
+      var ids = pts
+        .map(function (x) { return x && x.id ? String(x.id) : ''; })
+        .filter(function (x) { return x !== '' && x !== '__me'; });
       setRouteKeepIds(ids);
     });
 

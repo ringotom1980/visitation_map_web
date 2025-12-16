@@ -154,17 +154,17 @@ var MapModule = (function () {
   function setMode(nextMode, routePoints) {
     mode = nextMode || 'BROWSE';
     currentRoutePoints = Array.isArray(routePoints) ? routePoints : [];
+
     // 1) Marker 顯示策略
-    applyMarkersByMode(routePoints || []);
+    applyMarkersByMode(currentRoutePoints);
 
     // 2) 路線顯示策略：僅 S3 顯示線條
     if (mode === 'ROUTE_READY') {
-      drawRouteLine(routePoints || []);
+      drawRouteLine(currentRoutePoints);
     } else {
       clearRouteLine();
     }
   }
-
   // ===== 長按新增（0.6s 到就立刻觸發）=====
   var LONG_PRESS_MS = 600;
   var longPressTimer = null;

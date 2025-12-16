@@ -1345,10 +1345,17 @@ document.addEventListener('DOMContentLoaded', function () {
     emitRouteChanged();
   }
 
+  function normRouteId(x) {
+    if (x === '__me') return '__me';
+    if (x === null || x === undefined) return '';
+    return String(x);
+  }
 
   function indexOfRoutePoint(id) {
+    var tid = normRouteId(id);
     for (var i = 0; i < state.routePoints.length; i++) {
-      if (state.routePoints[i] && state.routePoints[i].id === id) return i;
+      var p = state.routePoints[i];
+      if (p && normRouteId(p.id) === tid) return i;
     }
     return -1;
   }
