@@ -698,12 +698,20 @@ var MapModule = (function () {
   // ✅ 路線編號：只對「拜訪點」編號（排除 __me 起點）
   function routeOrderNumber(routePoints, id) {
     if (!Array.isArray(routePoints)) return 0;
+
+    // 統一型別：__me 保留字串，其它一律轉數字比對
+    var targetId = (id === '__me') ? '__me' : Number(id);
+
     var n = 0;
     for (var i = 0; i < routePoints.length; i++) {
       var p = routePoints[i];
-      if (!p || !p.id || p.id === '__me') continue;
+      if (!p || p.id === '__me' || p.id === null || p.id === undefined) continue;
+
+      var pid = (p.id === '__me') ? '__me' : Number(p.id);
+      if (!isFinite(pid)) continue; // 防呆：非數字 id 直接略過
+
       n++;
-      if (p.id === id) return n;
+      if (pid === targetId) return n;
     }
     return 0;
   }
