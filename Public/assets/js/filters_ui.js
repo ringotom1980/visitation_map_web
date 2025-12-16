@@ -1,18 +1,28 @@
 // Path: Public/assets/js/filters_ui.js
 // 說明：篩選面板 UI（外掛）
-// - 依 /api/filters/options.php 動態產生 checkbox
+// - 依 /api/filters/options 動態產生 checkbox
 // - 任何選取變更 → FilterCore.setState(...)（FilterCore 內部會自動 apply）
 // - 65 歲以上：用 checkbox 做「單選」（ALL/Y/N）
 
 (function () {
   function $(id) { return document.getElementById(id); }
 
+  function safeApiBase() {
+    // 優先用 api.js 設定的 API_BASE；沒有就 fallback /api
+    var base = (window.API_BASE || '/api');
+    base = String(base || '/api').replace(/\/$/, '');
+    return base;
+  }
+
   function fetchJson(url) {
     return fetch(url, {
       method: 'GET',
       credentials: 'same-origin',
       headers: { 'Accept': 'application/json' }
-    }).then(function (r) { return r.json(); });
+    }).then(function (r) {
+      if (!r.ok) throw new Error('HTTP ' + r.status);
+      return r.json();
+    });
   }
 
   function renderGrid(container, items, opts) {
@@ -168,7 +178,10 @@
       if (elCat) elCat.innerHTML = '<div class="filter-loading">載入中...</div>';
       if (elOver65) elOver65.innerHTML = '<div class="filter-loading">載入中...</div>';
 
-      fetchJson('api/filters/options.php').then(function (json) {
+      // ✅ 用 API_BASE 組絕對路徑（不帶 .php）
+      var url = safeApiBase() + '/filters/options';
+
+      fetchJson(url).then(function (json) {
         // 兼容 {success:true,data:{...}} / {ok:true,data:{...}} / 直接 data
         var data = (json && json.data) ? json.data : json;
         data = (data && data.data) ? data.data : data;

@@ -29,7 +29,7 @@ var MapModule = (function () {
   // ===== 篩選狀態（由 filters.js 設定）=====
   // null => 不啟用篩選（全部視為可見）
   var filterVisibleIdSet = null; // Set(placeId)
-  var filterDimIdSet = new Set(); // Set(placeId)（通常是：路線點且不符合篩選）
+  var filterRouteKeepIdSet = new Set(); // 路線點永遠顯示（即使不符合篩選）
 
 
   // ★暫存「長按新增」的點位（提供 app.js 取用）
@@ -572,18 +572,30 @@ var MapModule = (function () {
       setObjDimmed(obj, false);
     });
 
+    // routeIdSet：優先用「當前 routePoints」；若呼叫端沒傳，fallback 用「filterRouteKeepIdSet」
     var routeIdSet = new Set();
-    (routePoints || []).forEach(function (p) {
-      if (p && p.id && p.id !== '__me') routeIdSet.add(p.id);
-    });
+
+    if (Array.isArray(routePoints) && routePoints.length > 0) {
+      routePoints.forEach(function (p) {
+        if (!p || !p.id || p.id === '__me') return;
+        routeIdSet.add(Number(p.id));
+      });
+    } else if (typeof filterRouteKeepIdSet !== 'undefined' && filterRouteKeepIdSet) {
+      // ✅ 這個 set 由 setFilterVisibility(visibleIds, routeKeepIds) 設定
+      filterRouteKeepIdSet.forEach(function (id) {
+        routeIdSet.add(Number(id));
+      });
+    }
 
     // 決定某個 id 在當前 mode 下是否應顯示（先看 mode 規則，再看 filter 規則）
     function shouldShow(id) {
+      id = Number(id);
+
       // S3：只顯示路線點
       if (mode === 'ROUTE_READY') return routeIdSet.has(id);
 
-      // S1/S2：原本全部可顯示，但篩選會隱藏「非路線點」
-      if (!filterVisibleIdSet) return true;
+      // S1/S2：篩選未啟用（null）→ 全顯示
+      if (filterVisibleIdSet === null) return true;
 
       // ✅ 篩選啟用時：符合篩選 => 顯示
       if (filterVisibleIdSet.has(id)) return true;
@@ -596,14 +608,17 @@ var MapModule = (function () {
     }
 
     function shouldDim(id) {
+      id = Number(id);
+
       // 只有在篩選啟用，且該點不符合篩選，但又因為路線保留而顯示時，才淡化
-      if (!filterVisibleIdSet) return false;
+      if (filterVisibleIdSet === null) return false;
       if (filterVisibleIdSet.has(id)) return false;
       return routeIdSet.has(id);
     }
 
     if (mode === 'BROWSE') {
       markers.forEach(function (obj, id) {
+        id = Number(id);
         if (!shouldShow(id)) return;
 
         obj.marker.setVisible(true);
@@ -631,6 +646,7 @@ var MapModule = (function () {
 
     if (mode === 'ROUTE_PLANNING') {
       markers.forEach(function (obj, id2) {
+        id2 = Number(id2);
         if (!shouldShow(id2)) return;
 
         obj.marker.setVisible(true);
@@ -657,6 +673,7 @@ var MapModule = (function () {
 
     if (mode === 'ROUTE_READY') {
       markers.forEach(function (obj3, id3) {
+        id3 = Number(id3);
         if (!shouldShow(id3)) return; // 只會顯示路線點
 
         obj3.marker.setVisible(true);
@@ -803,19 +820,29 @@ var MapModule = (function () {
     return url;
   }
 
-  function setFilterVisibility(visibleIds, dimIds) {
-    // visibleIds: Array<number> or null (null => disable filter)
+  function setFilterVisibility(visibleIds, routeKeepIds) {
+    // visibleIds: Array<number|string> or null (null => disable filter)
     if (visibleIds === null) {
       filterVisibleIdSet = null;
     } else {
       filterVisibleIdSet = new Set((visibleIds || []).map(function (x) { return Number(x); }));
     }
 
-    filterDimIdSet = new Set((dimIds || []).map(function (x) { return Number(x); }));
+    // ✅ 第二個參數不是 dimIds；是「路線點永遠顯示」的 id 清單
+    filterRouteKeepIdSet = new Set((routeKeepIds || []).map(function (x) { return Number(x); }));
 
-    // 套用到目前模式（會立刻更新畫面）
-    // ⚠ routePoints 由 app.js 透過 setMode 傳入；這裡只能依現況重繪：
-    applyMarkersByMode([]);
+    // ✅ 重新套用到目前模式（立刻更新畫面）
+    // 不要用 []，會把現況狀態清空；若 map.js 內部本來就有 routePoints 變數，直接用它
+    try {
+      if (typeof routePoints !== 'undefined') {
+        applyMarkersByMode(routePoints);
+      } else {
+        applyMarkersByMode(null);
+      }
+    } catch (e) {
+      // 最差也要重繪一次，但不要硬塞空陣列去破壞狀態
+      applyMarkersByMode(null);
+    }
   }
 
   return {
