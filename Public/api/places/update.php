@@ -37,6 +37,12 @@ $note        = trim((string)($input['note'] ?? ''));
 $soldierName = trim((string)($input['serviceman_name'] ?? $input['soldier_name'] ?? ''));
 $targetName  = trim((string)($input['visit_target'] ?? $input['target_name'] ?? ''));
 $address     = trim((string)($input['address_text'] ?? $input['address'] ?? ''));
+require_once __DIR__ . '/../common/address_parser.php';
+
+$addressTownCode = null;
+if ($address !== '') {
+    $addressTownCode = parse_address_to_town_code($pdo, $address);
+}
 
 // ✅ 列管三欄（district + 兩個 code）
 $mdist       = trim((string)($input['managed_district'] ?? ($input['township'] ?? '')));
@@ -118,6 +124,7 @@ try {
                 managed_district = :mdist,
                 managed_town_code = :mtown_code,
                 managed_county_code = :mcounty_code,
+                address_town_code, = :address_town_code,
                 updated_at = NOW()
             WHERE id = :id';
 
@@ -137,6 +144,7 @@ try {
         ':mdist'           => $mdist,
         ':mtown_code'      => $mtownCode,
         ':mcounty_code'    => $mcountyCode,
+        ':address_town_code' => $addressTownCode,
     ];
 
     $stmt = $pdo->prepare($sql);

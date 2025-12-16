@@ -34,6 +34,13 @@ $visitName   = trim((string)($input['visit_name'] ?? ''));
 $condNo      = trim((string)($input['condolence_order_no'] ?? ''));
 $over65      = strtoupper(trim((string)($input['beneficiary_over65'] ?? 'N')));
 $address     = trim((string)($input['address_text'] ?? $input['address'] ?? ''));
+require_once __DIR__ . '/../common/address_parser.php';
+
+$addressTownCode = null;
+if ($address !== '') {
+    $addressTownCode = parse_address_to_town_code($pdo, $address);
+}
+
 $note        = trim((string)($input['note'] ?? ''));
 
 // ✅ 列管三欄（district + 兩個 code）
@@ -89,6 +96,7 @@ try {
                 managed_district,
                 managed_town_code,
                 managed_county_code,
+                address_town_code,
                 created_at,
                 updated_at
             ) VALUES (
@@ -107,6 +115,7 @@ try {
                 :mdist,
                 :mtown_code,
                 :mcounty_code,
+                :address_town_code,
                 NOW(),
                 NOW()
             )';
@@ -127,6 +136,7 @@ try {
         ':mdist'           => $mdist,
         ':mtown_code'      => $mtownCode,
         ':mcounty_code'    => $mcountyCode,
+        ':address_town_code' => $addressTownCode,
     ];
 
     $stmt = $pdo->prepare($sql);

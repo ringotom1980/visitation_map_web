@@ -117,3 +117,27 @@
   justify-content: space-between;
   gap: 10px;
 }
+
+.filter-checkbox-group {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
+  gap: 8px;
+}
+
+.filter-checkbox {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 14px;
+  cursor: pointer;
+}
+
+.filter-checkbox input {
+  cursor: pointer;
+}
+
+.filter-loading,
+.filter-empty {
+  color: #777;
+  font-size: 13px;
+}

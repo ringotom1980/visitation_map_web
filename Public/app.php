@@ -61,9 +61,9 @@ $pageCss = [
 
             <div class="filter-row">
               <label class="filter-label" for="filter-category">類別（可多選）</label>
-              <select id="filter-category" class="filter-select" multiple size="7">
-                <option value="">載入中...</option>
-              </select>
+              <div id="filter-category" class="filter-checkbox-group">
+                <div class="filter-loading">載入中...</div>
+              </div>
             </div>
 
             <div class="filter-row">
