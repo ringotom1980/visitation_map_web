@@ -56,7 +56,7 @@ $pageCss = [
             <div class="filter-row">
               <label class="filter-label">居住鄉鎮市區（可多選）</label>
               <!-- ✅ checkbox 容器：由 places.address_town_code / address_text 動態生成 -->
-              <div id="filter-reside-town" class="filter-checkgrid">
+              <div id="filter-reside-town" class="filter-checkgrid filter-checkgrid--4">
                 <div class="filter-loading">載入中...</div>
               </div>
               <div class="filter-help">依目前標記資料實際存在的「鄉鎮市區」生成（不顯示縣市）。</div>
@@ -66,7 +66,7 @@ $pageCss = [
             <div class="filter-row">
               <label class="filter-label">列管鄉鎮市區（可多選）</label>
               <!-- ✅ checkbox 容器：由 managed_towns/list 與 places 實際存在值交集 -->
-              <div id="filter-managed-town" class="filter-checkgrid">
+              <div id="filter-managed-town" class="filter-checkgrid filter-checkgrid--4">
                 <div class="filter-loading">載入中...</div>
               </div>
               <div class="filter-help">依你所屬單位限制清單（managed_towns/list），且只顯示資料表實際有用到的鄉鎮市區。</div>
@@ -76,28 +76,16 @@ $pageCss = [
             <div class="filter-row">
               <label class="filter-label">類別（可多選）</label>
               <!-- ✅ checkbox 容器：由 places.category 動態生成 -->
-              <div id="filter-category" class="filter-checkgrid">
+              <div id="filter-category" class="filter-checkgrid filter-checkgrid--2">
                 <div class="filter-loading">載入中...</div>
               </div>
             </div>
 
-            <!-- ④ 是否 65 歲以上 -->
+            <!-- ④ 是否 65 歲以上（checkbox 單選：不限/是/否） -->
             <div class="filter-row">
-              <label class="filter-label" for="filter-over65">是否 65 歲以上</label>
-              <select id="filter-over65" class="filter-select">
-                <option value="ALL" selected>不限</option>
-                <option value="Y">是</option>
-                <option value="N">否</option>
-              </select>
-            </div>
-
-            <!-- ✅ 關鍵字搜尋整段移除（你說導覽列已有） -->
-
-            <div class="filter-row">
-              <label class="filter-label">篩選規則</label>
-              <div class="filter-radio">
-                <label><input type="radio" name="filter-logic" value="AND" checked> 全部符合（AND）</label>
-                <label><input type="radio" name="filter-logic" value="OR"> 任一符合（OR）</label>
+              <label class="filter-label">是否 65 歲以上</label>
+              <div id="filter-over65" class="filter-checkgrid filter-checkgrid--3">
+                <div class="filter-loading">載入中...</div>
               </div>
             </div>
 

@@ -1,54 +1,35 @@
 // Path: Public/assets/js/filters_ui.js
 // 說明:
-// - 篩選面板 UI：三欄 checkbox（居住鄉鎮 / 列管鄉鎮 / 類別）
-// - 選項全部「動態生成」：
-//   * 類別：由 places.category 去重
-//   * 居住鄉鎮：由 places.address_town_code 優先，否則由 address_text 解析（只顯示鄉鎮市區，不含縣市）
-//   * 列管鄉鎮：由 /managed_towns/list 取得可選清單，再與 places 實際存在 managed_town_code 取交集
-// - 清除：清掉 checkbox + 65+ + AND/OR + FilterCore 狀態
+// - 篩選面板 UI：checkbox grid（居住4欄 / 列管4欄 / 類別2欄 / 65+ 3欄單選）
+// - 選項全部「由後端依 DB 實際存在」生成：GET /filters/options
+// - 不含 AND/OR、不含 keyword
+// - 清除：清掉 checkbox + FilterCore 狀態並立即套用
 
 (function () {
   'use strict';
 
   function $(id) { return document.getElementById(id); }
 
-  function uniq(arr) {
-    var map = {};
-    var out = [];
-    for (var i = 0; i < arr.length; i++) {
-      var v = String(arr[i] || '').trim();
-      if (!v) continue;
-      if (!map[v]) { map[v] = 1; out.push(v); }
-    }
-    return out;
-  }
-
-  function residenceTownName(p) {
-    var raw = (p && p.address_town_code) ? String(p.address_town_code) : '';
-    if (!raw) raw = (p && p.address_text) ? String(p.address_text) : '';
-    raw = raw.trim();
-    if (!raw) return '';
-
-    var m = raw.match(/([\u4e00-\u9fa5]{1,6}(?:市|區|鄉|鎮))/g);
-    if (m && m.length) return m[m.length - 1];
-    return raw;
-  }
-
   function renderCheckboxGrid(containerEl, items, valueFn, labelFn, checkedValues) {
     if (!containerEl) return;
 
     containerEl.innerHTML = '';
-    containerEl.classList.add('filter-checkgrid');
-
     checkedValues = checkedValues || [];
     var checkedMap = {};
     for (var i = 0; i < checkedValues.length; i++) checkedMap[String(checkedValues[i])] = true;
+
+    if (!items || !items.length) {
+      var empty = document.createElement('div');
+      empty.className = 'filter-empty';
+      empty.textContent = '（沒有可用選項）';
+      containerEl.appendChild(empty);
+      return;
+    }
 
     for (var k = 0; k < items.length; k++) {
       var it = items[k];
       var v = String(valueFn(it));
       var label = String(labelFn(it));
-
       var id = containerEl.id + '__' + k;
 
       var wrap = document.createElement('label');
@@ -75,9 +56,7 @@
     if (!containerEl) return [];
     var cbs = containerEl.querySelectorAll('input[type="checkbox"]');
     var out = [];
-    for (var i = 0; i < cbs.length; i++) {
-      if (cbs[i].checked) out.push(cbs[i].value);
-    }
+    for (var i = 0; i < cbs.length; i++) if (cbs[i].checked) out.push(cbs[i].value);
     return out;
   }
 
@@ -87,23 +66,35 @@
     for (var i = 0; i < cbs.length; i++) cbs[i].checked = false;
   }
 
+  // over65：checkbox 呈現但邏輯為「單選」
+  function enforceSingleCheckbox(containerEl, clickedEl) {
+    if (!containerEl || !clickedEl) return;
+    if (!clickedEl.checked) {
+      // 不允許全部取消：若取消則回到 ALL
+      var all = containerEl.querySelector('input[type="checkbox"][value="ALL"]');
+      if (all) all.checked = true;
+      return;
+    }
+    var cbs = containerEl.querySelectorAll('input[type="checkbox"]');
+    for (var i = 0; i < cbs.length; i++) {
+      if (cbs[i] !== clickedEl) cbs[i].checked = false;
+    }
+  }
+
   // ---- DOM refs ----
   var panel = $('filter-panel');
   var btnOpen = $('btn-filter');
   var btnClear = $('btn-filter-clear');
   var btnClose = $('btn-filter-close');
 
-  var elManaged = $('filter-managed-town'); // checkbox container
-  var elReside  = $('filter-reside-town');  // checkbox container
-  var elCat     = $('filter-category');     // checkbox container
+  var elReside  = $('filter-reside-town');   // 4欄
+  var elManaged = $('filter-managed-town');  // 4欄
+  var elCat     = $('filter-category');      // 2欄
+  var elOver65  = $('filter-over65');        // 3欄（單選）
 
-  var elOver65  = $('filter-over65');
-  var elLogicAnd = document.querySelector('input[name="filter-logic"][value="AND"]');
-  var elLogicOr  = document.querySelector('input[name="filter-logic"][value="OR"]');
-
-  // ---- data caches ----
-  var _managedList = []; // rows from managed_towns/list
-  var _places = [];
+  // ---- data cache ----
+  var _options = null;
+  var _placesLoaded = false;
 
   function openPanel() {
     if (!panel) return;
@@ -120,79 +111,58 @@
     if (!panel) return;
     panel.addEventListener('click', function (e) {
       var t = e.target;
-      if (!t) return;
-      if (t.getAttribute && t.getAttribute('data-filter-close') === '1') closePanel();
+      if (t && t.getAttribute && t.getAttribute('data-filter-close') === '1') closePanel();
     });
   }
 
-  function loadManagedTownsList() {
-    // 後端已依登入者 organization 限制清單
-    return apiRequest('/managed_towns/list', 'GET')
+  function loadOptions() {
+    return apiRequest('/filters/options', 'GET')
       .then(function (res) {
-        var rows = (res && res.success && Array.isArray(res.data)) ? res.data : [];
-        _managedList = rows;
+        _options = (res && res.success) ? res.data : null;
       })
-      .catch(function () {
-        _managedList = [];
-      });
+      .catch(function () { _options = null; });
   }
 
-  function rebuildOptionsFromPlaces() {
-    if (!_places || !_places.length) {
-      renderCheckboxGrid(elCat, [], function (x) { return x; }, function (x) { return x; }, []);
-      renderCheckboxGrid(elReside, [], function (x) { return x; }, function (x) { return x; }, []);
-      renderCheckboxGrid(elManaged, [], function (x) { return x; }, function (x) { return x; }, []);
-      return;
-    }
-
-    // categories
-    var cats = [];
-    for (var i = 0; i < _places.length; i++) {
-      if (_places[i] && _places[i].category) cats.push(String(_places[i].category).trim());
-    }
-    cats = uniq(cats).sort();
-
-    // residence towns
-    var towns = [];
-    for (var j = 0; j < _places.length; j++) {
-      var tn = residenceTownName(_places[j]);
-      if (tn) towns.push(tn);
-    }
-    towns = uniq(towns).sort();
-
-    // managed towns: intersection(places.usedCodes, managedList.allowed)
-    var usedCodes = {};
-    for (var k = 0; k < _places.length; k++) {
-      var c = _places[k] ? String(_places[k].managed_town_code || '').trim() : '';
-      if (c) usedCodes[c] = 1;
-    }
-
-    var managedItems = [];
-    for (var m = 0; m < _managedList.length; m++) {
-      var r = _managedList[m];
-      var code = String(r.town_code || '').trim();
-      if (!code) continue;
-      if (usedCodes[code]) managedItems.push(r);
-    }
+  function rebuildUI() {
+    if (!_options) return;
 
     var st = (window.FilterCore && window.FilterCore.state) ? window.FilterCore.state() : null;
 
-    renderCheckboxGrid(elCat, cats,
+    // categories (value=category)
+    renderCheckboxGrid(
+      elCat,
+      _options.categories || [],
       function (x) { return x; },
       function (x) { return x; },
       st ? st.categories : []
     );
 
-    renderCheckboxGrid(elReside, towns,
-      function (x) { return x; },
-      function (x) { return x; },
+    // reside towns (value=town_code, label=town_name)
+    renderCheckboxGrid(
+      elReside,
+      _options.reside_towns || [],
+      function (r) { return r.town_code; },
+      function (r) { return r.town_name; },
       st ? st.resideTowns : []
     );
 
-    renderCheckboxGrid(elManaged, managedItems,
+    // managed towns (value=town_code, label=town_name)
+    renderCheckboxGrid(
+      elManaged,
+      _options.managed_towns || [],
       function (r) { return r.town_code; },
-      function (r) { return String(r.town_name || r.town_code || '').trim(); },
+      function (r) { return r.town_name; },
       st ? st.managedTowns : []
+    );
+
+    // over65 (checkbox 單選)
+    var overChecked = [st ? st.over65 : 'ALL'];
+    renderCheckboxGrid(
+      elOver65,
+      _options.over65 || [],
+      function (r) { return r.value; },
+      function (r) { return r.label; },
+      overChecked
     );
   }
 
@@ -203,32 +173,32 @@
     var reside  = readCheckedValues(elReside);
     var cats    = readCheckedValues(elCat);
 
-    var over65 = elOver65 ? elOver65.value : 'ALL';
-    var logic = (elLogicOr && elLogicOr.checked) ? 'OR' : 'AND';
+    var over65Arr = readCheckedValues(elOver65);
+    var over65 = (over65Arr && over65Arr.length) ? over65Arr[0] : 'ALL';
 
     window.FilterCore.setManagedTowns(managed);
     window.FilterCore.setResideTowns(reside);
     window.FilterCore.setCategories(cats);
     window.FilterCore.setOver65(over65);
-    window.FilterCore.setLogic(logic);
 
     window.FilterCore.apply();
   }
 
-  function wireCheckboxChange(containerEl) {
+  function wireCheckboxChange(containerEl, opts) {
     if (!containerEl) return;
     containerEl.addEventListener('change', function (e) {
       var t = e.target;
       if (!t || t.type !== 'checkbox') return;
+
+      // over65 單選約束
+      if (opts && opts.single) {
+        enforceSingleCheckbox(containerEl, t);
+      }
       onAnyFilterChanged();
     });
   }
 
   function wireStaticControls() {
-    if (elOver65) elOver65.addEventListener('change', onAnyFilterChanged);
-    if (elLogicAnd) elLogicAnd.addEventListener('change', onAnyFilterChanged);
-    if (elLogicOr) elLogicOr.addEventListener('change', onAnyFilterChanged);
-
     if (btnOpen) btnOpen.addEventListener('click', openPanel);
     if (btnClose) btnClose.addEventListener('click', closePanel);
 
@@ -238,11 +208,13 @@
         clearAllCheckbox(elManaged);
         clearAllCheckbox(elReside);
         clearAllCheckbox(elCat);
-        if (elOver65) elOver65.value = 'ALL';
-        if (elLogicAnd) elLogicAnd.checked = true;
-        if (elLogicOr) elLogicOr.checked = false;
 
-        // 2) 清 FilterCore + 觸發刷新
+        // over65 回到 ALL
+        clearAllCheckbox(elOver65);
+        var all = elOver65 ? elOver65.querySelector('input[type="checkbox"][value="ALL"]') : null;
+        if (all) all.checked = true;
+
+        // 2) 清 FilterCore + 立即套用
         if (window.FilterCore) {
           window.FilterCore.reset();
           window.FilterCore.apply();
@@ -251,24 +223,26 @@
     }
   }
 
-  // 你現有 app.js 會 dispatch 這個事件（你貼過的程式碼已存在）
-  document.addEventListener('places:loaded', function (e) {
-    var places = e && e.detail && Array.isArray(e.detail.places) ? e.detail.places : [];
-    _places = places;
-
-    rebuildOptionsFromPlaces();
-    wireCheckboxChange(elManaged);
-    wireCheckboxChange(elReside);
-    wireCheckboxChange(elCat);
+  // places:loaded 只是表示 marker 資料已載入，可用來「稍後擴充」動態重建；
+  // 目前選項由 DB API 統一供給，避免前端亂解析
+  document.addEventListener('places:loaded', function () {
+    _placesLoaded = true;
   });
 
   // Boot
   wireCloseTriggers();
   wireStaticControls();
 
-  // 先拿列管清單（依登入者單位），再等待 places:loaded 來做交集
-  loadManagedTownsList().then(function () {
-    if (_places && _places.length) rebuildOptionsFromPlaces();
+  loadOptions().then(function () {
+    rebuildUI();
+
+    wireCheckboxChange(elManaged);
+    wireCheckboxChange(elReside);
+    wireCheckboxChange(elCat);
+    wireCheckboxChange(elOver65, { single: true });
+
+    // 初次載入後，若 FilterCore 已有狀態，立刻套用一次
+    if (window.FilterCore) window.FilterCore.apply();
   });
 
 })();
