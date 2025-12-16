@@ -10,7 +10,7 @@ var MapModule = (function () {
   var initOptions = {};
 
   // id -> { marker: google.maps.Marker, nameOv: NameLabelOverlay, data: place }
-  var markers = new Map();
+  var markersById = new Map();
   var searchPinMarker = null;
   var searchPinLatLng = null;
 
@@ -476,11 +476,11 @@ var MapModule = (function () {
   /* ---------- 載入標記 ---------- */
   function setPlaces(placeList, onMarkerClick, onMarkerRouteSelect) {
     // 清舊 marker/overlay
-    markers.forEach(function (obj) {
+    markersById.forEach(function (obj) {
       if (obj && obj.marker) obj.marker.setMap(null);
       if (obj && obj.nameOv) obj.nameOv.setMap(null);
     });
-    markers.clear();
+    markersById.clear();
 
     placesCache = Array.isArray(placeList) ? placeList : [];
 
@@ -513,7 +513,7 @@ var MapModule = (function () {
 
       });
 
-      markers.set(p.id, { marker: marker, nameOv: nameOv, data: p });
+      markersById.set(p.id, { marker: marker, nameOv: nameOv, data: p });
     });
   }
 
@@ -564,7 +564,7 @@ var MapModule = (function () {
   /* ---------- 依模式調整標註顯示 ---------- */
   function applyMarkersByMode(routePoints) {
     // 先全部隱藏 + 清淡化
-    markers.forEach(function (obj) {
+    markersById.forEach(function (obj) {
       if (!obj || !obj.marker) return;
       obj.marker.setVisible(false);
       obj.marker.setLabel(null);
@@ -617,7 +617,7 @@ var MapModule = (function () {
     }
 
     if (mode === 'BROWSE') {
-      markers.forEach(function (obj, id) {
+      markersById.forEach(function (obj, id) {
         id = Number(id);
         if (!shouldShow(id)) return;
 
@@ -645,7 +645,7 @@ var MapModule = (function () {
     }
 
     if (mode === 'ROUTE_PLANNING') {
-      markers.forEach(function (obj, id2) {
+      markersById.forEach(function (obj, id2) {
         id2 = Number(id2);
         if (!shouldShow(id2)) return;
 
@@ -672,7 +672,7 @@ var MapModule = (function () {
     }
 
     if (mode === 'ROUTE_READY') {
-      markers.forEach(function (obj3, id3) {
+      markersById.forEach(function (obj3, id3) {
         id3 = Number(id3);
         if (!shouldShow(id3)) return; // 只會顯示路線點
 
@@ -772,7 +772,7 @@ var MapModule = (function () {
     map.panTo(pos);
     map.setZoom(16);
 
-    var obj = markers.get(place.id);
+    var obj = markersById.get(place.id);
     if (obj && obj.marker) {
       obj.marker.setAnimation(google.maps.Animation.BOUNCE);
       setTimeout(function () { obj.marker.setAnimation(null); }, 700);
@@ -829,29 +829,21 @@ var MapModule = (function () {
   }
 
   function setFilterVisibility(visibleIds, routeKeepIds) {
-    // visibleIds: Array<number|string> or null (null => disable filter)
-    if (visibleIds === null) {
-      filterVisibleIdSet = null;
-    } else {
-      filterVisibleIdSet = new Set((visibleIds || []).map(function (x) { return Number(x); }));
-    }
-
-    // ✅ 第二個參數不是 dimIds；是「路線點永遠顯示」的 id 清單
-    filterRouteKeepIdSet = new Set((routeKeepIds || []).map(function (x) { return Number(x); }));
-
-    // ✅ 重新套用到目前模式（立刻更新畫面）
-    // 不要用 []，會把現況狀態清空；若 map.js 內部本來就有 routePoints 變數，直接用它
-    try {
-      if (typeof routePoints !== 'undefined') {
-        applyMarkersByMode(routePoints);
-      } else {
-        applyMarkersByMode(null);
-      }
-    } catch (e) {
-      // 最差也要重繪一次，但不要硬塞空陣列去破壞狀態
-      applyMarkersByMode(null);
-    }
+  if (visibleIds === null) {
+    filterVisibleIdSet = null;
+  } else {
+    filterVisibleIdSet = new Set((visibleIds || []).map(function (x) {
+      return Number(x);
+    }));
   }
+
+  filterRouteKeepIdSet = new Set((routeKeepIds || []).map(function (x) {
+    return Number(x);
+  }));
+
+  // ✅ 只重畫顯示/淡化，不碰路線順序
+  applyMarkersByMode(null);
+}
 
   return {
     init: init,
@@ -869,8 +861,10 @@ var MapModule = (function () {
     searchByText: searchByText,
     panBy: panBy,
     getMap: getMap,
+    _markersById: markersById,
   };
 })();
 
 window.MapModule = MapModule;
+window.markersById = MapModule._markersById;
 
