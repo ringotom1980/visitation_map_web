@@ -829,21 +829,21 @@ var MapModule = (function () {
   }
 
   function setFilterVisibility(visibleIds, routeKeepIds) {
-  if (visibleIds === null) {
-    filterVisibleIdSet = null;
-  } else {
-    filterVisibleIdSet = new Set((visibleIds || []).map(function (x) {
+    if (visibleIds === null) {
+      filterVisibleIdSet = null;
+    } else {
+      filterVisibleIdSet = new Set((visibleIds || []).map(function (x) {
+        return Number(x);
+      }));
+    }
+
+    filterRouteKeepIdSet = new Set((routeKeepIds || []).map(function (x) {
       return Number(x);
     }));
+
+    // ✅ 只重畫顯示/淡化，不碰路線順序
+    applyMarkersByMode(null);
   }
-
-  filterRouteKeepIdSet = new Set((routeKeepIds || []).map(function (x) {
-    return Number(x);
-  }));
-
-  // ✅ 只重畫顯示/淡化，不碰路線順序
-  applyMarkersByMode(null);
-}
 
   return {
     init: init,
