@@ -1,251 +1,252 @@
 // Path: Public/assets/js/filters_ui.js
-// 說明: 篩選面板 UI（checkbox grids）
-// - 居住鄉鎮市區：4欄 multi
-// - 列管鄉鎮市區：4欄 multi
-// - 類別：2欄 multi
-// - 65歲以上：3欄 checkbox 但單選（ALL/Y/N）
-// - 清除條件：要清掉勾選 + 回復 over65=ALL，並觸發 FilterCore.clear()
+// 說明：篩選面板 UI（外掛）
+// - 依 /api/filters/options.php 動態產生 checkbox
+// - 任何選取變更 → FilterCore.setState(...)（FilterCore 內部會自動 apply）
+// - 65 歲以上：用 checkbox 做「單選」（ALL/Y/N）
 
 (function () {
   function $(id) { return document.getElementById(id); }
 
-  var els = {
-    panel: $('filter-panel'),
-    btnOpen: $('btn-filter'),
-    btnClear: $('btn-filter-clear'),
-    btnClose: $('btn-filter-close'),
-
-    boxReside: $('filter-reside-town'),
-    boxManaged: $('filter-managed-town'),
-    boxCategory: $('filter-category'),
-    boxOver65: $('filter-over65'),
-
-    countVisible: $('filter-count-visible'),
-    countDimmed: $('filter-count-dimmed')
-  };
-
-  function openPanel() {
-    if (!els.panel) return;
-    els.panel.classList.add('is-open');
-    els.panel.setAttribute('aria-hidden', 'false');
+  function fetchJson(url) {
+    return fetch(url, {
+      method: 'GET',
+      credentials: 'same-origin',
+      headers: { 'Accept': 'application/json' }
+    }).then(function (r) { return r.json(); });
   }
 
-  function closePanel() {
-    if (!els.panel) return;
-    els.panel.classList.remove('is-open');
-    els.panel.setAttribute('aria-hidden', 'true');
-  }
+  function renderGrid(container, items, opts) {
+    opts = opts || {};
+    var name = opts.name || 'x';
+    var checked = opts.checked || {}; // {value:true}
+    var single = !!opts.single;
+    var keepOne = !!opts.keepOne; // 單選時：至少保留一個被勾選
 
-  function renderEmpty(container, text) {
-    if (!container) return;
-    container.innerHTML = '<div class="filter-empty">' + (text || '無資料') + '</div>';
-  }
+    container.innerHTML = '';
 
-  function renderLoading(container) {
-    if (!container) return;
-    container.innerHTML = '<div class="filter-loading">載入中...</div>';
-  }
+    if (!items || items.length === 0) {
+      var empty = document.createElement('div');
+      empty.className = 'filter-empty';
+      empty.textContent = '無可用選項';
+      container.appendChild(empty);
+      return;
+    }
 
-  function checkboxItem(name, value, label, checked) {
-    var safeVal = String(value);
-    var safeLab = String(label);
-    return (
-      '<label class="filter-checkitem">' +
-        '<input type="checkbox" name="' + name + '" value="' + safeVal.replace(/"/g, '&quot;') + '"' + (checked ? ' checked' : '') + ' />' +
-        '<span class="filter-checktext">' + safeLab + '</span>' +
-      '</label>'
-    );
+    items.forEach(function (it) {
+      var value = String(it.value);
+      var label = String(it.label);
+
+      var wrap = document.createElement('label');
+      wrap.className = 'filter-checkitem';
+
+      var input = document.createElement('input');
+      input.type = 'checkbox';
+      input.name = name;
+      input.value = value;
+      input.checked = !!checked[value];
+
+      var text = document.createElement('span');
+      text.className = 'filter-checktext';
+      text.title = label;
+      text.textContent = label;
+
+      wrap.appendChild(input);
+      wrap.appendChild(text);
+      container.appendChild(wrap);
+
+      if (single) {
+        input.addEventListener('change', function () {
+          if (input.checked) {
+            var all = container.querySelectorAll('input[type="checkbox"][name="' + name + '"]');
+            Array.prototype.forEach.call(all, function (x) {
+              if (x !== input) x.checked = false;
+            });
+          } else if (keepOne) {
+            input.checked = true;
+          }
+          if (typeof opts.onChange === 'function') opts.onChange();
+        });
+      } else {
+        input.addEventListener('change', function () {
+          if (typeof opts.onChange === 'function') opts.onChange();
+        });
+      }
+    });
   }
 
   function getCheckedValues(container) {
-    if (!container) return [];
-    var nodes = container.querySelectorAll('input[type="checkbox"]:checked');
-    var out = [];
-    nodes.forEach(function (n) { out.push(String(n.value)); });
-    return out;
-  }
-
-  // over65 單選：永遠保持 1 個被勾（預設 ALL）
-  function enforceOver65Single(target) {
-    if (!els.boxOver65) return;
-
-    var all = els.boxOver65.querySelectorAll('input[type="checkbox"]');
-    if (!target) {
-      // 確保至少一個
-      var any = false;
-      all.forEach(function (c) { if (c.checked) any = true; });
-      if (!any) {
-        var a = els.boxOver65.querySelector('input[value="ALL"]');
-        if (a) a.checked = true;
-      }
-      return;
-    }
-
-    // 點到誰就只留誰
-    if (target.checked) {
-      all.forEach(function (c) {
-        if (c !== target) c.checked = false;
-      });
-    } else {
-      // 不允許全不選 -> 回到 ALL
-      var any2 = false;
-      all.forEach(function (c) { if (c.checked) any2 = true; });
-      if (!any2) {
-        var a2 = els.boxOver65.querySelector('input[value="ALL"]');
-        if (a2) a2.checked = true;
-      }
-    }
-  }
-
-  function syncToCore() {
-    if (!window.FilterCore) return;
-
-    var reside = getCheckedValues(els.boxReside);
-    var managed = getCheckedValues(els.boxManaged);
-    var cats = getCheckedValues(els.boxCategory);
-
-    var over65 = 'ALL';
-    if (els.boxOver65) {
-      var c = els.boxOver65.querySelector('input[type="checkbox"]:checked');
-      over65 = c ? String(c.value) : 'ALL';
-    }
-
-    window.FilterCore.setState({
-      resideTowns: reside,
-      managedTowns: managed,
-      categories: cats,
-      over65: over65
+    var list = [];
+    var nodes = container.querySelectorAll('input[type="checkbox"]');
+    Array.prototype.forEach.call(nodes, function (n) {
+      if (n.checked) list.push(String(n.value));
     });
+    return list;
   }
 
-  function bindEvents() {
-    if (els.btnOpen) els.btnOpen.addEventListener('click', openPanel);
-
-    // 關閉（遮罩/右上角/完成）
-    document.addEventListener('click', function (e) {
-      var t = e.target;
-
-      if (t && t.getAttribute && t.getAttribute('data-filter-close') === '1') {
-        closePanel();
-      }
-      if (t === els.btnClose) closePanel();
-    });
-
-    // 勾選事件（事件委派）
-    if (els.boxReside) {
-      els.boxReside.addEventListener('change', function () { syncToCore(); });
+  function getSingleValue(container, fallback) {
+    var nodes = container.querySelectorAll('input[type="checkbox"]');
+    for (var i = 0; i < nodes.length; i++) {
+      if (nodes[i].checked) return String(nodes[i].value);
     }
-    if (els.boxManaged) {
-      els.boxManaged.addEventListener('change', function () { syncToCore(); });
-    }
-    if (els.boxCategory) {
-      els.boxCategory.addEventListener('change', function () { syncToCore(); });
-    }
-    if (els.boxOver65) {
-      els.boxOver65.addEventListener('change', function (e) {
-        enforceOver65Single(e.target);
-        syncToCore();
-      });
-    }
-
-    // 清除條件
-    if (els.btnClear) {
-      els.btnClear.addEventListener('click', function () {
-        // 1) 清 UI
-        [els.boxReside, els.boxManaged, els.boxCategory].forEach(function (box) {
-          if (!box) return;
-          box.querySelectorAll('input[type="checkbox"]').forEach(function (c) { c.checked = false; });
-        });
-
-        if (els.boxOver65) {
-          els.boxOver65.querySelectorAll('input[type="checkbox"]').forEach(function (c) { c.checked = false; });
-          var a = els.boxOver65.querySelector('input[value="ALL"]');
-          if (a) a.checked = true;
-        }
-
-        // 2) 清核心 + 立即套用
-        if (window.FilterCore) window.FilterCore.clear();
-      });
-    }
-
-    // 顯示統計
-    document.addEventListener('filters:applied', function (e) {
-      var d = (e && e.detail) ? e.detail : {};
-      if (els.countVisible) els.countVisible.textContent = String(d.visibleCount || 0);
-      if (els.countDimmed) els.countDimmed.textContent = String(d.dimmedCount || 0);
-    });
+    return fallback;
   }
 
-  async function loadOptions() {
-    if (!window.apiRequest) return;
+  function setAllUnchecked(container) {
+    var nodes = container.querySelectorAll('input[type="checkbox"]');
+    Array.prototype.forEach.call(nodes, function (n) { n.checked = false; });
+  }
 
-    renderLoading(els.boxReside);
-    renderLoading(els.boxManaged);
-    renderLoading(els.boxCategory);
-    renderLoading(els.boxOver65);
-
-    // 你提供的 API：/api/filters/options.php
-    var res = await apiRequest('/filters/options', 'GET');
-
-    // 兼容兩種格式：{success:true,data:{...}} 或 {ok:true,data:{...}}
-    var data = res && (res.data || (res.ok ? res.data : null));
-    if (!data) {
-      renderEmpty(els.boxReside, '載入失敗');
-      renderEmpty(els.boxManaged, '載入失敗');
-      renderEmpty(els.boxCategory, '載入失敗');
-      renderEmpty(els.boxOver65, '載入失敗');
-      return;
-    }
-
-    // ① 居住鄉鎮（checkbox 多選）
-    if (Array.isArray(data.reside_towns) && data.reside_towns.length > 0) {
-      els.boxReside.innerHTML = data.reside_towns.map(function (t) {
-        return checkboxItem('reside_town', t.town_code, t.town_name, false);
-      }).join('');
-    } else {
-      renderEmpty(els.boxReside, '無資料');
-    }
-
-    // ② 列管鄉鎮（checkbox 多選）
-    if (Array.isArray(data.managed_towns) && data.managed_towns.length > 0) {
-      els.boxManaged.innerHTML = data.managed_towns.map(function (t) {
-        return checkboxItem('managed_town', t.town_code, t.town_name, false);
-      }).join('');
-    } else {
-      renderEmpty(els.boxManaged, '無資料');
-    }
-
-    // ③ 類別（checkbox 多選）
-    if (Array.isArray(data.categories) && data.categories.length > 0) {
-      els.boxCategory.innerHTML = data.categories.map(function (c) {
-        return checkboxItem('category', c, c, false);
-      }).join('');
-    } else {
-      renderEmpty(els.boxCategory, '無資料');
-    }
-
-    // ④ over65（checkbox 單選）
-    var over65Opts = Array.isArray(data.over65) ? data.over65 : [
-      { value: 'ALL', label: '不限' },
-      { value: 'Y', label: '是' },
-      { value: 'N', label: '否' }
-    ];
-
-    els.boxOver65.innerHTML = over65Opts.map(function (o) {
-      return checkboxItem('over65', o.value, o.label, o.value === 'ALL');
-    }).join('');
-
-    enforceOver65Single(null);
-    syncToCore(); // 初始套用一次（ALL）
+  function setSingleChecked(container, value) {
+    var nodes = container.querySelectorAll('input[type="checkbox"]');
+    Array.prototype.forEach.call(nodes, function (n) { n.checked = (String(n.value) === String(value)); });
   }
 
   document.addEventListener('DOMContentLoaded', function () {
-    bindEvents();
-    loadOptions().catch(function () {
-      renderEmpty(els.boxReside, '載入失敗');
-      renderEmpty(els.boxManaged, '載入失敗');
-      renderEmpty(els.boxCategory, '載入失敗');
-      renderEmpty(els.boxOver65, '載入失敗');
+    if (!window.FilterCore) return;
+
+    window.FilterCore.init();
+
+    var btnOpen = $('btn-filter');
+    var panel = $('filter-panel');
+    var btnClear = $('btn-filter-clear');
+    var btnClose = $('btn-filter-close');
+
+    var elReside = $('filter-reside-town');
+    var elManaged = $('filter-managed-town');
+    var elCat = $('filter-category');
+    var elOver65 = $('filter-over65');
+
+    var elCntV = $('filter-count-visible');
+    var elCntD = $('filter-count-dimmed');
+
+    function openPanel() {
+      if (!panel) return;
+      panel.classList.add('is-open');
+      panel.setAttribute('aria-hidden', 'false');
+    }
+    function closePanel() {
+      if (!panel) return;
+      panel.classList.remove('is-open');
+      panel.setAttribute('aria-hidden', 'true');
+    }
+
+    if (btnOpen) btnOpen.addEventListener('click', openPanel);
+    if (btnClose) btnClose.addEventListener('click', closePanel);
+
+    if (panel) {
+      panel.addEventListener('click', function (e) {
+        var t = e.target;
+        if (!t) return;
+        if (t.classList && t.classList.contains('filter-panel__backdrop')) closePanel();
+        if (t.getAttribute && t.getAttribute('data-filter-close') === '1') closePanel();
+      });
+    }
+
+    document.addEventListener('filters:stats', function (e) {
+      var d = (e && e.detail) ? e.detail : {};
+      if (elCntV) elCntV.textContent = String(d.visible || 0);
+      if (elCntD) elCntD.textContent = String(d.dimmed || 0);
     });
+
+    function syncStateFromUI() {
+      var reside = elReside ? getCheckedValues(elReside) : [];
+      var managed = elManaged ? getCheckedValues(elManaged) : [];
+      var cats = elCat ? getCheckedValues(elCat) : [];
+      var over65 = elOver65 ? getSingleValue(elOver65, 'ALL') : 'ALL';
+
+      window.FilterCore.setState({
+        resideTowns: reside,
+        managedTowns: managed,
+        categories: cats,
+        over65: over65
+      });
+    }
+
+    function loadOptions() {
+      if (elReside) elReside.innerHTML = '<div class="filter-loading">載入中...</div>';
+      if (elManaged) elManaged.innerHTML = '<div class="filter-loading">載入中...</div>';
+      if (elCat) elCat.innerHTML = '<div class="filter-loading">載入中...</div>';
+      if (elOver65) elOver65.innerHTML = '<div class="filter-loading">載入中...</div>';
+
+      fetchJson('api/filters/options.php').then(function (json) {
+        // 兼容 {success:true,data:{...}} / {ok:true,data:{...}} / 直接 data
+        var data = (json && json.data) ? json.data : json;
+        data = (data && data.data) ? data.data : data;
+
+        var st = window.FilterCore.getState();
+
+        var resideItems = (data.reside_towns || []).map(function (t) {
+          return { value: String(t.town_code), label: String(t.town_name) };
+        });
+        renderGrid(elReside, resideItems, {
+          name: 'filter-reside',
+          checked: (function () {
+            var m = {}; (st.resideTowns || []).forEach(function (v) { m[String(v)] = true; }); return m;
+          })(),
+          onChange: syncStateFromUI
+        });
+
+        var managedItems = (data.managed_towns || []).map(function (t) {
+          return { value: String(t.town_code), label: String(t.town_name) };
+        });
+        renderGrid(elManaged, managedItems, {
+          name: 'filter-managed',
+          checked: (function () {
+            var m = {}; (st.managedTowns || []).forEach(function (v) { m[String(v)] = true; }); return m;
+          })(),
+          onChange: syncStateFromUI
+        });
+
+        var catItems = (data.categories || []).map(function (c) {
+          return { value: String(c), label: String(c) };
+        });
+        renderGrid(elCat, catItems, {
+          name: 'filter-cat',
+          checked: (function () {
+            var m = {}; (st.categories || []).forEach(function (v) { m[String(v)] = true; }); return m;
+          })(),
+          onChange: syncStateFromUI
+        });
+
+        var overItems = (data.over65 || [
+          { value: 'ALL', label: '不限' },
+          { value: 'Y', label: '是' },
+          { value: 'N', label: '否' }
+        ]).map(function (x) {
+          return { value: String(x.value), label: String(x.label) };
+        });
+
+        var overChecked = {};
+        overChecked[String(st.over65 || 'ALL')] = true;
+
+        renderGrid(elOver65, overItems, {
+          name: 'filter-over65',
+          checked: overChecked,
+          single: true,
+          keepOne: true,
+          onChange: syncStateFromUI
+        });
+
+        syncStateFromUI(); // 首次套用
+      }).catch(function (err) {
+        console.error(err);
+        if (elReside) elReside.innerHTML = '<div class="filter-empty">載入失敗</div>';
+        if (elManaged) elManaged.innerHTML = '<div class="filter-empty">載入失敗</div>';
+        if (elCat) elCat.innerHTML = '<div class="filter-empty">載入失敗</div>';
+        if (elOver65) elOver65.innerHTML = '<div class="filter-empty">載入失敗</div>';
+      });
+    }
+
+    if (btnClear) {
+      btnClear.addEventListener('click', function () {
+        if (elReside) setAllUnchecked(elReside);
+        if (elManaged) setAllUnchecked(elManaged);
+        if (elCat) setAllUnchecked(elCat);
+        if (elOver65) setSingleChecked(elOver65, 'ALL');
+        window.FilterCore.clear();
+      });
+    }
+
+    loadOptions();
   });
 })();

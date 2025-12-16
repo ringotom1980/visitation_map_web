@@ -803,19 +803,53 @@ var MapModule = (function () {
     return url;
   }
 
-  function setFilterVisibility(visibleIds, dimIds) {
-    // visibleIds: Array<number> or null (null => disable filter)
-    if (visibleIds === null) {
-      filterVisibleIdSet = null;
+    function setFilterVisibility(a, b) {
+    // 支援兩種呼叫簽名：
+    // 1) 舊版：setFilterVisibility(filterStateObjOrNull, visibleIdsArray)
+    // 2) 新版：setFilterVisibility(visibleIdsArray, keepIdsArray)  (keepIds = 路線點 id)
+    var filterState = null;
+    var visibleIds = [];
+    var keepIds = [];
+
+    if (Array.isArray(a)) {
+      // 新版簽名
+      visibleIds = a;
+      keepIds = Array.isArray(b) ? b : [];
+      filterState = { active: true };
     } else {
-      filterVisibleIdSet = new Set((visibleIds || []).map(function (x) { return Number(x); }));
+      // 舊版簽名
+      filterState = a;
+      visibleIds = Array.isArray(b) ? b : [];
+      keepIds = [];
     }
 
-    filterDimIdSet = new Set((dimIds || []).map(function (x) { return Number(x); }));
+    // 防呆：若後端回傳的是 map/object，轉成 array
+    if (visibleIds && !Array.isArray(visibleIds)) {
+      try { visibleIds = Object.keys(visibleIds); } catch (e) { visibleIds = []; }
+    }
+    if (keepIds && !Array.isArray(keepIds)) {
+      try { keepIds = Object.keys(keepIds); } catch (e) { keepIds = []; }
+    }
 
-    // 套用到目前模式（會立刻更新畫面）
-    // ⚠ routePoints 由 app.js 透過 setMode 傳入；這裡只能依現況重繪：
-    applyMarkersByMode([]);
+    var filtering = !!filterState && (visibleIds.length > 0);
+
+    var visibleSet = {};
+    (visibleIds || []).forEach(function (id) { visibleSet[String(id)] = true; });
+
+    var keepSet = {};
+    (keepIds || []).forEach(function (id) { keepSet[String(id)] = true; });
+
+    Object.keys(markersById).forEach(function (id) {
+      var m = markersById[id];
+      if (!m) return;
+
+      // 路線點永遠保留顯示（不符合則淡化）
+      var shouldDim = filtering && !visibleSet[id] && !keepSet[id];
+      try {
+        m.setOpacity(shouldDim ? 0.25 : 1);
+        m.setVisible(true);
+      } catch (e) {}
+    });
   }
 
   return {
