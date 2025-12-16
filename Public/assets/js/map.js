@@ -23,6 +23,7 @@ var MapModule = (function () {
 
   // 狀態（由 app.js 設定）
   var mode = 'BROWSE';
+  var currentRoutePoints = [];
 
   // places 快取
   var placesCache = [];
@@ -88,7 +89,12 @@ var MapModule = (function () {
     this.div = div;
 
     var panes = this.getPanes();
-    panes.overlayMouseTarget.appendChild(div); // 讓文字能正確疊在 marker 上方（但 CSS pointer-events: none）
+    // ✅ 一定要用 floatPane，保證在 marker/label 上面
+    panes.floatPane.appendChild(div);
+
+    // ✅ 保底：再拉高一點，避免被其他 overlay 壓
+    div.style.zIndex = '99999';
+
   };
   NameLabelOverlay.prototype.draw = function () {
     if (!this.div) return;
@@ -147,7 +153,7 @@ var MapModule = (function () {
   /* ---------- 對外：切換模式 + 顯示策略 ---------- */
   function setMode(nextMode, routePoints) {
     mode = nextMode || 'BROWSE';
-
+    currentRoutePoints = Array.isArray(routePoints) ? routePoints : [];
     // 1) Marker 顯示策略
     applyMarkersByMode(routePoints || []);
 
@@ -577,7 +583,7 @@ var MapModule = (function () {
 
     if (Array.isArray(routePoints) && routePoints.length > 0) {
       routePoints.forEach(function (p) {
-        if (!p || !p.id || p.id === '__me') return;
+        if (!p || p.id === null || p.id === undefined || p.id === '__me') return;
         routeIdSet.add(Number(p.id));
       });
     } else if (typeof filterRouteKeepIdSet !== 'undefined' && filterRouteKeepIdSet) {
@@ -842,7 +848,7 @@ var MapModule = (function () {
     }));
 
     // ✅ 只重畫顯示/淡化，不碰路線順序
-    applyMarkersByMode(null);
+    applyMarkersByMode(currentRoutePoints);
   }
 
   return {
