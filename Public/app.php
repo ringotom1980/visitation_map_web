@@ -32,19 +32,19 @@ $pageCss = [
   <main class="app-main">
     <section class="app-content">
       <div id="map" class="app-map"></div>
-      <!-- ✅ 導覽列下方：三顆扁平白色操作按鈕（篩選 / 目前位置 / 路線規劃） -->
-      <div class="top-actions-bar" role="toolbar" aria-label="地圖操作">
-        <button id="btn-filter" class="fab fab-tertiary top-action-btn" type="button" title="篩選">
-          篩選
-        </button>
-
-        <button id="btn-my-location" class="fab fab-primary top-action-btn" type="button" title="移到我現在的位置">
+      <!-- ✅ 導覽列下方浮動操作列（Google 風格） -->
+      <div class="map-top-actions" aria-label="地圖操作">
+        <button id="btn-my-location" class="map-action-btn" type="button" title="移到我現在的位置">
           目前位置
         </button>
 
-        <button id="btn-route-mode" class="fab fab-secondary top-action-btn" type="button" title="路線規劃（加入拜訪點後再進入排序）">
+        <button id="btn-route-mode" class="map-action-btn" type="button" title="路線規劃（加入拜訪點後再進入排序）">
           路線規劃
-          <span id="route-badge" class="fab-badge" aria-hidden="true">0</span>
+          <span id="route-badge" class="map-action-badge" aria-hidden="true">0</span>
+        </button>
+
+        <button id="btn-filter" class="map-action-btn" type="button" title="篩選">
+          篩選
         </button>
       </div>
 

@@ -845,79 +845,77 @@ textarea {
 }
 
 /* =========================================
-   Top Actions Bar（導覽列下方：篩選/目前位置/路線規劃）
-   - 讓三顆按鈕扁平、白色、水平排列
-   - 覆寫 .fab 原本 fixed 右側堆疊定位（僅限此容器內）
+   Map Top Actions（導覽列下方浮動：篩選/目前位置/路線規劃）
+   - 不覆寫 .fab（避免破壞你原本 FAB 系統）
    ========================================= */
 
-.top-actions-bar {
+.map-top-actions {
   position: fixed;
-  left: 0;
-  right: 0;
-  top: calc(var(--safe-top) + var(--toolbar-h)); /* ✅ 緊貼導覽列下方（沿用你既有 toolbar 高度變數） */
-  z-index: 1400; /* 高於地圖與大多數 overlay */
+  left: calc(12px + var(--safe-left));
+  right: calc(12px + var(--safe-right));
+  top: calc(var(--safe-top) + var(--toolbar-h) + 10px); /* ✅ 與導覽列下緣留空隙 */
+  z-index: 1400;
 
   display: flex;
   gap: 10px;
-  padding: 8px 12px;
-
-  background: #ffffff;             /* 跟導覽列一致 */
-  border-bottom: 1px solid #eeeeee; /* 分隔線 */
+  justify-content: flex-end; /* 你要像 Google：靠右 */
+  pointer-events: none; /* 容器不吃點擊，按鈕自己吃 */
 }
 
-/* 讓容器內的 fab 變成「扁平 pill」，並取消 fixed/right/top 等定位 */
-.top-actions-bar .fab {
-  position: relative; /* 供 badge 定位 */
-  right: auto;
-  top: auto;
-  bottom: auto;
+.map-top-actions .map-action-btn {
+  pointer-events: auto;
 
-  height: 34px;               /* ✅ 扁一點 */
-  min-width: 0;
+  height: 34px;           /* ✅ 扁一點 */
   padding: 0 12px;
   border-radius: 999px;
 
-  background: #ffffff !important; /* ✅ 白色 */
-  color: #111827;                 /* 深字 */
+  background: #ffffff;    /* ✅ 白色（跟導覽列一樣） */
+  color: #111827;
   border: 1px solid #e5e7eb;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.10);
+  box-shadow: 0 2px 8px rgba(0,0,0,0.10);
+
+  font-size: 14px;
+  line-height: 34px;
+  cursor: pointer;
 
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  font-size: 14px;
 }
 
-/* hover/active 狀態（仍維持白底，但有輕微回饋） */
-.top-actions-bar .fab:hover {
+.map-top-actions .map-action-btn:hover {
   transform: translateY(-1px);
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.12);
+  box-shadow: 0 4px 12px rgba(0,0,0,0.12);
 }
 
-.top-actions-bar .fab:active {
+.map-top-actions .map-action-btn:active {
   transform: translateY(0);
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.10);
 }
 
-/* 若你有用到 .fab--active，這裡也改成「白底 + 邊框加深」而非綠底 */
-.top-actions-bar .fab--active {
-  background: #ffffff !important;
-  border-color: #9ca3af;
-  color: #111827;
+/* badge（路線數字） */
+.map-top-actions .map-action-badge {
+  margin-left: 6px;
+  min-width: 18px;
+  height: 18px;
+  padding: 0 6px;
+  border-radius: 999px;
+  background: #e53935;
+  color: #ffffff;
+  font-size: 11px;
+  line-height: 18px;
+  text-align: center;
+  display: none; /* 由 JS 控制顯示 */
 }
 
-/* badge 仍維持原樣，但位置微調（因為按鈕變扁） */
-.top-actions-bar .fab-badge {
-  top: -6px;
-  right: -6px;
-}
-
-/* 小螢幕：三顆按鈕平均分配，避免擠成一坨 */
+/* 小螢幕：不要擠爆 */
 @media (max-width: 420px) {
-  .top-actions-bar .fab {
+  .map-top-actions {
+    justify-content: space-between;
+  }
+  .map-top-actions .map-action-btn {
     flex: 1 1 0;
     min-width: 0;
-    padding: 0 10px;
     font-size: 13px;
+    padding: 0 10px;
   }
 }
