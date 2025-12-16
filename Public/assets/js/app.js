@@ -21,6 +21,19 @@ document.addEventListener('DOMContentLoaded', function () {
     fallbackCenter: null
   };
 
+  // ===== 篩選模組事件：集中在這裡發送（不要散落各處）=====
+  function emitRouteChanged() {
+    document.dispatchEvent(new CustomEvent('route:changed', {
+      detail: { routePoints: state.routePoints || [] }
+    }));
+  }
+
+  function emitModeChanged() {
+    document.dispatchEvent(new CustomEvent('mode:changed', {
+      detail: { mode: state.mode }
+    }));
+  }
+
   var myLocationPoint = null;
 
   var sheetPlace = document.getElementById('sheet-place');
@@ -979,8 +992,12 @@ document.addEventListener('DOMContentLoaded', function () {
           handleMarkerClickInRoutePlanningMode
         );
 
+        document.dispatchEvent(new CustomEvent('places:loaded', { detail: { places: places } }));
+
         MapModule.setMode(state.mode, state.routePoints);
         updateRouteBadge();
+        emitModeChanged();
+        emitRouteChanged();
       })
       .catch(function (err) {
         console.error('refreshPlaces error:', err);
@@ -1029,6 +1046,7 @@ document.addEventListener('DOMContentLoaded', function () {
     }
 
     updateRouteBadge();
+    emitModeChanged();
   }
 
   // 離開路線規劃模式（不詢問、保留已加入點）
@@ -1225,6 +1243,7 @@ document.addEventListener('DOMContentLoaded', function () {
     MapModule.setMode(state.mode, state.routePoints);
     updateCommitState();
     updateRouteBadge();
+    emitRouteChanged();
   }
 
   function handleSearchPlaceSelected(place) {
@@ -1282,6 +1301,7 @@ document.addEventListener('DOMContentLoaded', function () {
     MapModule.setMode(state.mode, state.routePoints);
     updateCommitState();
     updateRouteBadge();
+    emitRouteChanged();
   }
 
   function addPlaceToRouteAndEnterPlanning(place) {
@@ -1301,6 +1321,7 @@ document.addEventListener('DOMContentLoaded', function () {
     MapModule.setMode(state.mode, state.routePoints);
     updateCommitState();
     updateRouteBadge();
+    emitRouteChanged();
   }
 
   function removePlaceFromRoute(placeId) {
@@ -1321,6 +1342,7 @@ document.addEventListener('DOMContentLoaded', function () {
     MapModule.setMode(state.mode, state.routePoints);
     updateCommitState();
     updateRouteBadge();
+    emitRouteChanged();
   }
 
 
@@ -1536,6 +1558,7 @@ document.addEventListener('DOMContentLoaded', function () {
           MapModule.setMode(state.mode, state.routePoints);
           updateCommitState();
           updateRouteBadge();
+          emitRouteChanged();
         });
       }
 
@@ -1550,6 +1573,7 @@ document.addEventListener('DOMContentLoaded', function () {
           MapModule.setMode(state.mode, state.routePoints);
           updateCommitState();
           updateRouteBadge();
+          emitRouteChanged();
         });
       }
 
@@ -1608,6 +1632,7 @@ document.addEventListener('DOMContentLoaded', function () {
         MapModule.setMode(state.mode, state.routePoints);
         updateCommitState();
         updateRouteBadge();
+        emitRouteChanged();
       });
     });
   }

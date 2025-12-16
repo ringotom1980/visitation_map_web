@@ -1,0 +1,119 @@
+/* Path: Public/assets/css/filters.css
+ * 說明: 篩選面板（外掛），不改動原 app.css 結構
+ */
+
+.fab-tertiary {
+  right: 16px;
+  bottom: 160px; /* 避開既有兩顆 FAB */
+}
+
+/* 面板容器（含遮罩） */
+.filter-panel {
+  position: fixed;
+  inset: 0;
+  z-index: 9998;
+  display: none;
+}
+.filter-panel.is-open {
+  display: block;
+}
+
+.filter-panel__backdrop {
+  position: absolute;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.35);
+}
+
+/* Drawer */
+.filter-panel__drawer {
+  position: absolute;
+  right: 0;
+  top: 0;
+  height: 100%;
+  width: min(420px, 92vw);
+  background: #fff;
+  box-shadow: -10px 0 30px rgba(0,0,0,0.18);
+  display: flex;
+  flex-direction: column;
+}
+
+.filter-panel__header {
+  padding: 14px 14px 10px;
+  border-bottom: 1px solid #e8e8e8;
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+}
+.filter-panel__title {
+  font-size: 16px;
+  font-weight: 800;
+}
+.filter-panel__subtitle {
+  font-size: 12px;
+  color: #666;
+  margin-top: 4px;
+  line-height: 1.4;
+}
+.filter-panel__close {
+  border: 0;
+  background: transparent;
+  font-size: 18px;
+  cursor: pointer;
+  padding: 6px 8px;
+}
+
+.filter-panel__body {
+  padding: 12px 14px;
+  overflow: auto;
+  flex: 1;
+}
+
+.filter-row { margin-bottom: 12px; }
+.filter-label {
+  display: block;
+  font-size: 13px;
+  font-weight: 700;
+  margin-bottom: 6px;
+}
+
+.filter-select,
+.filter-input {
+  width: 100%;
+  border: 1px solid #d9d9d9;
+  border-radius: 10px;
+  padding: 10px 10px;
+  font-size: 14px;
+  outline: none;
+}
+.filter-select[multiple] { padding: 8px; }
+
+.filter-help {
+  font-size: 12px;
+  color: #777;
+  margin-top: 6px;
+}
+
+.filter-radio {
+  display: flex;
+  gap: 14px;
+  flex-wrap: wrap;
+  font-size: 13px;
+}
+.filter-radio input { transform: translateY(1px); }
+
+.filter-stats {
+  display: flex;
+  gap: 14px;
+  font-size: 13px;
+  color: #444;
+}
+.filter-stats b { font-weight: 900; }
+
+.filter-panel__footer {
+  padding: 12px 14px;
+  border-top: 1px solid #e8e8e8;
+  display: flex;
+  justify-content: space-between;
+  gap: 10px;
+}

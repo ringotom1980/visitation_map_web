@@ -18,6 +18,7 @@ $pageCss = [
   'assets/css/layout.css',
   'assets/css/app.css',
   'assets/css/map_overlays.css',
+  'assets/css/filters.css',
 ];
 ?>
 <!DOCTYPE html>
@@ -31,6 +32,76 @@ $pageCss = [
   <main class="app-main">
     <section class="app-content">
       <div id="map" class="app-map"></div>
+      <!-- 篩選：開關按鈕 -->
+      <button id="btn-filter" class="fab fab-tertiary" type="button" title="篩選">
+        篩選
+      </button>
+
+      <!-- 篩選面板 -->
+      <aside id="filter-panel" class="filter-panel" aria-hidden="true">
+        <div class="filter-panel__backdrop" data-filter-close="1"></div>
+
+        <div class="filter-panel__drawer" role="dialog" aria-modal="true" aria-label="篩選條件">
+          <header class="filter-panel__header">
+            <div>
+              <div class="filter-panel__title">篩選</div>
+              <div class="filter-panel__subtitle">條件即時套用；路線點永遠顯示（不符則淡化）。</div>
+            </div>
+            <button type="button" class="filter-panel__close" data-filter-close="1">✕</button>
+          </header>
+
+          <div class="filter-panel__body">
+            <div class="filter-row">
+              <label class="filter-label" for="filter-managed-town">列管鄉鎮市區（可多選）</label>
+              <select id="filter-managed-town" class="filter-select" multiple size="10">
+                <option value="">載入中...</option>
+              </select>
+              <div class="filter-help">依你所屬單位限制清單（managed_towns/list）。</div>
+            </div>
+
+            <div class="filter-row">
+              <label class="filter-label" for="filter-category">類別（可多選）</label>
+              <select id="filter-category" class="filter-select" multiple size="7">
+                <option value="">載入中...</option>
+              </select>
+            </div>
+
+            <div class="filter-row">
+              <label class="filter-label" for="filter-over65">是否 65 歲以上</label>
+              <select id="filter-over65" class="filter-select">
+                <option value="ALL" selected>不限</option>
+                <option value="Y">是</option>
+                <option value="N">否</option>
+              </select>
+            </div>
+
+            <div class="filter-row">
+              <label class="filter-label" for="filter-keyword">關鍵字（姓名 / 受益人 / 地址）</label>
+              <input id="filter-keyword" class="filter-input" type="text" placeholder="輸入後即時篩選" autocomplete="off" />
+            </div>
+
+            <div class="filter-row">
+              <label class="filter-label">篩選規則</label>
+              <div class="filter-radio">
+                <label><input type="radio" name="filter-logic" value="AND" checked> 全部符合（AND）</label>
+                <label><input type="radio" name="filter-logic" value="OR"> 任一符合（OR）</label>
+              </div>
+            </div>
+
+            <div class="filter-row">
+              <div class="filter-stats">
+                <span>顯示：<b id="filter-count-visible">0</b></span>
+                <span>淡化（路線保留）：<b id="filter-count-dimmed">0</b></span>
+              </div>
+            </div>
+          </div>
+
+          <footer class="filter-panel__footer">
+            <button id="btn-filter-clear" type="button" class="btn btn-outline">清除條件</button>
+            <button id="btn-filter-close" type="button" class="btn btn-primary" data-filter-close="1">完成</button>
+          </footer>
+        </div>
+      </aside>
 
       <button
         id="btn-my-location"
@@ -322,6 +393,9 @@ $pageCss = [
   <script src="<?= asset_url('assets/js/places.js') ?>"></script>
   <script src="<?= asset_url('assets/js/map.js') ?>"></script>
   <script src="<?= asset_url('assets/js/place_form.js') ?>"></script>
+  <!-- ✅ 篩選模組 -->
+  <script src="<?= asset_url('assets/js/filters.js') ?>"></script>
+  <script src="<?= asset_url('assets/js/filters_ui.js') ?>"></script>
   <script src="<?= asset_url('assets/js/app.js') ?>"></script>
 </body>
 

@@ -25,7 +25,6 @@ document.addEventListener('DOMContentLoaded', function () {
 
   var sheetPlace = document.getElementById('sheet-place');
   var sheetPoi = document.getElementById('sheet-poi');
-  var placeForm = document.getElementById('place-form');
 
   var btnMyLocation = document.getElementById('btn-my-location');
   var btnRouteMode = document.getElementById('btn-route-mode');
@@ -88,6 +87,9 @@ document.addEventListener('DOMContentLoaded', function () {
     onSearchPlaceSelected: handleSearchPlaceSelected,
     onMapLongPressForNewPlace: handleMapLongPressForNewPlace
   });
+  if (window.PlaceForm) {
+    PlaceForm.init({ MapModule: MapModule, PlacesApi: PlacesApi, apiRequest: apiRequest });
+  }
 
   // ===== 搜尋列（Google Map 風格）：放大鏡搜尋 + 動態 X 清除 =====
   (function bindSearchBarUX() {
@@ -714,21 +716,39 @@ document.addEventListener('DOMContentLoaded', function () {
   }
 
   if (btnPlaceSave) {
-    btnPlaceSave.addEventListener('click', handlePlaceSave);
+    btnPlaceSave.addEventListener('click', function () {
+      if (!window.PlaceForm) return;
+      PlaceForm.submit(state.currentPlace); // 編輯時讓它可以沿用 currentPlace 的 lat/lng
+    });
   }
 
   if (btnPlaceEdit) {
-    btnPlaceEdit.addEventListener('click', function () {
+    btnPlaceEdit.addEventListener('click', async function () {
       if (state.mode !== Mode.BROWSE) return;
       if (!state.currentPlace) return;
 
-      // ✅ 先把資訊抽屜完整收掉（避免和 Modal 疊在一起）
-      closeSheet('sheet-place');
-      setPlaceSheetBackdrop(false);     // 你目前設定 S1 不用 backdrop，但保險呼叫
-      collapsePlaceDetails(true);       // 收合詳細區，避免下次打開狀態錯亂
+      var id = state.currentPlace.id;
 
-      // ✅ 再開啟編輯 Modal
-      openPlaceFormForEdit(state.currentPlace);
+      closeSheet('sheet-place');
+      setPlaceSheetBackdrop(false);
+      collapsePlaceDetails(true);
+
+      try {
+        // ✅ 先抓最新單筆（確保 managed_town_code / managed_county_code 有值）
+        var res = await apiRequest('/places/get?id=' + encodeURIComponent(id), 'GET');
+
+        // apiRequest 回傳的是 {success, data}，真正的 place 在 res.data
+        var place = (res && res.data) ? res.data : null;
+
+        // 更新 currentPlace，避免後續 submit 沿用舊資料
+        state.currentPlace = place || state.currentPlace;
+
+        if (window.PlaceForm) PlaceForm.openForEdit(state.currentPlace);
+      } catch (err) {
+        console.error('load place detail fail:', err);
+        // 失敗才退回用 cache（至少不讓使用者卡住）
+        if (window.PlaceForm) PlaceForm.openForEdit(state.currentPlace);
+      }
     });
   }
 
@@ -831,18 +851,39 @@ document.addEventListener('DOMContentLoaded', function () {
   document.body.addEventListener('click', function (evt) {
     var target = evt.target;
 
+    // Modal close：一律交給 PlaceForm（它含 iOS body lock 解鎖）
     if (target && (target.matches('[data-modal-close]') || target.matches('.modal__backdrop'))) {
       var id = target.getAttribute('data-modal-close') || 'modal-place-form';
-      closeModal(id);
-      if (MapModule.clearTempNewPlaceLatLng) MapModule.clearTempNewPlaceLatLng();
+
+      if (window.PlaceForm && typeof PlaceForm.closeModal === 'function') {
+        PlaceForm.closeModal(id);
+      } else {
+        // fallback：至少把 modal 關掉（避免卡死）
+        var el = document.getElementById(id);
+        if (el) {
+          el.classList.remove('modal--open');
+          el.setAttribute('aria-hidden', 'true');
+          document.body.classList.remove('is-modal-open');
+        }
+      }
+
+      if (MapModule && MapModule.clearTempNewPlaceLatLng) MapModule.clearTempNewPlaceLatLng();
     }
 
+    // Bottom sheet close（保留原本行為）
     var sheetCloseBtn = target && target.closest ? target.closest('[data-sheet-close]') : null;
     if (sheetCloseBtn) {
       var sid = sheetCloseBtn.getAttribute('data-sheet-close');
       if (sid === 'sheet-route') return;
       closeSheet(sid);
     }
+  });
+
+  document.addEventListener('placeForm:saved', function () {
+    closeSheet('sheet-place');
+    state.currentPlace = null;
+    collapsePlaceDetails(true);
+    refreshPlaces();
   });
 
   // ===== map:blankClick 統一入口（唯一監聽）=====
@@ -890,11 +931,20 @@ document.addEventListener('DOMContentLoaded', function () {
 
   function loadMeNonBlocking() {
     apiRequest('/auth/me', 'GET')
-      .then(function (me) {
-        state.me = me || null;
+      .then(function (payload) {
+        // ✅ apiRequest 回的是 {success, data}
+        var me = (payload && payload.data) ? payload.data : null;
 
-        if (navUserNameEl && me && me.name) {
-          navUserNameEl.textContent = me.name;
+        state.me = me;
+
+        if (window.PlaceForm) PlaceForm.setMe(state.me);
+
+        if (navUserNameEl) {
+          var displayName =
+            (me && (me.name || me.full_name || me.username || me.email))
+              ? (me.name || me.full_name || me.username || me.email)
+              : '';
+          navUserNameEl.textContent = displayName ? String(displayName) : '—';
         }
 
         if (me && isFinite(me.county_center_lat) && isFinite(me.county_center_lng)) {
@@ -1184,22 +1234,8 @@ document.addEventListener('DOMContentLoaded', function () {
 
   function handleMapLongPressForNewPlace(latLng, address) {
     if (state.mode !== Mode.BROWSE) return;
-
-    if (placeForm && placeForm.reset) placeForm.reset();
-
-    var idInput = document.getElementById('place-id');
-    var addrInput = document.getElementById('place-address-text');
-    var titleEl = document.getElementById('modal-place-title');
-
-    // ★新增：預設 65+ 為 N
-    var over65Select = document.getElementById('place-beneficiary-over65');
-    if (over65Select) over65Select.value = 'N';
-
-    if (idInput) idInput.value = '';
-    if (addrInput) addrInput.value = address || '';
-    if (titleEl) titleEl.textContent = '新增標記';
-
-    openModal('modal-place-form');
+    if (!window.PlaceForm) return;
+    PlaceForm.openForCreate(latLng, address);
   }
 
   function handleMarkerClickInBrowseMode(place) {
@@ -1606,125 +1642,6 @@ document.addEventListener('DOMContentLoaded', function () {
     routeBadgeEl.style.display = n > 0 ? 'inline-flex' : 'none';
   }
 
-  function openPlaceFormForEdit(place) {
-    var idInput = document.getElementById('place-id');
-    var nameInput = document.getElementById('place-serviceman-name');
-    var catSelect = document.getElementById('place-category');
-    var targetInput = document.getElementById('place-visit-target');
-    var visitNameInput = document.getElementById('place-visit-name');                 // ★新增
-    var condolenceInput = document.getElementById('place-condolence-order-no');       // ★新增
-    var over65Select = document.getElementById('place-beneficiary-over65');           // ★新增 (select Y/N)
-    var mdistInput = document.getElementById('place-managed-district');
-    var addrInput = document.getElementById('place-address-text');
-    var noteInput = document.getElementById('place-note');
-    var titleEl = document.getElementById('modal-place-title');
-
-    if (idInput) idInput.value = place.id;
-    if (nameInput) nameInput.value = place.serviceman_name || place.soldier_name || '';
-    if (catSelect) catSelect.value = place.category || '';
-    if (targetInput) targetInput.value = place.visit_target || place.target_name || '';
-    if (visitNameInput) visitNameInput.value = place.visit_name || '';                // ★新增
-    if (condolenceInput) condolenceInput.value = place.condolence_order_no || '';     // ★新增
-    if (over65Select) over65Select.value = (place.beneficiary_over65 || 'N');         // ★新增
-    if (mdistInput) mdistInput.value = place.managed_district || '';
-    if (addrInput) addrInput.value = place.address_text || place.address || '';
-    if (noteInput) noteInput.value = place.note || '';
-    if (titleEl) titleEl.textContent = '編輯標記';
-
-    openModal('modal-place-form');
-  }
-
-  async function handlePlaceSave() {
-    if (!placeForm) return;
-    if (state.mode !== Mode.BROWSE) return;
-
-    var formData = new FormData(placeForm);
-    var id = (formData.get('id') || '').toString().trim();
-
-    // ===== canonical (A: 表單用 canonical 欄位名) =====
-    var payload = {
-      serviceman_name: (formData.get('serviceman_name') || '').toString().trim(),
-      category: (formData.get('category') || '').toString().trim(),
-      visit_target: (formData.get('visit_target') || '').toString().trim(),
-
-      // 仍為 canonical
-      visit_name: (formData.get('visit_name') || '').toString().trim(),
-      condolence_order_no: (formData.get('condolence_order_no') || '').toString().trim(),
-      beneficiary_over65: (formData.get('beneficiary_over65') || 'N').toString().trim().toUpperCase(),
-
-      managed_district: (formData.get('managed_district') || '').toString().trim(),
-
-      address_text: (formData.get('address_text') || '').toString().trim(),
-      note: (formData.get('note') || '').toString().trim()
-    };
-
-    // ===== alias（保留舊 PlacesApi/舊後端收法）=====
-    payload.soldier_name = payload.serviceman_name;
-    payload.target_name = payload.visit_target;
-    payload.address = payload.address_text;
-
-    // 基本驗證：官兵姓名/類別必填
-    if (!payload.serviceman_name || !payload.category) {
-      alert('官兵姓名與類別為必填欄位。');
-      return;
-    }
-
-    // 受益人姓名必填（避免 visit_name 為空導致 uq 重覆判斷混亂）
-    if (!payload.visit_name) {
-      alert('受益人姓名為必填欄位。');
-      return;
-    }
-
-    // Y/N 防呆
-    if (payload.beneficiary_over65 !== 'Y' && payload.beneficiary_over65 !== 'N') {
-      payload.beneficiary_over65 = 'N';
-    }
-
-    var latLng = (MapModule.getTempNewPlaceLatLng ? MapModule.getTempNewPlaceLatLng() : null);
-
-    try {
-      if (id) {
-        // 編輯：lat/lng 可用暫存新點，否則沿用原資料（canonical/alias 都支援）
-        var base = (state.currentPlace && String(state.currentPlace.id) === String(id)) ? state.currentPlace : null;
-
-        var baseLat = base ? (base.lat !== undefined ? base.lat : base.latitude) : null;
-        var baseLng = base ? (base.lng !== undefined ? base.lng : base.longitude) : null;
-
-        payload.lat = latLng ? latLng.lat() : (baseLat !== null ? baseLat : null);
-        payload.lng = latLng ? latLng.lng() : (baseLng !== null ? baseLng : null);
-
-        if (payload.lat === null || payload.lng === null) {
-          alert('編輯時缺少座標資訊，請在地圖上重新長按選擇位置後再儲存。');
-          return;
-        }
-
-        await PlacesApi.update(id, payload);
-
-      } else {
-        // 新增：必須有新點位
-        if (!latLng) {
-          alert('請在地圖上長按選擇位置後再儲存。');
-          return;
-        }
-        payload.lat = latLng.lat();
-        payload.lng = latLng.lng();
-
-        await PlacesApi.create(payload);
-      }
-
-      closeModal('modal-place-form');
-      if (MapModule.clearTempNewPlaceLatLng) MapModule.clearTempNewPlaceLatLng();
-
-      closeSheet('sheet-place');
-      state.currentPlace = null;
-
-      await refreshPlaces();
-    } catch (err) {
-      console.error(err);
-      alert((err && err.message) ? err.message : '儲存失敗');
-    }
-  }
-
   async function handlePlaceDelete() {
     if (!state.currentPlace) return;
     if (!confirm('確定要刪除這個地點嗎？此動作無法復原。')) return;
@@ -1753,7 +1670,7 @@ document.addEventListener('DOMContentLoaded', function () {
 
     el.classList.add('bottom-sheet--open');
 
-    if (id === 'sheet-place') setPlaceSheetBackdrop(false);
+    if (id === 'sheet-place') setPlaceSheetBackdrop(true);
   }
 
 
@@ -1827,62 +1744,6 @@ document.addEventListener('DOMContentLoaded', function () {
       closeSheet('sheet-poi');
     }, { passive: true });
   })();
-
-
-  // ===== FIX: iOS 鍵盤導致頁面被推上去後無法回位（鎖定 body scroll） =====
-  var __modalScrollY = 0;
-
-  function lockBodyScroll() {
-    // 記錄當下捲動位置
-    __modalScrollY = window.scrollY || document.documentElement.scrollTop || 0;
-
-    // 把 body 固定住，避免 iOS 鍵盤/聚焦時滾動整頁
-    document.body.style.position = 'fixed';
-    document.body.style.top = (-__modalScrollY) + 'px';
-    document.body.style.left = '0';
-    document.body.style.right = '0';
-    document.body.style.width = '100%';
-  }
-
-  function unlockBodyScroll() {
-    // 還原 body
-    document.body.style.position = '';
-    document.body.style.top = '';
-    document.body.style.left = '';
-    document.body.style.right = '';
-    document.body.style.width = '';
-
-    // 把捲動位置還回去（關鍵：讓 toolbar/search 回到原位）
-    window.scrollTo(0, __modalScrollY || 0);
-  }
-
-  function openModal(id) {
-    var el = document.getElementById(id);
-    if (!el) return;
-
-    el.classList.add('modal--open');
-    el.setAttribute('aria-hidden', 'false');
-
-    // 原本就有
-    document.body.classList.add('is-modal-open');
-
-    // ★新增：鎖住捲動，避免 iOS 鍵盤推頁面後卡住
-    lockBodyScroll();
-  }
-
-  function closeModal(id) {
-    var el = document.getElementById(id);
-    if (!el) return;
-
-    el.classList.remove('modal--open');
-    el.setAttribute('aria-hidden', 'true');
-
-    // 原本就有
-    document.body.classList.remove('is-modal-open');
-
-    // ★新增：解鎖並回復捲動位置
-    unlockBodyScroll();
-  }
 
   function escapeHtml(str) {
     return String(str)
