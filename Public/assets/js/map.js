@@ -867,4 +867,3 @@ var MapModule = (function () {
 
 window.MapModule = MapModule;
 window.markersById = MapModule._markersById;
-
