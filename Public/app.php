@@ -32,10 +32,21 @@ $pageCss = [
   <main class="app-main">
     <section class="app-content">
       <div id="map" class="app-map"></div>
-      <!-- 篩選：開關按鈕 -->
-      <button id="btn-filter" class="fab fab-tertiary" type="button" title="篩選">
-        篩選
-      </button>
+      <!-- ✅ 導覽列下方：三顆扁平白色操作按鈕（篩選 / 目前位置 / 路線規劃） -->
+      <div class="top-actions-bar" role="toolbar" aria-label="地圖操作">
+        <button id="btn-filter" class="fab fab-tertiary top-action-btn" type="button" title="篩選">
+          篩選
+        </button>
+
+        <button id="btn-my-location" class="fab fab-primary top-action-btn" type="button" title="移到我現在的位置">
+          目前位置
+        </button>
+
+        <button id="btn-route-mode" class="fab fab-secondary top-action-btn" type="button" title="路線規劃（加入拜訪點後再進入排序）">
+          路線規劃
+          <span id="route-badge" class="fab-badge" aria-hidden="true">0</span>
+        </button>
+      </div>
 
       <!-- 篩選面板 -->
       <aside id="filter-panel" class="filter-panel" aria-hidden="true">
@@ -59,7 +70,7 @@ $pageCss = [
               <div id="filter-reside-town" class="filter-checkgrid filter-checkgrid--4">
                 <div class="filter-loading">載入中...</div>
               </div>
-              <div class="filter-help">依目前標記資料實際存在的「鄉鎮市區」生成（不顯示縣市）。</div>
+              <div class="filter-help">依列管人員戶籍地篩選。</div>
             </div>
 
             <!-- ② 列管鄉鎮市區（可多選） -->
@@ -69,7 +80,7 @@ $pageCss = [
               <div id="filter-managed-town" class="filter-checkgrid filter-checkgrid--4">
                 <div class="filter-loading">載入中...</div>
               </div>
-              <div class="filter-help">依你所屬單位限制清單（managed_towns/list），且只顯示資料表實際有用到的鄉鎮市區。</div>
+              <div class="filter-help">依列管人員居住地篩選。</div>
             </div>
 
             <!-- ③ 類別（可多選） -->
@@ -103,23 +114,6 @@ $pageCss = [
           </footer>
         </div>
       </aside>
-
-      <button
-        id="btn-my-location"
-        class="fab fab-primary"
-        type="button"
-        title="移到我現在的位置">
-        目前位置
-      </button>
-
-      <button
-        id="btn-route-mode"
-        class="fab fab-secondary"
-        type="button"
-        title="路線規劃（加入拜訪點後再進入排序）">
-        路線規劃
-        <span id="route-badge" class="fab-badge" aria-hidden="true">0</span>
-      </button>
 
       <!-- S1 資訊抽屜 -->
       <div id="sheet-place" class="bottom-sheet bottom-sheet--place">
