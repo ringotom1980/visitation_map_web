@@ -36,6 +36,7 @@ try {
             p.condolence_order_no,
             p.beneficiary_over65,
             p.address_text,
+            p.address_town_code,
 
             p.managed_district,
             p.managed_town_code,
