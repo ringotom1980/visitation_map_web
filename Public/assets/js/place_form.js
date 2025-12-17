@@ -165,6 +165,11 @@
                 alert('受益人姓名為必填欄位。');
                 return;
             }
+            if (!payload.condolence_order_no) {
+                alert('撫卹令號為必填欄位。');
+                return;
+            }
+
             if (payload.beneficiary_over65 !== 'Y' && payload.beneficiary_over65 !== 'N') {
                 payload.beneficiary_over65 = 'N';
             }

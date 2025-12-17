@@ -83,7 +83,10 @@ $lat = $input['lat'] ?? null;
 $lng = $input['lng'] ?? null;
 
 if ($id <= 0) json_error('參數錯誤：缺少 id', 400);
-if ($soldierName === '' || $category === '') json_error('官兵姓名與類別為必填欄位', 400);
+if ($soldierName === '' || $category === '' || $condNo === null) {
+    json_error('官兵姓名、類別、撫卹令號為必填欄位', 400);
+}
+
 if (($hasLat && !is_numeric($lat)) || ($hasLng && !is_numeric($lng))) json_error('座標資訊錯誤（lat/lng 必須為數值）', 400);
 if ($over65 !== 'Y' && $over65 !== 'N') $over65 = 'N';
 
