@@ -56,7 +56,7 @@ $pageCss = [
           <header class="filter-panel__header">
             <div>
               <div class="filter-panel__title">篩選</div>
-              <div class="filter-panel__subtitle">條件即時套用；路線點永遠顯示（不符則淡化）。</div>
+              <div class="filter-panel__subtitle">選擇條件後即時套用，已加入路線的點不符條件時淡化。</div>
             </div>
             <button type="button" class="filter-panel__close" data-filter-close="1">✕</button>
           </header>
@@ -65,27 +65,25 @@ $pageCss = [
 
             <!-- ① 居住鄉鎮市區（可多選） -->
             <div class="filter-row">
-              <label class="filter-label">居住鄉鎮市區（可多選）</label>
+              <label class="filter-label">依居住鄉鎮市區（可複選）</label>
               <!-- ✅ checkbox 容器：由 places.address_town_code / address_text 動態生成 -->
               <div id="filter-reside-town" class="filter-checkgrid filter-checkgrid--4">
                 <div class="filter-loading">載入中...</div>
               </div>
-              <div class="filter-help">依列管人員戶籍地篩選。</div>
             </div>
 
             <!-- ② 列管鄉鎮市區（可多選） -->
             <div class="filter-row">
-              <label class="filter-label">列管鄉鎮市區（可多選）</label>
+              <label class="filter-label">依列管鄉鎮市區（可複選）</label>
               <!-- ✅ checkbox 容器：由 managed_towns/list 與 places 實際存在值交集 -->
               <div id="filter-managed-town" class="filter-checkgrid filter-checkgrid--4">
                 <div class="filter-loading">載入中...</div>
               </div>
-              <div class="filter-help">依列管人員居住地篩選。</div>
             </div>
 
             <!-- ③ 類別（可多選） -->
             <div class="filter-row">
-              <label class="filter-label">類別（可多選）</label>
+              <label class="filter-label">類別（可複選）</label>
               <!-- ✅ checkbox 容器：由 places.category 動態生成 -->
               <div id="filter-category" class="filter-checkgrid filter-checkgrid--2">
                 <div class="filter-loading">載入中...</div>
@@ -102,8 +100,8 @@ $pageCss = [
 
             <div class="filter-row">
               <div class="filter-stats">
-                <span>顯示：<b id="filter-count-visible">0</b></span>
-                <span>淡化（路線保留）：<b id="filter-count-dimmed">0</b></span>
+                <span>符合條件：<b id="filter-count-visible">0</b>筆。</span>
+                <span>已加入路線不符條件：<b id="filter-count-dimmed">0</b>筆。</span>
               </div>
             </div>
           </div>
@@ -239,7 +237,7 @@ $pageCss = [
             <div>
               <div class="bottom-sheet__title">路線規劃</div>
               <div class="bottom-sheet__subtitle" id="route-mode-hint">
-                已進入路線規劃模式，請依順序點選要拜訪的地點（再點一次可移除）。
+                已進入路線規劃模式，請依順序點選要拜訪的地點（可拖曳變更順序，再點一次可移除）。
               </div>
             </div>
             <button id="btn-route-close" type="button" class="bottom-sheet__close">
@@ -307,18 +305,16 @@ $pageCss = [
                 <label for="place-category">類別（必選）</label>
                 <select id="place-category" name="category" required>
                   <option value="">請選擇</option>
-
+                  <optgroup label="死亡">
+                    <option value="因公死亡">因公死亡</option>
+                    <option value="意外死亡">意外死亡</option>
+                    <option value="因病死亡">因病死亡</option>
+                  </optgroup>
                   <optgroup label="身心障礙官兵">
                     <option value="身心障礙官兵-因公">身心障礙官兵－因公</option>
                     <option value="身心障礙官兵-意外">身心障礙官兵－意外</option>
                     <option value="身心障礙官兵-因病">身心障礙官兵－因病</option>
                     <option value="身心障礙官兵-作戰">身心障礙官兵－作戰</option>
-                  </optgroup>
-
-                  <optgroup label="死亡">
-                    <option value="因公死亡">因公死亡</option>
-                    <option value="意外死亡">意外死亡</option>
-                    <option value="因病死亡">因病死亡</option>
                   </optgroup>
                 </select>
               </div>
@@ -364,11 +360,11 @@ $pageCss = [
               <div class="form-row">
                 <label for="place-address-text">地址</label>
                 <input id="place-address-text" name="address_text" type="text" readonly />
-                <small class="form-help">會自動帶入你在地圖上點選的位置（可之後再提供手動修正）。</small>
+                <small class="form-help">會自動帶入你在地圖上點選的位置（正確地址請在備註填寫）。</small>
               </div>
 
               <div class="form-row">
-                <label for="place-note">備註</label>
+                <label for="place-note">備註(請勿紀錄連絡電話或機敏資訊避免洩漏)</label>
                 <textarea id="place-note" name="note" rows="3"></textarea>
               </div>
             </form>
