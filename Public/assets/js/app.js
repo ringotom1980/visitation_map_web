@@ -1128,11 +1128,18 @@ document.addEventListener('DOMContentLoaded', function () {
       function (pos) {
         var lat = pos.coords.latitude;
         var lng = pos.coords.longitude;
+        var acc = pos && pos.coords ? Number(pos.coords.accuracy) : NaN; // ★公尺
+
+        // ★關鍵：精度太差（桌機 / Wi-Fi / IP 定位常發生）就不要拿來當「目前位置」
+        // 門檻你可調：150~300 都合理，我先給 200m
+        if (!isFinite(acc) || acc > 200) {
+          console.warn('geolocation accuracy too low, use fallback. acc(m)=', acc);
+          panToFallbackIfNeeded();
+          return;
+        }
 
         myLocationPoint = {
           id: '__me',
-
-          // ===== canonical（新版 places schema）=====
           serviceman_name: '目前位置',
           category: 'CURRENT',
           visit_target: '',
@@ -1140,8 +1147,6 @@ document.addEventListener('DOMContentLoaded', function () {
           note: '',
           lat: lat,
           lng: lng,
-
-          // ===== legacy alias（相容 MapModule / 舊程式）=====
           soldier_name: '目前位置',
           target_name: '',
           address: ''
@@ -1155,7 +1160,8 @@ document.addEventListener('DOMContentLoaded', function () {
           MapModule.setMode(state.mode, state.routePoints);
           updateCommitState();
         }
-      },
+      }
+      ,
       function (err) {
         console.warn('geolocation fail:', err && err.message ? err.message : err);
         panToFallbackIfNeeded();
