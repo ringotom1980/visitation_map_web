@@ -66,6 +66,9 @@
         // 新增：由 app.js 的長按事件呼叫
         openForCreate: function (latLng, address) {
             if (!this._form) return;
+            if (this._MapModule && this._MapModule.clearTempNewPlaceLatLng) {
+                this._MapModule.clearTempNewPlaceLatLng();
+            }
 
             if (this._form.reset) this._form.reset();
 
@@ -92,6 +95,9 @@
         // 編輯：由 app.js 的「編輯」按鈕呼叫
         openForEdit: function (place) {
             if (!place) return;
+            if (this._MapModule && this._MapModule.clearTempNewPlaceLatLng) {
+                this._MapModule.clearTempNewPlaceLatLng();
+            }
 
             // 回填表單欄位
             this._setValue('place-id', place.id);
@@ -124,6 +130,7 @@
         },
 
         // 儲存：由 app.js 的「儲存」按鈕呼叫
+        // 儲存：由 app.js 的「儲存」按鈕呼叫
         submit: async function (currentPlaceForEditFallback) {
             if (!this._form) return;
             if (!this._PlacesApi) {
@@ -151,11 +158,6 @@
                 note: (formData.get('note') || '').toString().trim()
             };
 
-            // alias 相容（你原本就有）
-            payload.soldier_name = payload.serviceman_name;
-            payload.target_name = payload.visit_target;
-            payload.address = payload.address_text;
-
             // 基本驗證
             if (!payload.serviceman_name || !payload.category) {
                 alert('官兵姓名與類別為必填欄位。');
@@ -169,6 +171,7 @@
                 payload.beneficiary_over65 = 'N';
             }
 
+            // 列管鄉鎮必填（由 hidden 判斷）
             if (!payload.managed_town_code) {
                 if (this._selectTown) {
                     this._selectTown.setCustomValidity('請選擇列管鄉鎮市區');
@@ -179,20 +182,34 @@
                 return;
             }
 
+            // 取地圖暫存點（長按）
             var latLng = (this._MapModule && this._MapModule.getTempNewPlaceLatLng)
                 ? this._MapModule.getTempNewPlaceLatLng()
                 : null;
 
             try {
                 if (id) {
-                    // 編輯：lat/lng 若沒有新點就沿用 currentPlace
+                    // ========== 編輯：lat/lng 若沒有新點就沿用 currentPlace ==========
                     var base = currentPlaceForEditFallback || null;
 
-                    var baseLat = base ? (base.lat !== undefined ? base.lat : base.latitude) : null;
-                    var baseLng = base ? (base.lng !== undefined ? base.lng : base.longitude) : null;
+                    var baseLatRaw = base
+                        ? (base.lat !== undefined ? base.lat
+                            : (base.latitude !== undefined ? base.latitude : null))
+                        : null;
 
-                    payload.lat = latLng ? latLng.lat() : (baseLat !== null ? baseLat : null);
-                    payload.lng = latLng ? latLng.lng() : (baseLng !== null ? baseLng : null);
+                    var baseLngRaw = base
+                        ? (base.lng !== undefined ? base.lng
+                            : (base.longitude !== undefined ? base.longitude : null))
+                        : null;
+
+                    var baseLatNum = (baseLatRaw === null || baseLatRaw === '') ? null : Number(baseLatRaw);
+                    var baseLngNum = (baseLngRaw === null || baseLngRaw === '') ? null : Number(baseLngRaw);
+
+                    if (baseLatNum !== null && !isFinite(baseLatNum)) baseLatNum = null;
+                    if (baseLngNum !== null && !isFinite(baseLngNum)) baseLngNum = null;
+
+                    payload.lat = latLng ? latLng.lat() : baseLatNum;
+                    payload.lng = latLng ? latLng.lng() : baseLngNum;
 
                     if (payload.lat === null || payload.lng === null) {
                         alert('編輯時缺少座標資訊，請在地圖上重新長按選擇位置後再儲存。');
@@ -200,28 +217,39 @@
                     }
 
                     await this._PlacesApi.update(id, payload);
+
                 } else {
+                    // ========== 新增：一定要有長按座標 ==========
                     if (!latLng) {
                         alert('請在地圖上長按選擇位置後再儲存。');
                         return;
                     }
+
                     payload.lat = latLng.lat();
                     payload.lng = latLng.lng();
 
                     await this._PlacesApi.create(payload);
                 }
 
+                // 成功：關閉 modal + 清暫存點
                 this.closeModal('modal-place-form');
                 if (this._MapModule && this._MapModule.clearTempNewPlaceLatLng) {
                     this._MapModule.clearTempNewPlaceLatLng();
                 }
 
-                // 交由 app.js 決定要不要 refreshPlaces（比較乾淨）
+                // 交由 app.js 決定要不要 refreshPlaces
                 document.dispatchEvent(new CustomEvent('placeForm:saved'));
+
             } catch (err) {
-                console.error(err);
-                alert((err && err.message) ? err.message : '儲存失敗');
+                console.error('PlaceForm submit error:', err);
+
+                // ✅ 只用 fetch/apiRequest 可用的錯誤來源
+                var msg = (err && err.message) ? err.message : '';
+                if (!msg && err && err.error && err.error.message) msg = err.error.message;
+
+                alert(msg || '儲存失敗');
             }
+
         },
 
         // ========== Modal open/close（把 iOS body lock 一起搬來）==========

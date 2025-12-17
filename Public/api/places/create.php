@@ -8,6 +8,29 @@ declare(strict_types=1);
 
 require_once __DIR__ . '/../common/bootstrap.php';
 
+header('Content-Type: application/json; charset=utf-8');
+
+/**
+ * 保證任何錯誤都回 JSON（避免 500 空 body）
+ */
+set_exception_handler(function (Throwable $e) {
+    http_response_code(500);
+    echo json_encode([
+        'success' => false,
+        'error' => [
+            'message' => $e->getMessage(),
+            'type'    => get_class($e),
+            'file'    => $e->getFile(),
+            'line'    => $e->getLine(),
+        ],
+    ], JSON_UNESCAPED_UNICODE);
+    exit;
+});
+
+set_error_handler(function ($severity, $message, $file, $line) {
+    throw new ErrorException($message, 0, $severity, $file, $line);
+});
+
 if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
     json_error('Method not allowed', 405);
 }
@@ -21,26 +44,19 @@ if (!$user) {
 $input = $_POST;
 if (empty($input)) {
     $raw = file_get_contents('php://input');
-    if ($raw) {
+    if ($raw !== false && $raw !== '') {
         $json = json_decode($raw, true);
         if (is_array($json)) $input = $json;
     }
 }
 
-$soldierName = trim((string)($input['serviceman_name'] ?? $input['soldier_name'] ?? ''));
+$soldierName = trim((string)($input['serviceman_name'] ?? ($input['soldier_name'] ?? '')));
 $category    = trim((string)($input['category'] ?? ''));
-$targetName  = trim((string)($input['visit_target'] ?? $input['target_name'] ?? ''));
+$targetName  = trim((string)($input['visit_target'] ?? ($input['target_name'] ?? '')));
 $visitName   = trim((string)($input['visit_name'] ?? ''));
 $condNo      = trim((string)($input['condolence_order_no'] ?? ''));
 $over65      = strtoupper(trim((string)($input['beneficiary_over65'] ?? 'N')));
-$address     = trim((string)($input['address_text'] ?? $input['address'] ?? ''));
-require_once __DIR__ . '/../common/address_parser.php';
-
-$addressTownCode = null;
-if ($address !== '') {
-    $addressTownCode = parse_address_to_town_code($pdo, $address);
-}
-
+$address     = trim((string)($input['address_text'] ?? ($input['address'] ?? '')));
 $note        = trim((string)($input['note'] ?? ''));
 
 // ✅ 列管三欄（district + 兩個 code）
@@ -53,30 +69,40 @@ $lng = $input['lng'] ?? null;
 
 // 基本驗證
 if ($soldierName === '' || $category === '') {
-    json_error('官兵姓名與類別為必填欄位');
+    json_error('官兵姓名與類別為必填欄位', 400);
 }
 if (!is_numeric($lat) || !is_numeric($lng)) {
-    json_error('座標資訊錯誤（lat/lng 必須為數值）');
+    json_error('座標資訊錯誤（lat/lng 必須為數值）', 400);
 }
 if ($over65 !== 'Y' && $over65 !== 'N') $over65 = 'N';
 
 // 空字串轉 NULL（避免寫入 ''）
-if ($mdist === '') $mdist = null;
-if ($mtownCode === '') $mtownCode = null;
-if ($mcountyCode === '') $mcountyCode = null;
-if ($targetName === '') $targetName = null;
-if ($visitName === '') $visitName = null;
-if ($condNo === '') $condNo = null;
-if ($address === '') $address = null;
-if ($note === '') $note = null;
+$mdist     = ($mdist === '') ? null : $mdist;
+$mtownCode = ($mtownCode === '') ? null : $mtownCode;
+$mcountyCode = ($mcountyCode === '') ? null : $mcountyCode;
+$targetName  = ($targetName === '') ? null : $targetName;
+$visitName   = ($visitName === '') ? null : $visitName;
+$condNo      = ($condNo === '') ? null : $condNo;
+$address     = ($address === '') ? null : $address;
+$note        = ($note === '') ? null : $note;
 
+// ✅ 先拿 PDO（重要：後面會用到）
 $pdo = db();
+
+// 地址解析（戶籍地 town_code）— 不與列管強制一致
+require_once __DIR__ . '/../common/address_parser.php';
+$addressTownCode = null;
+if ($address !== null) {
+    $addressTownCode = parse_address_to_town_code($pdo, (string)$address);
+}
+$addressTownCode = ($addressTownCode === '' ? null : $addressTownCode);
 
 try {
     // 若有 town_code 但未帶 county_code → 由 admin_towns 推得
     if ($mtownCode && !$mcountyCode) {
         $stmtCC = $pdo->prepare('SELECT county_code FROM admin_towns WHERE town_code = :tc LIMIT 1');
-        $stmtCC->execute([':tc' => $mtownCode]);
+        // ✅ execute key 一律不帶冒號
+        $stmtCC->execute(['tc' => $mtownCode]);
         $mcountyCode = $stmtCC->fetchColumn() ?: null;
     }
 
@@ -120,24 +146,42 @@ try {
                 NOW()
             )';
 
+    // ✅ execute key 一律不帶冒號（跟 update.php 對齊）
     $params = [
-        ':org_id'          => (int)$user['organization_id'],
-        ':updated_by'      => (int)$user['id'],
-        ':serviceman_name' => $soldierName,
-        ':category'        => $category,
-        ':visit_target'    => $targetName,
-        ':cond_no'         => $condNo,
-        ':visit_name'      => $visitName,
-        ':over65'          => $over65,
-        ':note'            => $note,
-        ':lat'             => (float)$lat,
-        ':lng'             => (float)$lng,
-        ':address_text'    => $address,
-        ':mdist'           => $mdist,
-        ':mtown_code'      => $mtownCode,
-        ':mcounty_code'    => $mcountyCode,
-        ':address_town_code' => $addressTownCode,
+        'org_id'            => (int)$user['organization_id'],
+        'updated_by'        => (int)$user['id'],
+        'serviceman_name'   => $soldierName,
+        'category'          => $category,
+        'visit_target'      => $targetName,
+        'cond_no'           => $condNo,
+        'visit_name'        => $visitName,
+        'over65'            => $over65,
+        'note'              => $note,
+        'lat'               => (float)$lat,
+        'lng'               => (float)$lng,
+        'address_text'      => $address,
+        'mdist'             => $mdist,
+        'mtown_code'        => $mtownCode,
+        'mcounty_code'      => $mcountyCode,
+        'address_town_code' => $addressTownCode,
     ];
+
+    // ✅ 和 update.php 一樣：先檢查 placeholder 一致性，直接抓出 HY093 根因
+    preg_match_all('/:([a-zA-Z0-9_]+)/', $sql, $m);
+    $need = array_values(array_unique($m[1] ?? []));
+    $have = array_keys($params);
+
+    $missing = array_values(array_diff($need, $have));
+    $extra   = array_values(array_diff($have, $need));
+
+    if (!empty($missing) || !empty($extra)) {
+        json_error('SQL 參數不一致（會導致 HY093）', 500, [
+            'missing' => $missing,
+            'extra'   => $extra,
+            'need'    => $need,
+            'have'    => $have,
+        ]);
+    }
 
     $stmt = $pdo->prepare($sql);
     $stmt->execute($params);
@@ -153,6 +197,7 @@ try {
                     p.condolence_order_no,
                     p.beneficiary_over65,
                     p.address_text,
+                    p.address_town_code,
                     p.managed_district,
                     p.managed_town_code,
                     p.managed_county_code,
@@ -177,7 +222,8 @@ try {
                LIMIT 1';
 
     $stmtGet = $pdo->prepare($sqlGet);
-    $stmtGet->execute([':id' => $newId]);
+    // ✅ execute key 一律不帶冒號
+    $stmtGet->execute(['id' => $newId]);
     $row = $stmtGet->fetch(PDO::FETCH_ASSOC);
 
     json_success($row);
