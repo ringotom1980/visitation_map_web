@@ -759,7 +759,7 @@
   opacity: 0;
   pointer-events: none;
   transition: opacity 0.18s ease;
-  z-index: 1150; /* 介於地圖(較低) 與 bottom-sheet(1200) 之間 */
+  z-index: 1150; /* 介於地圖(較低) 與 bottom-sheet(1200) 之間  */
 }
 
 .sheet-backdrop.is-open {

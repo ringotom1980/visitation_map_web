@@ -1,6 +1,6 @@
 /* Path: Public/assets/css/map_overlays.css */
 
-/* 可調整：主圓大小、LOGO大小 */
+/* 可調整：主圓大小、LOGO大小  */
 .my-location-dot{
   --dot: 24px;      /* 主圓直徑：你現在 18px，改 22~26 會剛好 */
   --logo: 22px;     /* LOGO 直徑：你現在看起來太小就加大 */
