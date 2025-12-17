@@ -419,7 +419,7 @@
   display: none;
   align-items: center;
   justify-content: center;
-  z-index: 30;
+  z-index: 3000; /* ★ 必須高於 map-top-actions / bottom-sheet / route-actions */
 }
 
 .modal--open {
@@ -771,6 +771,12 @@
 body.is-modal-open .fab {
   display: none;
 }
+
+/* Modal 開啟時，避免 map-top-actions 擋到表單與下拉 */
+body.is-modal-open .map-top-actions {
+  display: none;
+}
+
 /* ===============================
    FIX: iOS / LINE 內建瀏覽器輸入放大（zoom）與跑版
    - 只要 focus 的輸入元件 computed font-size < 16px 就可能觸發 zoom
@@ -844,6 +850,11 @@ textarea {
   background: #f3f7ff;
 }
 
+/* Google Places Autocomplete dropdown */
+.pac-container {
+  z-index: 2600 !important; /* ★ 低於 modal(3000)，高於 map-top-actions(600) */
+}
+
 /* =========================================
    Map Top Actions（導覽列下方浮動：篩選/目前位置/路線規劃）
    - 不覆寫 .fab（避免破壞你原本 FAB 系統）
@@ -854,7 +865,7 @@ textarea {
   left: calc(12px + var(--safe-left));
   right: calc(12px + var(--safe-right));
   top: calc(var(--safe-top) + var(--toolbar-h) + 10px); /* ✅ 與導覽列下緣留空隙 */
-  z-index: 1400;
+  z-index: 600;
 
   display: flex;
   gap: 10px;
