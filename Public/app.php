@@ -330,8 +330,8 @@ $pageCss = [
               </div>
 
               <div class="form-row">
-                <label for="place-condolence-order-no">撫卹令號</label>
-                <input id="place-condolence-order-no" name="condolence_order_no" type="text" />
+                <label for="place-condolence-order-no">撫卹令號（必填）</label>
+                <input id="place-condolence-order-no" name="condolence_order_no" type="text" required  />
               </div>
 
               <div class="form-row">
