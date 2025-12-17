@@ -176,6 +176,15 @@
   border-radius: 8px;
 }
 
+/* ✅ 登入成功訊息置中 */
+.login-message.success {
+  text-align: center;
+  color: #15803d;
+  background: rgba(21, 128, 61, 0.08);
+  padding: 10px 12px;
+  margin-top: 12px;
+  border-radius: 8px;
+}
 
 
 /* ---------- 桌機優化 ---------- */
