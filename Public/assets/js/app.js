@@ -20,6 +20,7 @@ document.addEventListener('DOMContentLoaded', function () {
     me: null,
     fallbackCenter: null
   };
+  var __initialCentered = false;
 
   // ===== 篩選模組事件：集中在這裡發送（不要散落各處）=====
   function emitRouteChanged() {
@@ -1006,8 +1007,15 @@ document.addEventListener('DOMContentLoaded', function () {
 
         if (me && isFinite(me.county_center_lat) && isFinite(me.county_center_lng)) {
           state.fallbackCenter = { lat: Number(me.county_center_lat), lng: Number(me.county_center_lng) };
-          if (!myLocationPoint && MapModule && MapModule.showMyLocation) {
+          // ✅ 1) 畫出「目前位置」marker（用縣市中心當推定點）
+          if (MapModule && MapModule.showMyLocation) {
             MapModule.showMyLocation(state.fallbackCenter.lat, state.fallbackCenter.lng);
+          }
+
+          // ✅ 2) 登入後的預設定位：只做一次（避免後面 refresh/事件又搶鏡頭）
+          if (!__initialCentered && MapModule && typeof MapModule.panToLatLng === 'function') {
+            __initialCentered = true;
+            MapModule.panToLatLng(state.fallbackCenter.lat, state.fallbackCenter.lng, 12);
           }
         }
       })
@@ -1178,11 +1186,13 @@ document.addEventListener('DOMContentLoaded', function () {
         var lng = pos.coords.longitude;
         var acc = pos && pos.coords ? Number(pos.coords.accuracy) : NaN; // ★公尺
 
-        // ★關鍵：精度太差（桌機 / Wi-Fi / IP 定位常發生）就不要拿來當「目前位置」
-        // 門檻你可調：150~300 都合理，我先給 200m
-        if (!isFinite(acc) || acc > 200) {
-          console.warn('geolocation accuracy too low, use fallback. acc(m)=', acc);
-          panToFallbackIfNeeded();
+        // ★只有「背景自動定位」才嚴格；「使用者按按鈕」要寬鬆，否則桌機/Wi-Fi 會永遠失敗
+        var strict = (panTo !== true);
+
+        // strict 模式：accuracy 太差就不用 GPS，改用 fallback
+        if (strict && (!isFinite(acc) || acc > 200)) {
+          console.warn('geolocation accuracy too low (strict), use fallback. acc(m)=', acc);
+          panToFallbackIfNeeded(false); // 注意：不要偷 pan
           return;
         }
 
@@ -1201,11 +1211,10 @@ document.addEventListener('DOMContentLoaded', function () {
         };
 
         MapModule.showMyLocation(lat, lng);
-        // ✅ 只有使用者主動要求（panTo=true）才移動畫面
-        if (panTo && MapModule && typeof MapModule.panToLatLng === 'function') {
-          MapModule.panToLatLng(lat, lng, 15);
+        // ✅ 鏡頭移動：只有使用者主動（panTo=true）才移動
+        if (panTo === true && MapModule && typeof MapModule.panToLatLng === 'function') {
+          MapModule.panToLatLng(lat, lng, 16);
         }
-
         if (state.mode === Mode.ROUTE_PLANNING || state.mode === Mode.ROUTE_READY) {
           ensureStartPoint();
           renderRouteList();
@@ -1216,15 +1225,23 @@ document.addEventListener('DOMContentLoaded', function () {
       ,
       function (err) {
         console.warn('geolocation fail:', err && err.message ? err.message : err);
-        panToFallbackIfNeeded();
+        panToFallbackIfNeeded(panTo === true);
       },
+
       { enableHighAccuracy: true, timeout: 6000, maximumAge: 30000 }
     );
   }
 
-  function panToFallbackIfNeeded() {
-    if (state.fallbackCenter && MapModule && MapModule.showMyLocation) {
+  function panToFallbackIfNeeded(doPan) {
+    if (!state.fallbackCenter || !MapModule) return;
+
+    if (MapModule.showMyLocation) {
       MapModule.showMyLocation(state.fallbackCenter.lat, state.fallbackCenter.lng);
+    }
+
+    // ✅ 只有你明確要求才 pan（例如：使用者按我的位置但 GPS 失敗）
+    if (doPan === true && typeof MapModule.panToLatLng === 'function') {
+      MapModule.panToLatLng(state.fallbackCenter.lat, state.fallbackCenter.lng, 12);
     }
   }
 
