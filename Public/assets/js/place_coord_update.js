@@ -169,7 +169,7 @@
       if (!this._enabled) return;
       if (!this._placeId) return;
 
-      if (!this._PlacesApi || !this._PlacesApi.update) {
+      if (!this._PlacesApi || !this._PlacesApi.update || !this._PlacesApi.get) {
         alert('PlacesApi 未載入，無法更新座標');
         return;
       }
@@ -186,35 +186,46 @@
       this._setError('');
 
       try {
+        // 1) 解析輸入：先嘗試 lat,lng；不行再走 Geocoder（Plus Code / 地址文字）
         var pos = this._parseLatLng(text);
         if (!pos) {
-          // 支援 Plus Code / 地址文字：交給 geocoder
           pos = await this._geocode(text);
         }
 
-        // 從表單收集「完整 payload」，避免後端 update.php 的必填欄位檢核失敗
-        var form = document.getElementById('place-form');
-        if (!form) throw new Error('找不到表單 #place-form');
+        // 2) 先從 DB 抓完整資料，避免表單沒回填 / 不在 form / name 缺漏造成必填欄位不足
+        var curJson = await this._PlacesApi.get(this._placeId);
+        var cur = (curJson && curJson.data) ? curJson.data : null;
+        if (!cur) throw new Error('找不到要更新的標記資料');
 
-        var fd = new FormData(form);
-        var payload = {};
-                // ✅ 防呆：避免表單尚未回填完成就更新座標
-        if (!payload.serviceman_name || !payload.category || !payload.condolence_order_no) {
-          throw new Error('required fields missing');
-        }
+        // 3) 用 DB 現值當 payload 基底（只覆寫 lat/lng）
+        //    注意：update.php 會檢核「官兵姓名、類別、撫卹令號」必填，所以必須帶齊。
+        var payload = {
+          serviceman_name: (cur.serviceman_name || '').toString(),
+          category: (cur.category || '').toString(),
+          visit_name: (cur.visit_name || '').toString(),
+          visit_target: (cur.visit_target || '').toString(),
+          condolence_order_no: (cur.condolence_order_no || '').toString(),
+          beneficiary_over65: ((cur.beneficiary_over65 || 'N').toString().toUpperCase() === 'Y') ? 'Y' : 'N',
+          note: (cur.note || '').toString(),
+          address_text: (cur.address_text || '').toString(),
+          managed_district: (cur.managed_district || '').toString(),
+          managed_town_code: (cur.managed_town_code || '').toString(),
+          managed_county_code: (cur.managed_county_code || '').toString(),
 
-        fd.forEach(function (v, k) {
-          payload[k] = (v === null || v === undefined) ? '' : String(v);
-        });
+          // ✅ 只更新座標
+          lat: pos.lat,
+          lng: pos.lng
+        };
 
-        payload.id = this._placeId;
-        payload.lat = pos.lat;
-        payload.lng = pos.lng;
+        // legacy aliases（保險：後端也支援）
+        payload.soldier_name = payload.serviceman_name;
+        payload.target_name = payload.visit_target;
+        payload.address = payload.address_text;
 
-        // ✅ 先存 DB 成功才關閉（後端若失敗會 throw）
+        // 4) ✅ 先存 DB 成功才關閉（後端若失敗會 throw）
         await this._PlacesApi.update(this._placeId, payload);
 
-        // 關閉 modal（先成功才關）
+        // 5) 關閉 modal（先成功才關）
         if (this._PlaceForm && typeof this._PlaceForm.closeModal === 'function') {
           this._PlaceForm.closeModal('modal-place-form');
         } else {
@@ -227,8 +238,9 @@
           }
         }
 
-        // 通知 app.js：刷新 + 聚焦（等同點 marker）
+        // 6) 通知 app.js：刷新 + 聚焦（等同點 marker）
         document.dispatchEvent(new CustomEvent('placeCoordUpdate:saved', { detail: { id: this._placeId } }));
+
       } catch (e) {
         console.warn('update coord fail:', e);
         this._setError('輸入位置錯誤，請直接複製google map座標貼上');
@@ -236,6 +248,7 @@
         this._applyEnabledState();
       }
     }
+
   };
 
   global.PlaceCoordUpdate = PlaceCoordUpdate;
