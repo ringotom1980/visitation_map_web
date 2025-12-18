@@ -477,6 +477,7 @@ var MapModule = (function () {
 
     map.panTo({ lat: lat, lng: lng });
     map.setZoom(15);
+    
   }
 
   /* ---------- 載入標記 ---------- */
