@@ -239,7 +239,9 @@
         }
 
         // 6) 通知 app.js：刷新 + 聚焦（等同點 marker）
-        document.dispatchEvent(new CustomEvent('placeCoordUpdate:saved', { detail: { id: this._placeId } }));
+        document.dispatchEvent(new CustomEvent('placeCoordUpdate:saved', {
+          detail: { id: this._placeId, lat: pos.lat, lng: pos.lng }
+        }));
 
       } catch (e) {
         console.warn('update coord fail:', e);

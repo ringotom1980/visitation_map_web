@@ -785,18 +785,6 @@ var MapModule = (function () {
     }
   }
 
-  function panToLatLng(lat, lng, zoom) {
-    if (!map) return;
-    lat = Number(lat);
-    lng = Number(lng);
-    if (!isFinite(lat) || !isFinite(lng)) return;
-
-    map.panTo({ lat: lat, lng: lng });
-    if (zoom !== undefined && zoom !== null && isFinite(Number(zoom))) {
-      map.setZoom(Number(zoom));
-    }
-  }
-
   function panBy(dx, dy) {
     if (!map) return;
     map.panBy(Number(dx) || 0, Number(dy) || 0);
@@ -868,7 +856,6 @@ var MapModule = (function () {
     setPlaces: setPlaces,
     setMode: setMode,
     focusPlace: focusPlace,
-    panToLatLng: panToLatLng,
     buildDirectionsUrl: buildDirectionsUrl,
     showMyLocation: showMyLocation,
     getTempNewPlaceLatLng: getTempNewPlaceLatLng,

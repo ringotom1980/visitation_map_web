@@ -910,7 +910,8 @@ document.addEventListener('DOMContentLoaded', function () {
   document.addEventListener('placeCoordUpdate:saved', function (ev) {
     if (state.mode !== Mode.BROWSE) return;
 
-    var id = ev && ev.detail ? Number(ev.detail.id) : 0;
+    var d = (ev && ev.detail) ? ev.detail : {};
+    var id = d.id ? String(d.id) : '';
     if (!id) return;
 
     // 先關抽屜避免殘影
@@ -918,33 +919,28 @@ document.addEventListener('DOMContentLoaded', function () {
     state.currentPlace = null;
     collapsePlaceDetails(true);
 
-    // 1) 先直接 GET 單筆：拿到「新座標」並立即聚焦/開抽屜（不等 marker 重建）
-    fetch('/api/places/get?id=' + encodeURIComponent(String(id)), { credentials: 'include' })
-      .then(function (res) {
-        if (!res.ok) throw new Error('HTTP ' + res.status);
-        return res.json();
-      })
-      .then(function (json) {
-        if (!json || !json.success || !json.data) throw new Error('get failed');
-        var updated = json.data;
+    // ✅ 1) 立刻移到新位置（用事件帶來的 lat/lng，不等 marker 重建）
+    var lat = (d.lat !== undefined && d.lat !== null) ? Number(d.lat) : NaN;
+    var lng = (d.lng !== undefined && d.lng !== null) ? Number(d.lng) : NaN;
 
-        // ✅ 立刻移動畫面到新座標（不依賴 marker 是否已重建）
-        var lat = (updated.lat !== undefined && updated.lat !== null) ? Number(updated.lat) : null;
-        var lng = (updated.lng !== undefined && updated.lng !== null) ? Number(updated.lng) : null;
-        if (isFinite(lat) && isFinite(lng) && MapModule && typeof MapModule.panToLatLng === 'function') {
-          MapModule.panToLatLng(lat, lng);
+    if (isFinite(lat) && isFinite(lng) && MapModule && typeof MapModule.panToLatLng === 'function') {
+      MapModule.panToLatLng(lat, lng, 16);
+    }
+
+    // ✅ 2) 再 refresh：讓舊 marker 消失、新 marker 出現（你要的「不用重新整理」）
+    refreshPlaces().then(function () {
+      // ✅ 3) refresh 完後，用 cache 找到最新那筆，並開抽屜（等同點 marker）
+      var updated = null;
+      for (var i = 0; i < state.placesCache.length; i++) {
+        if (String(state.placesCache[i].id) === id) {
+          updated = state.placesCache[i];
+          break;
         }
-
-        // ✅ 立刻打開抽屜（等同點 marker 的 UI 行為）
+      }
+      if (updated) {
         handleMarkerClickInBrowseMode(updated);
-      })
-      .catch(function (err) {
-        console.warn('placeCoordUpdate get error:', err);
-      })
-      .finally(function () {
-        // 2) 最後再刷新 places，讓 marker/overlay 依 DB 新座標重建（舊點自然消失，新點出現）
-        refreshPlaces();
-      });
+      }
+    });
   });
 
   // ===== map:blankClick 統一入口（唯一監聽）=====
