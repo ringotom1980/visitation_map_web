@@ -7,10 +7,6 @@
 declare(strict_types=1);
 
 require_once __DIR__ . '/../common/bootstrap.php';
-header('Content-Type: application/json; charset=utf-8');
-header('Cache-Control: no-store, no-cache, must-revalidate, max-age=0');
-header('Pragma: no-cache');
-header('Expires: 0');
 
 if ($_SERVER['REQUEST_METHOD'] !== 'GET') {
     json_error('Method not allowed', 405);
@@ -69,7 +65,7 @@ try {
         LIMIT 1';
 
     $stmt = $pdo->prepare($sql);
-    $stmt->execute(['id' => $id]);
+    $stmt->execute([':id' => $id]);
     $row = $stmt->fetch(PDO::FETCH_ASSOC);
 
     if (!$row) {

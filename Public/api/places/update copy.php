@@ -1,5 +1,4 @@
 <?php
-
 /**
  * Path: Public/api/places/update.php
  * 說明: 編輯標記（新版 places schema）
@@ -10,10 +9,6 @@ declare(strict_types=1);
 require_once __DIR__ . '/../common/bootstrap.php';
 
 header('Content-Type: application/json; charset=utf-8');
-// ✅ 禁止快取（避免 CDN / 代理 / 瀏覽器回舊資料）
-header('Cache-Control: no-store, no-cache, must-revalidate, max-age=0');
-header('Pragma: no-cache');
-header('Expires: 0');
 
 /**
  * 保證任何錯誤都回 JSON（避免 500 空 body）
@@ -191,27 +186,50 @@ try {
         ]);
     }
 
-    $pdo->beginTransaction();
-
     $stmt = $pdo->prepare($sql);
     $stmt->execute($params);
 
-    // ✅ 立即在同一條連線/同一個 transaction 內讀回最新值
+    // 回傳更新後資料（含 legacy alias）
+    $sqlGet = 'SELECT
+                    p.id,
+                    p.serviceman_name,
+                    p.category,
+                    p.visit_target,
+                    p.visit_name,
+                    p.condolence_order_no,
+                    p.beneficiary_over65,
+                    p.address_text,
+                    p.address_town_code,
+                    p.managed_district,
+                    p.managed_town_code,
+                    p.managed_county_code,
+                    p.note,
+                    p.lat,
+                    p.lng,
+                    p.organization_id,
+                    p.updated_by_user_id,
+                    p.created_at,
+                    p.updated_at,
+
+                    o.name AS organization_name,
+                    u.name AS updated_by_user_name,
+
+                    p.serviceman_name AS soldier_name,
+                    p.visit_target    AS target_name,
+                    p.address_text    AS address
+               FROM places p
+               LEFT JOIN organizations o ON o.id = p.organization_id
+               LEFT JOIN users u ON u.id = p.updated_by_user_id
+               WHERE p.id = :id
+               LIMIT 1';
+
     $stmtGet = $pdo->prepare($sqlGet);
-    $stmtGet->execute(['id' => $id]); // 不帶冒號 key（跟你上面 params 風格一致）
+    $stmtGet->execute(['id' => $id]);
     $row = $stmtGet->fetch(PDO::FETCH_ASSOC);
 
-    $pdo->commit();
-
-    if (!$row) {
-        json_error('更新後讀取失敗（places/get empty）', 500);
-    }
-
     json_success($row);
+
 } catch (Throwable $e) {
-    if ($pdo && $pdo->inTransaction()) {
-        $pdo->rollBack();
-    }
     $msg = $e->getMessage();
     if (strpos($msg, 'Duplicate') !== false || strpos($msg, '1062') !== false) {
         json_error('同單位下「官兵姓名 + 受益人姓名」已存在，請確認是否重複。', 409);
