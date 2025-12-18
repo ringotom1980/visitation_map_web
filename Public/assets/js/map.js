@@ -475,8 +475,8 @@ var MapModule = (function () {
 
     myLocationOverlay = new MyLocationOverlay(pos);
 
-    // map.panTo({ lat: lat, lng: lng });
-    // map.setZoom(15);
+    map.panTo({ lat: lat, lng: lng });
+    map.setZoom(15);
   }
 
   /* ---------- 載入標記 ---------- */
