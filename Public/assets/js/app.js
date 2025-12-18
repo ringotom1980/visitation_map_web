@@ -920,42 +920,36 @@ document.addEventListener('DOMContentLoaded', function () {
     state.currentPlace = null;
     collapsePlaceDetails(true);
 
-    // ✅ 強制以 DB 最新資料為準（不要信 ev.detail.lat/lng）
-    apiRequest('/places/get?id=' + encodeURIComponent(id), 'GET')
-      .then(function (res) {
-        var place = (res && res.data) ? res.data : null;
-        if (!place) throw new Error('places/get empty');
+    // ✅ 以 update 回傳的 place 為準；沒有 place 就退回用事件帶的 lat/lng
+    var place = d.place || null;
+    var lat = place ? Number(place.lat) : Number(d.lat);
+    var lng = place ? Number(place.lng) : Number(d.lng);
 
-        var lat = Number(place.lat);
-        var lng = Number(place.lng);
+    // 1) 先移動畫面到新座標（立即有感）
+    var map = (MapModule && typeof MapModule.getMap === 'function') ? MapModule.getMap() : null;
+    if (map && isFinite(lat) && isFinite(lng)) {
+      map.setCenter({ lat: lat, lng: lng });
+      map.setZoom(16);
+    } else if (MapModule && typeof MapModule.panToLatLng === 'function') {
+      MapModule.panToLatLng(lat, lng, 16);
+    }
 
-        var mapObj = (MapModule && typeof MapModule.getMap === 'function') ? MapModule.getMap() : null;
+    // 2) 更新 currentPlace（避免後續用舊資料）
+    if (place) {
+      state.currentPlace = place;
+    } else {
+      // 防呆：至少有 id/lat/lng
+      state.currentPlace = { id: Number(id), lat: lat, lng: lng };
+    }
 
-        console.log('[coordUpdate] latest place from DB=', place.id, place.lat, place.lng);
-        console.log('[coordUpdate] map center before=', mapObj && mapObj.getCenter ? mapObj.getCenter().toUrlValue() : null);
-
-        // ✅ 1) 立刻移動畫面到新座標
-        if (mapObj && isFinite(lat) && isFinite(lng)) {
-          mapObj.setCenter({ lat: lat, lng: lng });
-          mapObj.setZoom(16);
-        } else if (MapModule && typeof MapModule.panToLatLng === 'function' && isFinite(lat) && isFinite(lng)) {
-          MapModule.panToLatLng(lat, lng, 16);
-        }
-
-        console.log('[coordUpdate] map center after=', mapObj && mapObj.getCenter ? mapObj.getCenter().toUrlValue() : null);
-
-        // ✅ 2) 把 currentPlace 更新成“最新那筆”
-        state.currentPlace = place;
-
-        // ✅ 3) 重抓列表→重建 marker/overlay
-        return refreshPlaces().then(function () {
-          // ✅ 4) 用“最新那筆”開抽屜並做對齊（雙保險）
-          handleMarkerClickInBrowseMode(state.currentPlace);
-        });
+    // 3) 重建 markers（讓點真的移過去）
+    refreshPlaces()
+      .then(function () {
+        // 4) 用最新那筆打開抽屜並對齊
+        handleMarkerClickInBrowseMode(state.currentPlace);
       })
       .catch(function (err) {
-        console.error('placeCoordUpdate:saved flow fail:', err);
-        // 最差也重整 marker，避免地圖仍顯示舊點
+        console.error('placeCoordUpdate:saved refresh fail:', err);
         refreshPlaces();
       });
   });

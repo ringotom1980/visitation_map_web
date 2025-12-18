@@ -222,8 +222,9 @@
         payload.target_name = payload.visit_target;
         payload.address = payload.address_text;
 
-        // 4) ✅ 先存 DB 成功才關閉（後端若失敗會 throw）
-        await this._PlacesApi.update(this._placeId, payload);
+        // 4) ✅ 存 DB
+        var updJson = await this._PlacesApi.update(this._placeId, payload);
+        var saved = (updJson && updJson.data) ? updJson.data : null;
 
         // 5) 關閉 modal（先成功才關）
         if (this._PlaceForm && typeof this._PlaceForm.closeModal === 'function') {
@@ -238,9 +239,14 @@
           }
         }
 
-        // 6) 通知 app.js：刷新 + 聚焦（等同點 marker）
+        // 6) ✅ 通知 app.js：用 update 回傳的最新 row 為準（不再 GET）
         document.dispatchEvent(new CustomEvent('placeCoordUpdate:saved', {
-          detail: { id: this._placeId, lat: pos.lat, lng: pos.lng }
+          detail: {
+            id: this._placeId,
+            lat: pos.lat,
+            lng: pos.lng,
+            place: saved // ★最重要：DB 最新那筆（含 lat/lng/updated_at）
+          }
         }));
 
       } catch (e) {
