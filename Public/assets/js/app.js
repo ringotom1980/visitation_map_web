@@ -923,30 +923,33 @@ document.addEventListener('DOMContentLoaded', function () {
     // ✅ 強制以 DB 最新資料為準（不要信 ev.detail.lat/lng）
     apiRequest('/places/get?id=' + encodeURIComponent(id), 'GET')
       .then(function (res) {
-        console.log('[coordUpdate] latest place from DB=', place.id, place.lat, place.lng);
-        console.log('[coordUpdate] map center before=', map && map.getCenter ? map.getCenter().toUrlValue() : null);
-
         var place = (res && res.data) ? res.data : null;
         if (!place) throw new Error('places/get empty');
 
         var lat = Number(place.lat);
         var lng = Number(place.lng);
 
-        // ✅ 1) 立刻移動畫面到新座標（先用最直接的 setCenter，避免 panTo 在某些情況不動）
-        var map = (MapModule && typeof MapModule.getMap === 'function') ? MapModule.getMap() : null;
-        if (map && isFinite(lat) && isFinite(lng)) {
-          map.setCenter({ lat: lat, lng: lng });
-          map.setZoom(16);
-        } else if (MapModule && typeof MapModule.panToLatLng === 'function') {
+        var mapObj = (MapModule && typeof MapModule.getMap === 'function') ? MapModule.getMap() : null;
+
+        console.log('[coordUpdate] latest place from DB=', place.id, place.lat, place.lng);
+        console.log('[coordUpdate] map center before=', mapObj && mapObj.getCenter ? mapObj.getCenter().toUrlValue() : null);
+
+        // ✅ 1) 立刻移動畫面到新座標
+        if (mapObj && isFinite(lat) && isFinite(lng)) {
+          mapObj.setCenter({ lat: lat, lng: lng });
+          mapObj.setZoom(16);
+        } else if (MapModule && typeof MapModule.panToLatLng === 'function' && isFinite(lat) && isFinite(lng)) {
           MapModule.panToLatLng(lat, lng, 16);
         }
 
-        // ✅ 2) 把 currentPlace 更新成“最新那筆”，後面開抽屜就不會用舊資料
+        console.log('[coordUpdate] map center after=', mapObj && mapObj.getCenter ? mapObj.getCenter().toUrlValue() : null);
+
+        // ✅ 2) 把 currentPlace 更新成“最新那筆”
         state.currentPlace = place;
 
-        // ✅ 3) 重抓列表→重建 marker/overlay（讓地圖上的點真的移過去）
+        // ✅ 3) 重抓列表→重建 marker/overlay
         return refreshPlaces().then(function () {
-          // ✅ 4) 用“最新那筆”開抽屜並做對齊（這裡會再 focus 一次，雙保險）
+          // ✅ 4) 用“最新那筆”開抽屜並做對齊（雙保險）
           handleMarkerClickInBrowseMode(state.currentPlace);
         });
       })
