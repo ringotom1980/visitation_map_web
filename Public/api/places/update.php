@@ -106,8 +106,8 @@ $condNo      = ($condNo === '') ? null : $condNo;
 $address     = ($address === '') ? null : $address;
 $note        = ($note === '') ? null : $note;
 $addressTownCode = ($addressTownCode === '' ? null : $addressTownCode);
-
 try {
+    $pdo->beginTransaction();
     // 先抓原始資料：權限 + 既有座標
     $stmtOrig = $pdo->prepare('SELECT id, organization_id, lat, lng FROM places WHERE id = :id LIMIT 1');
     $stmtOrig->execute(['id' => $id]);
@@ -191,8 +191,43 @@ try {
             'have'    => $have,
         ]);
     }
+// ✅ 更新後讀回（同支 API 直接回最新資料，前端不用再 GET）
+// 注意：這裡用 :id placeholder，execute 用 ['id'=>...]（不帶冒號）即可
+$sqlGet = 'SELECT
+                p.id,
+                p.serviceman_name,
+                p.category,
+                p.visit_target,
+                p.visit_name,
+                p.condolence_order_no,
+                p.beneficiary_over65,
+                p.address_text,
+                p.address_town_code,
+                p.managed_district,
+                p.managed_town_code,
+                p.managed_county_code,
+                p.note,
+                p.lat,
+                p.lng,
+                p.organization_id,
+                p.updated_by_user_id,
+                p.created_at,
+                p.updated_at,
 
-    $pdo->beginTransaction();
+                o.name AS organization_name,
+                u.name AS updated_by_user_name,
+
+                -- legacy aliases
+                p.serviceman_name AS soldier_name,
+                p.visit_target    AS target_name,
+                p.address_text    AS address
+           FROM places p
+           LEFT JOIN organizations o ON o.id = p.organization_id
+           LEFT JOIN users u ON u.id = p.updated_by_user_id
+           WHERE p.id = :id
+           LIMIT 1';
+
+    
 
     $stmt = $pdo->prepare($sql);
     $stmt->execute($params);
@@ -210,12 +245,8 @@ try {
 
     json_success($row);
 } catch (Throwable $e) {
-    if ($pdo && $pdo->inTransaction()) {
+    if (isset($pdo) && $pdo instanceof PDO && $pdo->inTransaction()) {
         $pdo->rollBack();
-    }
-    $msg = $e->getMessage();
-    if (strpos($msg, 'Duplicate') !== false || strpos($msg, '1062') !== false) {
-        json_error('同單位下「官兵姓名 + 受益人姓名」已存在，請確認是否重複。', 409);
     }
     json_error('更新標記時發生錯誤：' . $e->getMessage(), 500);
 }
