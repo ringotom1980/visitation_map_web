@@ -89,10 +89,9 @@ $lat = $input['lat'] ?? null;
 $lng = $input['lng'] ?? null;
 
 if ($id <= 0) json_error('參數錯誤：缺少 id', 400);
-if ($soldierName === '' || $category === '' || $condNo === null) {
+if ($soldierName === '' || $category === '' || $condNo === '') {
     json_error('官兵姓名、類別、撫卹令號為必填欄位', 400);
 }
-
 if (($hasLat && !is_numeric($lat)) || ($hasLng && !is_numeric($lng))) json_error('座標資訊錯誤（lat/lng 必須為數值）', 400);
 if ($over65 !== 'Y' && $over65 !== 'N') $over65 = 'N';
 
@@ -122,9 +121,14 @@ try {
     ) {
         throw new RuntimeException('無權限編輯此標記');
     }
+    
+    $finalLat = $hasLat
+        ? (float)$lat
+        : (is_numeric($orig['lat']) ? (float)$orig['lat'] : null);
 
-    $finalLat = $hasLat ? (float)$lat : (float)$orig['lat'];
-    $finalLng = $hasLng ? (float)$lng : (float)$orig['lng'];
+    $finalLng = $hasLng
+        ? (float)$lng
+        : (is_numeric($orig['lng']) ? (float)$orig['lng'] : null);
 
     // 若有 town_code 但未帶 county_code → 由 admin_towns 推得
     if ($mtownCode && !$mcountyCode) {
@@ -237,9 +241,8 @@ try {
     $pdo->commit();
 
     if (!$row) {
-        json_error('更新後讀取失敗（places/get empty）', 500);
+        throw new RuntimeException('更新後讀取失敗（places/get empty）');
     }
-
     json_success($row);
 } catch (Throwable $e) {
     if (isset($pdo) && $pdo instanceof PDO && $pdo->inTransaction()) {
