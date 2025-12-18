@@ -113,12 +113,14 @@ try {
     $stmtOrig->execute(['id' => $id]);
     $orig = $stmtOrig->fetch(PDO::FETCH_ASSOC);
 
-    if (!$orig) json_error('找不到要編輯的標記', 404);
+    if (!$orig) {
+        throw new RuntimeException('找不到要編輯的標記');
+    }
 
     if (($user['role'] ?? '') !== 'ADMIN'
         && (int)$orig['organization_id'] !== (int)($user['organization_id'] ?? 0)
     ) {
-        json_error('無權限編輯此標記', 403);
+        throw new RuntimeException('無權限編輯此標記');
     }
 
     $finalLat = $hasLat ? (float)$lat : (float)$orig['lat'];
@@ -184,16 +186,11 @@ try {
     $extra   = array_values(array_diff($have, $need));
 
     if (!empty($missing) || !empty($extra)) {
-        json_error('SQL 參數不一致（會導致 HY093）', 500, [
-            'missing' => $missing,
-            'extra'   => $extra,
-            'need'    => $need,
-            'have'    => $have,
-        ]);
+        throw new RuntimeException('SQL 參數不一致（會導致 HY093）');
     }
-// ✅ 更新後讀回（同支 API 直接回最新資料，前端不用再 GET）
-// 注意：這裡用 :id placeholder，execute 用 ['id'=>...]（不帶冒號）即可
-$sqlGet = 'SELECT
+    // ✅ 更新後讀回（同支 API 直接回最新資料，前端不用再 GET）
+    // 注意：這裡用 :id placeholder，execute 用 ['id'=>...]（不帶冒號）即可
+    $sqlGet = 'SELECT
                 p.id,
                 p.serviceman_name,
                 p.category,
@@ -227,7 +224,7 @@ $sqlGet = 'SELECT
            WHERE p.id = :id
            LIMIT 1';
 
-    
+
 
     $stmt = $pdo->prepare($sql);
     $stmt->execute($params);
