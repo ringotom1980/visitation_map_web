@@ -908,31 +908,29 @@ document.addEventListener('DOMContentLoaded', function () {
   });
   // ✅ 更新座標：DB 成功後 → 重新載入 places → 聚焦該點並打開資訊抽屜（等同點擊 marker）
   document.addEventListener('placeCoordUpdate:saved', function (ev) {
+    // 規格：只允許 S1（BROWSE）更新座標；若不是就不處理
     if (state.mode !== Mode.BROWSE) return;
 
-    var detail = ev && ev.detail ? ev.detail : {};
-    var id = detail && detail.id ? detail.id : null;
+    var id = ev && ev.detail ? Number(ev.detail.id) : 0;
+    if (!id) return;
 
-    // 先重整清掉舊 cache 與抽屜內容（避免殘影）
-    closeSheet('sheet-place');
-    state.currentPlace = null;
-    collapsePlaceDetails(true);
+    // 1) 先刷新 places（讓 MapModule.setPlaces 重建 marker/overlay，舊點自然消失）
+    refreshPlaces();
 
-    refreshPlaces().then(function () {
-      if (!id) return;
-
-      // 找更新後的點（refreshPlaces 會更新 state.placesCache）
+    // 2) 等資料刷新後，再用「等同點 marker」的流程聚焦 + 打開資訊抽屜
+    //    因為 refreshPlaces() 內部是 async chain，這裡用小延遲等它把 state.placesCache 更新完
+    setTimeout(function () {
       var updated = null;
-      for (var i = 0; i < state.placesCache.length; i++) {
-        if (String(state.placesCache[i].id) === String(id)) {
+      for (var i = 0; i < (state.placesCache || []).length; i++) {
+        if (Number(state.placesCache[i].id) === id) {
           updated = state.placesCache[i];
           break;
         }
       }
-      if (updated) {
-        handleMarkerClickInBrowseMode(updated);
-      }
-    });
+      if (!updated) return;
+
+      handleMarkerClickInBrowseMode(updated);
+    }, 200);
   });
 
   // ===== map:blankClick 統一入口（唯一監聽）=====
