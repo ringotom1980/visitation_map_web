@@ -1201,6 +1201,10 @@ document.addEventListener('DOMContentLoaded', function () {
         };
 
         MapModule.showMyLocation(lat, lng);
+        // ✅ 只有使用者主動要求（panTo=true）才移動畫面
+        if (panTo && MapModule && typeof MapModule.panToLatLng === 'function') {
+          MapModule.panToLatLng(lat, lng, 15);
+        }
 
         if (state.mode === Mode.ROUTE_PLANNING || state.mode === Mode.ROUTE_READY) {
           ensureStartPoint();
