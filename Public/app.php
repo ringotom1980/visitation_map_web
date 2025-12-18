@@ -102,7 +102,7 @@ $pageCss = [
             <div class="filter-row">
               <div class="filter-stats">
                 <span>符合條件：<b id="filter-count-visible">0</b>筆。</span>
-                <span>已加入路線不符條件：<b id="filter-count-dimmed">0</b>筆。</span>
+                <span>不符條件：<b id="filter-count-dimmed">0</b>筆。</span>
               </div>
             </div>
           </div>

@@ -920,28 +920,35 @@ document.addEventListener('DOMContentLoaded', function () {
     state.currentPlace = null;
     collapsePlaceDetails(true);
 
-    // ✅ 1) 立刻移到新位置（用事件帶來的 lat/lng，不等 marker 重建）
-    var lat = (d.lat !== undefined && d.lat !== null) ? Number(d.lat) : NaN;
-    var lng = (d.lng !== undefined && d.lng !== null) ? Number(d.lng) : NaN;
+    // ✅ 1) 先跟後端拿「更新後」單筆（這一步是你現在缺的）
+    apiRequest('/places/get?id=' + encodeURIComponent(id), 'GET')
+      .then(function (res) {
+        var place = (res && res.data) ? res.data : null;
+        if (!place) throw new Error('get place empty');
 
-    if (isFinite(lat) && isFinite(lng) && MapModule && typeof MapModule.panToLatLng === 'function') {
-      MapModule.panToLatLng(lat, lng, 16);
-    }
+        var lat = Number(place.lat);
+        var lng = Number(place.lng);
 
-    // ✅ 2) 再 refresh：讓舊 marker 消失、新 marker 出現（你要的「不用重新整理」）
-    refreshPlaces().then(function () {
-      // ✅ 3) refresh 完後，用 cache 找到最新那筆，並開抽屜（等同點 marker）
-      var updated = null;
-      for (var i = 0; i < state.placesCache.length; i++) {
-        if (String(state.placesCache[i].id) === id) {
-          updated = state.placesCache[i];
-          break;
+        // ✅ 2) 立刻移到新位置（此時 marker 還沒重建也沒關係）
+        if (isFinite(lat) && isFinite(lng) && MapModule && typeof MapModule.panToLatLng === 'function') {
+          MapModule.panToLatLng(lat, lng, 16);
         }
-      }
-      if (updated) {
-        handleMarkerClickInBrowseMode(updated);
-      }
-    });
+
+        // 先把 currentPlace 更新成最新
+        state.currentPlace = place;
+
+        // ✅ 3) refresh：重建 marker/overlay
+        return refreshPlaces().then(function () {
+          // ✅ 4) 用「剛剛 get 回來的 place」直接開抽屜（不要依賴 cache 找到同一筆）
+          handleMarkerClickInBrowseMode(state.currentPlace);
+        });
+      })
+      .catch(function (err) {
+        console.error('placeCoordUpdate:saved flow fail:', err);
+
+        // 最少也 refresh 一次，避免地圖上還是舊 marker
+        refreshPlaces();
+      });
   });
 
   // ===== map:blankClick 統一入口（唯一監聽）=====
