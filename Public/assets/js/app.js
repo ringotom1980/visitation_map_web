@@ -906,31 +906,51 @@ document.addEventListener('DOMContentLoaded', function () {
     collapsePlaceDetails(true);
     refreshPlaces();
   });
-  // ✅ 更新座標：DB 成功後 → 重新載入 places → 聚焦該點並打開資訊抽屜（等同點擊 marker）
+  // ✅ 更新座標：DB 成功後 → 等 places 真的刷新完成 → 聚焦該點並打開資訊抽屜
   document.addEventListener('placeCoordUpdate:saved', function (ev) {
-    // 規格：只允許 S1（BROWSE）更新座標；若不是就不處理
     if (state.mode !== Mode.BROWSE) return;
 
     var id = ev && ev.detail ? Number(ev.detail.id) : 0;
     if (!id) return;
 
-    // 1) 先刷新 places（讓 MapModule.setPlaces 重建 marker/overlay，舊點自然消失）
+    // 1) 先關閉目前抽屜，清狀態（避免殘影）
+    closeSheet('sheet-place');
+    state.currentPlace = null;
+    collapsePlaceDetails(true);
+
+    // 2) 觸發重新載入（這裡不要用 then）
     refreshPlaces();
 
-    // 2) 等資料刷新後，再用「等同點 marker」的流程聚焦 + 打開資訊抽屜
-    //    因為 refreshPlaces() 內部是 async chain，這裡用小延遲等它把 state.placesCache 更新完
-    setTimeout(function () {
+    // 3) 等「state.placesCache 真的包含新座標」再聚焦
+    var tryCount = 0;
+    var maxTry = 20; // 約 20 * 50ms = 1 秒
+
+    var timer = setInterval(function () {
+      tryCount++;
+
+      if (!Array.isArray(state.placesCache) || state.placesCache.length === 0) {
+        if (tryCount >= maxTry) clearInterval(timer);
+        return;
+      }
+
       var updated = null;
-      for (var i = 0; i < (state.placesCache || []).length; i++) {
+      for (var i = 0; i < state.placesCache.length; i++) {
         if (Number(state.placesCache[i].id) === id) {
           updated = state.placesCache[i];
           break;
         }
       }
-      if (!updated) return;
 
+      if (!updated) {
+        if (tryCount >= maxTry) clearInterval(timer);
+        return;
+      }
+
+      // ✅ 找到了 → 等同使用者點擊 marker
+      clearInterval(timer);
       handleMarkerClickInBrowseMode(updated);
-    }, 200);
+
+    }, 50);
   });
 
   // ===== map:blankClick 統一入口（唯一監聽）=====
