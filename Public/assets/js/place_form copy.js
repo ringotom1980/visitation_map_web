@@ -78,10 +78,6 @@
 
             var titleEl = document.getElementById('modal-place-title');
             if (titleEl) titleEl.textContent = '新增標記';
-            // ✅ 更新座標功能：新增模式不顯示
-            if (window.PlaceCoordUpdate && typeof window.PlaceCoordUpdate.onOpenCreate === 'function') {
-                window.PlaceCoordUpdate.onOpenCreate();
-            }
 
             // 清空列管 hidden
             this._setTownHidden('', '', '');
@@ -110,10 +106,6 @@
 
             this._setValue('place-address-text', place.address_text || place.address || '');
             this._setValue('place-note', place.note || '');
-            // ✅ 更新座標功能：編輯模式顯示 + 預填
-            if (window.PlaceCoordUpdate && typeof window.PlaceCoordUpdate.onOpenEdit === 'function') {
-                window.PlaceCoordUpdate.onOpenEdit(place);
-            }
 
             // 列管：三欄回填（後端若還沒有 town_code / county_code，也不會壞，會是空字串）
             this._setTownHidden(
@@ -260,11 +252,6 @@
 
             document.body.classList.remove('is-modal-open');
             this._unlockBodyScroll();
-            // ✅ 更新座標功能：關閉時重置狀態
-            if (window.PlaceCoordUpdate && typeof window.PlaceCoordUpdate.onModalClosed === 'function') {
-                window.PlaceCoordUpdate.onModalClosed();
-            }
-
         },
 
         _lockBodyScroll: function () {

@@ -1,0 +1,20 @@
+/* Path: Public/assets/css/place_coord_update.css
+ * 說明: 「更新座標」欄位樣式（編輯標記 Modal 內）
+ */
+
+.form-row--coord .coord-actions {
+  margin-top: 8px;
+  display: flex;
+  justify-content: flex-start;
+}
+
+#place-coord-text {
+  width: 100%;
+}
+
+#place-coord-error {
+  margin-top: 6px;
+  font-size: 12px;
+  color: #b00020;
+  display: none;
+}

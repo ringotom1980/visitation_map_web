@@ -19,7 +19,6 @@ $pageCss = [
   'assets/css/app.css',
   'assets/css/map_overlays.css',
   'assets/css/filters.css',
-  'assets/css/place_coord_update.css',
 ];
 ?>
 <!DOCTYPE html>
@@ -364,22 +363,6 @@ $pageCss = [
                 <small class="form-help">會自動帶入你在地圖上點選的位置（正確地址請在備註填寫）。</small>
               </div>
 
-              <!-- ✅ 更新座標（僅編輯模式顯示；S1 才可操作） -->
-              <div class="form-row form-row--coord" id="place-coord-row" style="display:none;">
-                <label for="place-coord-text">座標</label>
-                <input
-                  id="place-coord-text"
-                  type="text"
-                  placeholder="請貼上座標，例如 24.55895326512195, 120.81667979484602"
-                  autocomplete="off"
-                />
-                <div class="coord-actions">
-                  <button id="btn-place-update-coord" type="button" class="btn btn-outline">更新座標</button>
-                </div>
-                <div id="place-coord-error"></div>
-                <small class="form-help">直接貼上 Google 地圖座標/Plus Code/地址文字；若查不到會提示重新貼上座標。</small>
-              </div>
-
               <div class="form-row">
                 <label for="place-note">備註(請勿紀錄連絡電話或機敏資訊避免洩漏)</label>
                 <textarea id="place-note" name="note" rows="3"></textarea>
@@ -404,7 +387,6 @@ $pageCss = [
   <!-- ✅ 篩選模組 -->
   <script src="<?= asset_url('assets/js/filters.js') ?>"></script>
   <script src="<?= asset_url('assets/js/filters_ui.js') ?>"></script>
-  <script src="<?= asset_url('assets/js/place_coord_update.js') ?>"></script>
   <script src="<?= asset_url('assets/js/app.js') ?>"></script>
 </body>
 

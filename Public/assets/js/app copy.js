@@ -104,14 +104,6 @@ document.addEventListener('DOMContentLoaded', function () {
     PlaceForm.init({ MapModule: MapModule, PlacesApi: PlacesApi, apiRequest: apiRequest });
   }
 
-  // ✅ 更新座標功能（新模組）：初始化
-  if (window.PlaceCoordUpdate && typeof window.PlaceCoordUpdate.init === 'function') {
-    window.PlaceCoordUpdate.init({ PlacesApi: PlacesApi, PlaceForm: PlaceForm });
-    if (typeof window.PlaceCoordUpdate.setEnabled === 'function') {
-      window.PlaceCoordUpdate.setEnabled(state.mode === Mode.BROWSE);
-    }
-  }
-
   // ===== 搜尋列（Google Map 風格）：放大鏡搜尋 + 動態 X 清除 =====
   (function bindSearchBarUX() {
     var input = document.getElementById('map-search-input');
@@ -906,34 +898,6 @@ document.addEventListener('DOMContentLoaded', function () {
     collapsePlaceDetails(true);
     refreshPlaces();
   });
-  // ✅ 更新座標：DB 成功後 → 重新載入 places → 聚焦該點並打開資訊抽屜（等同點擊 marker）
-  document.addEventListener('placeCoordUpdate:saved', function (ev) {
-    if (state.mode !== Mode.BROWSE) return;
-
-    var detail = ev && ev.detail ? ev.detail : {};
-    var id = detail && detail.id ? detail.id : null;
-
-    // 先重整清掉舊 cache 與抽屜內容（避免殘影）
-    closeSheet('sheet-place');
-    state.currentPlace = null;
-    collapsePlaceDetails(true);
-
-    refreshPlaces().then(function () {
-      if (!id) return;
-
-      // 找更新後的點（refreshPlaces 會更新 state.placesCache）
-      var updated = null;
-      for (var i = 0; i < state.placesCache.length; i++) {
-        if (String(state.placesCache[i].id) === String(id)) {
-          updated = state.placesCache[i];
-          break;
-        }
-      }
-      if (updated) {
-        handleMarkerClickInBrowseMode(updated);
-      }
-    });
-  });
 
   // ===== map:blankClick 統一入口（唯一監聽）=====
   document.addEventListener('map:blankClick', function () {
@@ -1045,10 +1009,6 @@ document.addEventListener('DOMContentLoaded', function () {
     state.mode = nextMode;
     // 保險：離開 BROWSE 時，確保資訊抽屜的 backdrop 關閉
     if (nextMode !== Mode.BROWSE) setPlaceSheetBackdrop(false);
-    // ✅ 更新座標功能：僅 S1(BROWSE) 可用
-    if (window.PlaceCoordUpdate && typeof window.PlaceCoordUpdate.setEnabled === 'function') {
-      window.PlaceCoordUpdate.setEnabled(nextMode === Mode.BROWSE);
-    }
 
     applyModeGuards();
 
