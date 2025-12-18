@@ -198,6 +198,11 @@
 
         var fd = new FormData(form);
         var payload = {};
+                // ✅ 防呆：避免表單尚未回填完成就更新座標
+        if (!payload.serviceman_name || !payload.category || !payload.condolence_order_no) {
+          throw new Error('required fields missing');
+        }
+
         fd.forEach(function (v, k) {
           payload[k] = (v === null || v === undefined) ? '' : String(v);
         });
@@ -207,7 +212,7 @@
         payload.lng = pos.lng;
 
         // ✅ 先存 DB 成功才關閉（後端若失敗會 throw）
-        await this._PlacesApi.update(payload);
+        await this._PlacesApi.update(this._placeId, payload);
 
         // 關閉 modal（先成功才關）
         if (this._PlaceForm && typeof this._PlaceForm.closeModal === 'function') {
