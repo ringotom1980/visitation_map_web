@@ -920,33 +920,39 @@ document.addEventListener('DOMContentLoaded', function () {
     state.currentPlace = null;
     collapsePlaceDetails(true);
 
-    // ✅ 1) 先跟後端拿「更新後」單筆（這一步是你現在缺的）
+    // ✅ 強制以 DB 最新資料為準（不要信 ev.detail.lat/lng）
     apiRequest('/places/get?id=' + encodeURIComponent(id), 'GET')
       .then(function (res) {
+        console.log('[coordUpdate] latest place from DB=', place.id, place.lat, place.lng);
+        console.log('[coordUpdate] map center before=', map && map.getCenter ? map.getCenter().toUrlValue() : null);
+
         var place = (res && res.data) ? res.data : null;
-        if (!place) throw new Error('get place empty');
+        if (!place) throw new Error('places/get empty');
 
         var lat = Number(place.lat);
         var lng = Number(place.lng);
 
-        // ✅ 2) 立刻移到新位置（此時 marker 還沒重建也沒關係）
-        if (isFinite(lat) && isFinite(lng) && MapModule && typeof MapModule.panToLatLng === 'function') {
+        // ✅ 1) 立刻移動畫面到新座標（先用最直接的 setCenter，避免 panTo 在某些情況不動）
+        var map = (MapModule && typeof MapModule.getMap === 'function') ? MapModule.getMap() : null;
+        if (map && isFinite(lat) && isFinite(lng)) {
+          map.setCenter({ lat: lat, lng: lng });
+          map.setZoom(16);
+        } else if (MapModule && typeof MapModule.panToLatLng === 'function') {
           MapModule.panToLatLng(lat, lng, 16);
         }
 
-        // 先把 currentPlace 更新成最新
+        // ✅ 2) 把 currentPlace 更新成“最新那筆”，後面開抽屜就不會用舊資料
         state.currentPlace = place;
 
-        // ✅ 3) refresh：重建 marker/overlay
+        // ✅ 3) 重抓列表→重建 marker/overlay（讓地圖上的點真的移過去）
         return refreshPlaces().then(function () {
-          // ✅ 4) 用「剛剛 get 回來的 place」直接開抽屜（不要依賴 cache 找到同一筆）
+          // ✅ 4) 用“最新那筆”開抽屜並做對齊（這裡會再 focus 一次，雙保險）
           handleMarkerClickInBrowseMode(state.currentPlace);
         });
       })
       .catch(function (err) {
         console.error('placeCoordUpdate:saved flow fail:', err);
-
-        // 最少也 refresh 一次，避免地圖上還是舊 marker
+        // 最差也重整 marker，避免地圖仍顯示舊點
         refreshPlaces();
       });
   });
