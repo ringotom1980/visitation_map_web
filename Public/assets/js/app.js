@@ -906,51 +906,45 @@ document.addEventListener('DOMContentLoaded', function () {
     collapsePlaceDetails(true);
     refreshPlaces();
   });
-  // ✅ 更新座標：DB 成功後 → 等 places 真的刷新完成 → 聚焦該點並打開資訊抽屜
+  // ✅ 更新座標：DB 成功後 → 立刻 get 該點（拿到新座標）→ 先移動/開抽屜 → 再 refresh 重建 marker/overlay
   document.addEventListener('placeCoordUpdate:saved', function (ev) {
     if (state.mode !== Mode.BROWSE) return;
 
     var id = ev && ev.detail ? Number(ev.detail.id) : 0;
     if (!id) return;
 
-    // 1) 先關閉目前抽屜，清狀態（避免殘影）
+    // 先關抽屜避免殘影
     closeSheet('sheet-place');
     state.currentPlace = null;
     collapsePlaceDetails(true);
 
-    // 2) 觸發重新載入（這裡不要用 then）
-    refreshPlaces();
+    // 1) 先直接 GET 單筆：拿到「新座標」並立即聚焦/開抽屜（不等 marker 重建）
+    fetch('/api/places/get?id=' + encodeURIComponent(String(id)), { credentials: 'include' })
+      .then(function (res) {
+        if (!res.ok) throw new Error('HTTP ' + res.status);
+        return res.json();
+      })
+      .then(function (json) {
+        if (!json || !json.success || !json.data) throw new Error('get failed');
+        var updated = json.data;
 
-    // 3) 等「state.placesCache 真的包含新座標」再聚焦
-    var tryCount = 0;
-    var maxTry = 20; // 約 20 * 50ms = 1 秒
-
-    var timer = setInterval(function () {
-      tryCount++;
-
-      if (!Array.isArray(state.placesCache) || state.placesCache.length === 0) {
-        if (tryCount >= maxTry) clearInterval(timer);
-        return;
-      }
-
-      var updated = null;
-      for (var i = 0; i < state.placesCache.length; i++) {
-        if (Number(state.placesCache[i].id) === id) {
-          updated = state.placesCache[i];
-          break;
+        // ✅ 立刻移動畫面到新座標（不依賴 marker 是否已重建）
+        var lat = (updated.lat !== undefined && updated.lat !== null) ? Number(updated.lat) : null;
+        var lng = (updated.lng !== undefined && updated.lng !== null) ? Number(updated.lng) : null;
+        if (isFinite(lat) && isFinite(lng) && MapModule && typeof MapModule.panToLatLng === 'function') {
+          MapModule.panToLatLng(lat, lng);
         }
-      }
 
-      if (!updated) {
-        if (tryCount >= maxTry) clearInterval(timer);
-        return;
-      }
-
-      // ✅ 找到了 → 等同使用者點擊 marker
-      clearInterval(timer);
-      handleMarkerClickInBrowseMode(updated);
-
-    }, 50);
+        // ✅ 立刻打開抽屜（等同點 marker 的 UI 行為）
+        handleMarkerClickInBrowseMode(updated);
+      })
+      .catch(function (err) {
+        console.warn('placeCoordUpdate get error:', err);
+      })
+      .finally(function () {
+        // 2) 最後再刷新 places，讓 marker/overlay 依 DB 新座標重建（舊點自然消失，新點出現）
+        refreshPlaces();
+      });
   });
 
   // ===== map:blankClick 統一入口（唯一監聽）=====
