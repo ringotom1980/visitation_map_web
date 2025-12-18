@@ -2,6 +2,7 @@
 /**
  * Path: Public/api/places/get.php
  * 說明: 取得單一標記詳細資料（新版 places schema）
+ * 
  */
 
 declare(strict_types=1);
