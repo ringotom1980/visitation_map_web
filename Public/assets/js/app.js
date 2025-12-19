@@ -661,12 +661,13 @@ document.addEventListener('DOMContentLoaded', function () {
     }
   }
 
-  function alignMyPlaceAfterSheetOpen(place, sheetEl) {
+  function alignMyPlaceAfterSheetOpen(place, sheetEl, force) {
     if (!place || !sheetEl) return;
 
-    // key 用 place.id + 目前是否已開，避免同一點連點重覆推
+    // key 用 place.id + open/closed，避免同一點連點重覆推
+    // 但展開/收合時需要「強制」再對齊，所以加 force 參數
     var key = String(place.id) + '|' + (sheetEl.classList.contains('bottom-sheet--open') ? 'open' : 'closed');
-    if (__lastAlignKey === key) return;
+    if (!force && __lastAlignKey === key) return;
     __lastAlignKey = key;
 
     // 清掉上一輪的 timer，避免連點疊加
