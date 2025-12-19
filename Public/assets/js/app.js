@@ -1609,9 +1609,15 @@ document.addEventListener('DOMContentLoaded', function () {
 
     if (btnPlaceDetail) btnPlaceDetail.textContent = '收合';
 
-    // ✅ 詳細展開後 bottom sheet 高度改變 → 重新對齊 marker 到抽屜上緣
+    // ✅ 關鍵：展開後抽屜高度變了，必須「再對齊一次」
+    // 等 transition 走完再對齊（做兩次補刀，避免 iOS/Android 量測不同步）
     if (state && state.currentPlace && sheetPlace && sheetPlace.classList.contains('bottom-sheet--open')) {
-      alignMyPlaceAfterSheetOpen(state.currentPlace, sheetPlace);
+      setTimeout(function () {
+        alignMyPlaceAfterSheetOpen(state.currentPlace, sheetPlace, true); // force=true
+        setTimeout(function () {
+          alignMyPlaceAfterSheetOpen(state.currentPlace, sheetPlace, true);
+        }, 120);
+      }, 260);
     }
   }
 
@@ -1624,10 +1630,10 @@ document.addEventListener('DOMContentLoaded', function () {
 
     if (btnPlaceDetail) btnPlaceDetail.textContent = '詳細';
 
-    // ✅ 收合後高度改變 → 也重新對齊一次（避免跑掉）
-    if (state && state.currentPlace && sheetPlace && sheetPlace.classList.contains('bottom-sheet--open')) {
-      alignMyPlaceAfterSheetOpen(state.currentPlace, sheetPlace);
-    }
+    // 收合通常不必重新對齊（地圖會露更多出來），但你若想一致也可以打開：
+    // if (state && state.currentPlace && sheetPlace && sheetPlace.classList.contains('bottom-sheet--open')) {
+    //   setTimeout(function () { alignMyPlaceAfterSheetOpen(state.currentPlace, sheetPlace, true); }, 180);
+    // }
   }
 
   function renderRouteList() {
