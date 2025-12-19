@@ -522,7 +522,6 @@ var MapModule = (function () {
       var pid = Number(p.id);
       if (!isFinite(pid)) return;
       markersById.set(Number(p.id), { marker: marker, nameOv: nameOv, data: p });
-
     });
   }
 
