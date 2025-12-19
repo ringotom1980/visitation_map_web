@@ -903,11 +903,11 @@ document.addEventListener('DOMContentLoaded', function () {
 
   document.addEventListener('placeForm:saved', function (ev) {
 
-  closeSheet('sheet-place');
-  state.currentPlace = null;
-  collapsePlaceDetails(true);
-  refreshPlaces();
-});
+    closeSheet('sheet-place');
+    state.currentPlace = null;
+    collapsePlaceDetails(true);
+    refreshPlaces();
+  });
 
   // ✅ 更新座標：DB 成功後 → 局部更新 marker/overlay + 同步 cache + 用既有點選流程開抽屜（不 refreshPlaces）
   document.addEventListener('placeCoordUpdate:saved', function (ev) {
@@ -964,23 +964,6 @@ document.addEventListener('DOMContentLoaded', function () {
 
     // 4) 走既有「點 marker」流程（開抽屜/對齊等）
     handleMarkerClickInBrowseMode(openPlace);
-    // ✅ 抽屜打開後再把地圖往上挪，避免 marker 被 bottom sheet 擋住
-    setTimeout(function () {
-      if (MapModule && typeof MapModule.panBy === 'function') {
-        MapModule.panBy(0, -180); // 你可調 -160 ~ -220
-      }
-    }, 250);
-
-    // 5) ✅ 最後保底：無論 handleMarkerClick 做不做 pan，都確保鏡頭到新座標
-    //    moved=false 通常代表 markersById key 型別沒修好，這裡仍先把鏡頭帶過去
-    if (window.MapModule && typeof MapModule.panToLatLng === 'function') {
-      setTimeout(function () {
-        MapModule.panToLatLng(lat, lng, 16);
-        if (typeof MapModule.panBy === 'function') {
-          MapModule.panBy(0, -140); // 避免被 bottom sheet 擋住
-        }
-      }, 0);
-    }
 
     // Debug（你要查問題時很有用）
     if (!moved) {
@@ -1618,11 +1601,17 @@ document.addEventListener('DOMContentLoaded', function () {
 
   function expandPlaceDetails() {
     if (!detailsWrap) return;
+
     detailsWrap.classList.remove('is-collapsed');
     detailsWrap.classList.add('is-expanded');
     detailsWrap.setAttribute('aria-hidden', 'false');
 
     if (btnPlaceDetail) btnPlaceDetail.textContent = '收合';
+
+    // ✅ 詳細展開後 bottom sheet 高度改變 → 重新對齊 marker 到抽屜上緣
+    if (state && state.currentPlace && sheetPlace && sheetPlace.classList.contains('bottom-sheet--open')) {
+      alignMyPlaceAfterSheetOpen(state.currentPlace, sheetPlace);
+    }
   }
 
   function collapsePlaceDetails(force) {
@@ -1633,6 +1622,11 @@ document.addEventListener('DOMContentLoaded', function () {
     detailsWrap.setAttribute('aria-hidden', 'true');
 
     if (btnPlaceDetail) btnPlaceDetail.textContent = '詳細';
+
+    // ✅ 收合後高度改變 → 也重新對齊一次（避免跑掉）
+    if (state && state.currentPlace && sheetPlace && sheetPlace.classList.contains('bottom-sheet--open')) {
+      alignMyPlaceAfterSheetOpen(state.currentPlace, sheetPlace);
+    }
   }
 
   function renderRouteList() {
