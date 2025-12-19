@@ -2,6 +2,13 @@
 // 說明: Google 地圖模組 — 標註顯示/隱藏策略（S1/S2/S3）、長按新增（僅 S1）、目前位置、路線線條（polyline 簡版）
 //      ★補齊 tempNewPlaceLatLng 暫存 + getter，供 app.js 新增/編輯存檔使用
 //      ★本版重點：為了同時顯示「點內數字」+「旁邊姓名」，姓名改用 OverlayView；Marker label 專注顯示數字
+// ✅ 防止 map.js 被重複載入造成「舊點不消失、新點又出現」
+if (window.MapModule && window.MapModule.__singleton === true) {
+  console.warn('[MapModule] map.js loaded twice; reuse existing MapModule.');
+  // 直接結束本次載入（避免建立第二套 markers）
+  // 注意：這裡用 return; 會中止後續定義
+  return;
+}
 
 var MapModule = (function () {
   var map;
@@ -920,6 +927,7 @@ var MapModule = (function () {
   }
 
   return {
+    __singleton: true,
     init: init,
     setPlaces: setPlaces,
     setMode: setMode,

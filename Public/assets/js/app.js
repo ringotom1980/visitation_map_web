@@ -909,76 +909,82 @@ document.addEventListener('DOMContentLoaded', function () {
   });
   // ✅ 更新座標：DB 成功後 → 局部更新 marker/overlay + 同步 cache + 用既有點選流程開抽屜（不 refreshPlaces）
   document.addEventListener('placeCoordUpdate:saved', function (ev) {
-  if (state.mode !== Mode.BROWSE) return;
+    if (state.mode !== Mode.BROWSE) return;
 
-  var d = (ev && ev.detail) ? ev.detail : {};
-  var id = (d.id !== undefined && d.id !== null) ? Number(d.id) : NaN;
-  if (!isFinite(id)) return;
+    var d = (ev && ev.detail) ? ev.detail : {};
+    var id = (d.id !== undefined && d.id !== null) ? Number(d.id) : NaN;
+    if (!isFinite(id)) return;
 
-  // 先關抽屜避免殘影
-  closeSheet('sheet-place');
-  state.currentPlace = null;
-  collapsePlaceDetails(true);
+    // 先關抽屜避免殘影
+    closeSheet('sheet-place');
+    state.currentPlace = null;
+    collapsePlaceDetails(true);
 
-  // ✅ 以事件回傳的 place 為主；沒有就用 lat/lng
-  var place = d.place || null;
-  var lat = place && place.lat != null ? Number(place.lat) : Number(d.lat);
-  var lng = place && place.lng != null ? Number(place.lng) : Number(d.lng);
-  if (!isFinite(lat) || !isFinite(lng)) return;
+    // ✅ 以事件回傳的 place 為主；沒有就用 lat/lng
+    var place = d.place || null;
+    var lat = place && place.lat != null ? Number(place.lat) : Number(d.lat);
+    var lng = place && place.lng != null ? Number(place.lng) : Number(d.lng);
+    if (!isFinite(lat) || !isFinite(lng)) return;
 
-  // 1) 局部移動同一顆 marker + overlay（核心）
-  var moved = false;
-  if (window.MapModule && typeof MapModule.updatePlacePosition === 'function') {
-    moved = !!MapModule.updatePlacePosition(id, lat, lng);
-  } else {
-    console.warn('MapModule.updatePlacePosition not found');
-  }
+    // 1) 局部移動同一顆 marker + overlay（核心）
+    var moved = false;
+    if (window.MapModule && typeof MapModule.updatePlacePosition === 'function') {
+      moved = !!MapModule.updatePlacePosition(id, lat, lng);
+    } else {
+      console.warn('MapModule.updatePlacePosition not found');
+    }
 
-  // 2) 同步 placesCache（避免搜尋/抽屜顯示舊座標）
-  if (Array.isArray(state.placesCache)) {
-    for (var i = 0; i < state.placesCache.length; i++) {
-      var row = state.placesCache[i];
-      if (row && Number(row.id) === id) {
-        if (place) {
-          state.placesCache[i] = place;
-        } else {
-          row.lat = lat;
-          row.lng = lng;
+    // 2) 同步 placesCache（避免搜尋/抽屜顯示舊座標）
+    if (Array.isArray(state.placesCache)) {
+      for (var i = 0; i < state.placesCache.length; i++) {
+        var row = state.placesCache[i];
+        if (row && Number(row.id) === id) {
+          if (place) {
+            state.placesCache[i] = place;
+          } else {
+            row.lat = lat;
+            row.lng = lng;
+          }
+          break;
         }
-        break;
       }
     }
-  }
 
-  // 3) 準備要開抽屜的 place（要有完整欄位才顯示正常）
-  var openPlace = place;
-  if (!openPlace && Array.isArray(state.placesCache)) {
-    for (var j = 0; j < state.placesCache.length; j++) {
-      var p = state.placesCache[j];
-      if (p && Number(p.id) === id) { openPlace = p; break; }
+    // 3) 準備要開抽屜的 place（要有完整欄位才顯示正常）
+    var openPlace = place;
+    if (!openPlace && Array.isArray(state.placesCache)) {
+      for (var j = 0; j < state.placesCache.length; j++) {
+        var p = state.placesCache[j];
+        if (p && Number(p.id) === id) { openPlace = p; break; }
+      }
     }
-  }
-  if (!openPlace) openPlace = { id: id, lat: lat, lng: lng };
+    if (!openPlace) openPlace = { id: id, lat: lat, lng: lng };
 
-  // 4) 走既有「點 marker」流程（開抽屜/對齊等）
-  handleMarkerClickInBrowseMode(openPlace);
-
-  // 5) ✅ 最後保底：無論 handleMarkerClick 做不做 pan，都確保鏡頭到新座標
-  //    moved=false 通常代表 markersById key 型別沒修好，這裡仍先把鏡頭帶過去
-  if (window.MapModule && typeof MapModule.panToLatLng === 'function') {
+    // 4) 走既有「點 marker」流程（開抽屜/對齊等）
+    handleMarkerClickInBrowseMode(openPlace);
+    // ✅ 抽屜打開後再把地圖往上挪，避免 marker 被 bottom sheet 擋住
     setTimeout(function () {
-      MapModule.panToLatLng(lat, lng, 16);
-      if (typeof MapModule.panBy === 'function') {
-        MapModule.panBy(0, -140); // 避免被 bottom sheet 擋住
+      if (MapModule && typeof MapModule.panBy === 'function') {
+        MapModule.panBy(0, -180); // 你可調 -160 ~ -220
       }
-    }, 0);
-  }
+    }, 250);
 
-  // Debug（你要查問題時很有用）
-  if (!moved) {
-    console.warn('[placeCoordUpdate] marker not moved. Check markersById key type (string vs number). id=', id);
-  }
-});
+    // 5) ✅ 最後保底：無論 handleMarkerClick 做不做 pan，都確保鏡頭到新座標
+    //    moved=false 通常代表 markersById key 型別沒修好，這裡仍先把鏡頭帶過去
+    if (window.MapModule && typeof MapModule.panToLatLng === 'function') {
+      setTimeout(function () {
+        MapModule.panToLatLng(lat, lng, 16);
+        if (typeof MapModule.panBy === 'function') {
+          MapModule.panBy(0, -140); // 避免被 bottom sheet 擋住
+        }
+      }, 0);
+    }
+
+    // Debug（你要查問題時很有用）
+    if (!moved) {
+      console.warn('[placeCoordUpdate] marker not moved. Check markersById key type (string vs number). id=', id);
+    }
+  });
 
   // ===== map:blankClick 統一入口（唯一監聽）=====
   document.addEventListener('map:blankClick', function () {
