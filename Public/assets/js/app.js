@@ -676,9 +676,9 @@ document.addEventListener('DOMContentLoaded', function () {
     // 等抽屜 transition 高度穩定：做兩次（一次立即、一次補刀）
     requestAnimationFrame(function () {
       __alignTimer1 = setTimeout(function () {
-        panMarkerAboveSheetOnce(sheetEl, { gap: 16 });
+        panMarkerAboveSheetOnce(sheetEl, { gap: 32 });
         __alignTimer2 = setTimeout(function () {
-          panMarkerAboveSheetOnce(sheetEl, { gap: 16 });
+          panMarkerAboveSheetOnce(sheetEl, { gap: 32 });
         }, 120);
       }, 220);
     });
