@@ -731,15 +731,32 @@ document.addEventListener('DOMContentLoaded', function () {
     requestAnimationFrame(function () {
       __alignTimer1 = setTimeout(function () {
         var panel = getActiveObstructionEl() || sheetEl;
+
+        // ✅ 等地圖 idle 再算 projection + panBy（避免 setCenter/setZoom 後投影未穩）
+        var map = (MapModule && typeof MapModule.getMap === 'function') ? MapModule.getMap() : null;
+        if (map && typeof map.addListenerOnce === 'function') {
+          map.addListenerOnce('idle', function () {
+            panMarkerAboveSheetOnce(place, panel, { gap: 32 });
+
+            __alignTimer2 = setTimeout(function () {
+              var panel2 = getActiveObstructionEl() || sheetEl;
+              panMarkerAboveSheetOnce(place, panel2, { gap: 32 });
+            }, 160);
+          });
+          return;
+        }
+
+        // fallback（極少數情況）
         panMarkerAboveSheetOnce(place, panel, { gap: 32 });
 
         __alignTimer2 = setTimeout(function () {
-          var panel = getActiveObstructionEl() || sheetEl;
-          panMarkerAboveSheetOnce(place, panel, { gap: 32 });
+          var panel2 = getActiveObstructionEl() || sheetEl;
+          panMarkerAboveSheetOnce(place, panel2, { gap: 32 });
+        }, 160);
 
-        }, 120);
-      }, 220);
+      }, 260); // ✅ 比你原本 220 稍微多一點，讓面板 transition 更穩
     });
+
   }
 
   if (btnMyLocation) {
