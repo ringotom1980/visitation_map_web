@@ -519,8 +519,10 @@ var MapModule = (function () {
         }
 
       });
+      var pid = Number(p.id);
+      if (!isFinite(pid)) return;
+      markersById.set(Number(p.id), { marker: marker, nameOv: nameOv, data: p });
 
-      markersById.set(p.id, { marker: marker, nameOv: nameOv, data: p });
     });
   }
 
@@ -832,7 +834,7 @@ var MapModule = (function () {
     map.panTo(pos);
     map.setZoom(16);
 
-    var obj = markersById.get(place.id);
+    var obj = markersById.get(Number(place.id));
     if (obj && obj.marker) {
       obj.marker.setAnimation(google.maps.Animation.BOUNCE);
       setTimeout(function () { obj.marker.setAnimation(null); }, 700);
