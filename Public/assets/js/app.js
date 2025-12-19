@@ -700,11 +700,11 @@ document.addEventListener('DOMContentLoaded', function () {
       if (delta > maxDelta) delta = maxDelta;
 
       if (MapModule && typeof MapModule.panBy === 'function') {
-        MapModule.panBy(0, delta);
+        MapModule.panBy(0, -delta);
         return;
       }
       if (typeof map.panBy === 'function') {
-        map.panBy(0, delta);
+        map.panBy(0, -delta);
       }
     } catch (e) {
       console.warn('panMarkerAboveSheetOnce fail:', e);
