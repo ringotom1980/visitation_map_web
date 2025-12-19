@@ -113,8 +113,14 @@
 
     _parseLatLng: function (text) {
       text = this._normalizeText(text);
+      if (!text) return null;
 
-      // 1) 最常見： "lat,lng" or "lat lng"
+      // 0) 若是 Google Maps URL / 分享文字：先嘗試從 URL 片段抓出十進位
+      var urlPos = this._extractLatLngFromGoogleUrl(text);
+      if (urlPos && this._isLatLng(urlPos.lat, urlPos.lng)) return urlPos;
+
+      // 1) 最常見十進位： "lat,lng" / "lat lng" / "(lat,lng)" / "lat:xx lng:yy"
+      //    也包含像 "25.033964,121.564468" 或 "25.033964 121.564468"
       var m = text.match(/(-?\d+(?:\.\d+)?)[,\s]+(-?\d+(?:\.\d+)?)/);
       if (m) {
         var a = parseFloat(m[1]);
@@ -122,7 +128,23 @@
         if (this._isLatLng(a, b)) return { lat: a, lng: b };
       }
 
-      // 2) 退一步：抓出前兩個數字（避免 "lat: xx lng: yy"）
+      // 2) Google 常見： "@lat,lng,zoom"（有些文字是 "... @25.03,121.56,17z"）
+      var at = text.match(/@(-?\d+(?:\.\d+)?),\s*(-?\d+(?:\.\d+)?)/);
+      if (at) {
+        var la = parseFloat(at[1]);
+        var ln = parseFloat(at[2]);
+        if (this._isLatLng(la, ln)) return { lat: la, lng: ln };
+      }
+
+      // 3) 度分秒 DMS：25°02'31.5"N 121°33'12.1"E（符號可有可無）
+      var dmsPos = this._parseDMS(text);
+      if (dmsPos && this._isLatLng(dmsPos.lat, dmsPos.lng)) return dmsPos;
+
+      // 4) 若文字裡有 N/S/E/W，但不是標準 DMS：嘗試「兩段座標」各自解析（例如 "25 2 31 N 121 33 12 E"）
+      var neswPos = this._parseLooseNESW(text);
+      if (neswPos && this._isLatLng(neswPos.lat, neswPos.lng)) return neswPos;
+
+      // 5) 退一步：抓前兩個數字（避免 "lat xx lng yy"）
       var nums = text.match(/-?\d+(?:\.\d+)?/g) || [];
       if (nums.length >= 2) {
         var x = parseFloat(nums[0]);
@@ -131,6 +153,115 @@
       }
 
       return null;
+    },
+
+    _extractLatLngFromGoogleUrl: function (text) {
+      // 支援：
+      // - https://www.google.com/maps/.../@lat,lng,....
+      // - .../place/.../data=!3dLAT!4dLNG
+      // - ?q=lat,lng 或 ?query=lat,lng 或 ?ll=lat,lng
+      // - /?api=1&destination=lat,lng
+      var s = (text || '').toString();
+
+      // @lat,lng
+      var m1 = s.match(/@(-?\d+(?:\.\d+)?),\s*(-?\d+(?:\.\d+)?)/);
+      if (m1) return { lat: parseFloat(m1[1]), lng: parseFloat(m1[2]) };
+
+      // !3dLAT!4dLNG（注意有時候順序也可能 !4d !3d）
+      var m2 = s.match(/!3d(-?\d+(?:\.\d+)?)!4d(-?\d+(?:\.\d+)?)/);
+      if (m2) return { lat: parseFloat(m2[1]), lng: parseFloat(m2[2]) };
+
+      var m2b = s.match(/!4d(-?\d+(?:\.\d+)?)!3d(-?\d+(?:\.\d+)?)/);
+      if (m2b) return { lat: parseFloat(m2b[2]), lng: parseFloat(m2b[1]) };
+
+      // q= / query= / ll= / destination=
+      var m3 = s.match(/[?&](?:q|query|ll|destination|daddr)=\s*(-?\d+(?:\.\d+)?)[,\s]+(-?\d+(?:\.\d+)?)/i);
+      if (m3) return { lat: parseFloat(m3[1]), lng: parseFloat(m3[2]) };
+
+      return null;
+    },
+
+    _parseDMS: function (text) {
+      // 支援常見 DMS：
+      // 25°02'31.5"N 121°33'12.1"E
+      // 25 02 31.5 N, 121 33 12.1 E
+      // 25°02.525'N 121°33.201'E（分可帶小數）
+      var s = (text || '').toString().toUpperCase();
+
+      // 把各種符號統一成空白
+      s = s
+        .replace(/[°º]/g, ' ')
+        .replace(/[′’']/g, ' ')
+        .replace(/[″”"]/g, ' ')
+        .replace(/,/g, ' ')
+        .replace(/\s{2,}/g, ' ')
+        .trim();
+
+      // 嘗試抓兩組： (deg min sec? [N/S]) (deg min sec? [E/W])
+      // 允許 sec 缺省、允許 min 帶小數、sec 帶小數
+      var re = /(\d{1,3}(?:\.\d+)?)\s+(\d{1,3}(?:\.\d+)?)\s*(\d{1,3}(?:\.\d+)?)?\s*([NS])\s+(\d{1,3}(?:\.\d+)?)\s+(\d{1,3}(?:\.\d+)?)\s*(\d{1,3}(?:\.\d+)?)?\s*([EW])/;
+      var m = s.match(re);
+      if (!m) return null;
+
+      var latDeg = parseFloat(m[1]);
+      var latMin = parseFloat(m[2]);
+      var latSec = (m[3] !== undefined) ? parseFloat(m[3]) : 0;
+      var latHem = m[4];
+
+      var lngDeg = parseFloat(m[5]);
+      var lngMin = parseFloat(m[6]);
+      var lngSec = (m[7] !== undefined) ? parseFloat(m[7]) : 0;
+      var lngHem = m[8];
+
+      if (!isFinite(latDeg) || !isFinite(latMin) || !isFinite(latSec)) return null;
+      if (!isFinite(lngDeg) || !isFinite(lngMin) || !isFinite(lngSec)) return null;
+
+      // 若使用者貼的是「度 分.分」且沒有 sec，re 會把 sec 缺省為 0，OK
+      var lat = this._dmsToDecimal(latDeg, latMin, latSec, latHem);
+      var lng = this._dmsToDecimal(lngDeg, lngMin, lngSec, lngHem);
+
+      return { lat: lat, lng: lng };
+    },
+
+    _parseLooseNESW: function (text) {
+      // 非標準但常見的貼法：
+      // "N 25.033964 E 121.564468"
+      // "25.033964 N 121.564468 E"
+      // "S 25 2 31  E 121 33 12"
+      var s = (text || '').toString().toUpperCase().replace(/,/g, ' ');
+      s = s.replace(/\s{2,}/g, ' ').trim();
+
+      // 先嘗試：lat...N/S...lng...E/W（各段抓出第一個可用數字）
+      var m = s.match(/([NS])\s*([-\d.\s]+)\s*([EW])\s*([-\d.\s]+)/);
+      if (m) {
+        var latPart = (m[2].match(/-?\d+(?:\.\d+)?/g) || []);
+        var lngPart = (m[4].match(/-?\d+(?:\.\d+)?/g) || []);
+        if (latPart.length >= 1 && lngPart.length >= 1) {
+          var lat = parseFloat(latPart[0]);
+          var lng = parseFloat(lngPart[0]);
+          if (m[1] === 'S') lat = -Math.abs(lat);
+          if (m[3] === 'W') lng = -Math.abs(lng);
+          return { lat: lat, lng: lng };
+        }
+      }
+
+      // 再嘗試：數字 N/S 數字 E/W
+      var m2 = s.match(/(-?\d+(?:\.\d+)?)\s*([NS])\s+(-?\d+(?:\.\d+)?)\s*([EW])/);
+      if (m2) {
+        var lat2 = parseFloat(m2[1]);
+        var lng2 = parseFloat(m2[3]);
+        if (m2[2] === 'S') lat2 = -Math.abs(lat2);
+        if (m2[4] === 'W') lng2 = -Math.abs(lng2);
+        return { lat: lat2, lng: lng2 };
+      }
+
+      return null;
+    },
+
+    _dmsToDecimal: function (deg, min, sec, hem) {
+      var v = Math.abs(Number(deg)) + (Number(min) / 60) + (Number(sec) / 3600);
+      if (hem === 'S' || hem === 'W') v = -v;
+      return v;
     },
 
     _isLatLng: function (lat, lng) {
@@ -241,12 +372,15 @@
         }
 
         // 6) ✅ 通知 app.js：用 update 回傳的最新 row 為準（不再 GET）
+        var finalLat = (saved && saved.lat != null) ? Number(saved.lat) : Number(pos.lat);
+        var finalLng = (saved && saved.lng != null) ? Number(saved.lng) : Number(pos.lng);
+
         document.dispatchEvent(new CustomEvent('placeCoordUpdate:saved', {
           detail: {
             id: Number(this._placeId),
-            lat: pos.lat,
-            lng: pos.lng,
-            place: saved // ★最重要：DB 最新那筆（含 lat/lng/updated_at）
+            lat: finalLat,
+            lng: finalLng,
+            place: saved
           }
         }));
 

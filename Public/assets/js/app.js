@@ -965,6 +965,15 @@ document.addEventListener('DOMContentLoaded', function () {
       openPlace = { id: id, lat: lat, lng: lng };
     }
 
+    // 3.5) ✅ 強制移動地圖到新座標（避免 handleMarkerClickInBrowseMode 沒有 panTo）
+    if (MapModule && typeof MapModule.panToLatLng === 'function') {
+      MapModule.panToLatLng(lat, lng, 16);
+    }
+
+    if (MapModule && typeof MapModule.panBy === 'function') {
+      MapModule.panBy(0, -140); // 視覺上往上挪，避免被 bottom sheet 擋住
+    }
+
     // 4) 走你既有「點 marker」流程：聚焦 + 開抽屜 + 對齊抽屜上緣
     handleMarkerClickInBrowseMode(openPlace);
   });
