@@ -727,6 +727,8 @@ document.addEventListener('DOMContentLoaded', function () {
   }
 
   function alignMyPlaceAfterSheetOpen(place, sheetEl, force) {
+    console.log('[align] place=', place && place.id, 'panel=', getActiveObstructionEl());
+
     if (!place || !sheetEl) return;
 
     // key 用 place.id + open/closed，避免同一點連點重覆推
