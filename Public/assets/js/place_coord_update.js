@@ -113,14 +113,18 @@
 
     _parseLatLng: function (text) {
       text = this._normalizeText(text);
-      if (!text) return null;
 
-      // 0) 若是 Google Maps URL / 分享文字：先嘗試從 URL 片段抓出十進位
-      var urlPos = this._extractLatLngFromGoogleUrl(text);
-      if (urlPos && this._isLatLng(urlPos.lat, urlPos.lng)) return urlPos;
+      // ✅ A) 先擋 Plus Code：避免把 "HR6C+X3 ..." 的 6、3 抓去當座標
+      // Plus Code 常見：XXXX+XX 或更長（可含空白後地址）
+      // 字元集多為 2-9 + C F G H J M P Q R V W X
+      var plusCodeRe = /(?:^|\s)([23456789CFGHJMPQRVWX]{4,8}\+[23456789CFGHJMPQRVWX]{2,3})(?:\s|$)/i;
+      if (plusCodeRe.test(text) || text.indexOf('+') !== -1) {
+        // 只要疑似 Plus Code/含 +，就交給 Geocoder
+        return null;
+      }
 
-      // 1) 最常見十進位： "lat,lng" / "lat lng" / "(lat,lng)" / "lat:xx lng:yy"
-      //    也包含像 "25.033964,121.564468" 或 "25.033964 121.564468"
+      // ✅ B) 最常見： "lat,lng" or "lat lng"
+      // 這種格式最安全，直接解析
       var m = text.match(/(-?\d+(?:\.\d+)?)[,\s]+(-?\d+(?:\.\d+)?)/);
       if (m) {
         var a = parseFloat(m[1]);
@@ -128,28 +132,16 @@
         if (this._isLatLng(a, b)) return { lat: a, lng: b };
       }
 
-      // 2) Google 常見： "@lat,lng,zoom"（有些文字是 "... @25.03,121.56,17z"）
-      var at = text.match(/@(-?\d+(?:\.\d+)?),\s*(-?\d+(?:\.\d+)?)/);
-      if (at) {
-        var la = parseFloat(at[1]);
-        var ln = parseFloat(at[2]);
-        if (this._isLatLng(la, ln)) return { lat: la, lng: ln };
-      }
-
-      // 3) 度分秒 DMS：25°02'31.5"N 121°33'12.1"E（符號可有可無）
-      var dmsPos = this._parseDMS(text);
-      if (dmsPos && this._isLatLng(dmsPos.lat, dmsPos.lng)) return dmsPos;
-
-      // 4) 若文字裡有 N/S/E/W，但不是標準 DMS：嘗試「兩段座標」各自解析（例如 "25 2 31 N 121 33 12 E"）
-      var neswPos = this._parseLooseNESW(text);
-      if (neswPos && this._isLatLng(neswPos.lat, neswPos.lng)) return neswPos;
-
-      // 5) 退一步：抓前兩個數字（避免 "lat xx lng yy"）
-      var nums = text.match(/-?\d+(?:\.\d+)?/g) || [];
-      if (nums.length >= 2) {
-        var x = parseFloat(nums[0]);
-        var y = parseFloat(nums[1]);
-        if (this._isLatLng(x, y)) return { lat: x, lng: y };
+      // ✅ C) 只在「明確出現 lat/lng 文字」時，才允許用 fallback 抓前兩個數字
+      // 避免地址門牌、Plus Code、其他代碼誤判
+      var hasLatLngHint = /(lat|lng|latitude|longitude|緯度|經度)/i.test(text);
+      if (hasLatLngHint) {
+        var nums = text.match(/-?\d+(?:\.\d+)?/g) || [];
+        if (nums.length >= 2) {
+          var x = parseFloat(nums[0]);
+          var y = parseFloat(nums[1]);
+          if (this._isLatLng(x, y)) return { lat: x, lng: y };
+        }
       }
 
       return null;
