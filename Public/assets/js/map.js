@@ -769,6 +769,59 @@ var MapModule = (function () {
     }
   }
 
+  /* ---------- 更新某個地點座標：只移動同一顆 marker + overlay（局部更新） ---------- */
+  function updatePlacePosition(placeId, lat, lng) {
+    if (!map) return false;
+
+    var idNum = Number(placeId);
+    if (!isFinite(idNum)) return false;
+
+    lat = Number(lat);
+    lng = Number(lng);
+    if (!isFinite(lat) || !isFinite(lng)) return false;
+
+    var obj = markersById.get(idNum);
+    if (!obj || !obj.marker) return false;
+
+    var pos = new google.maps.LatLng(lat, lng);
+
+    // 1) 移動 marker（同一顆）
+    obj.marker.setPosition(pos);
+
+    // 2) 移動姓名 overlay（你 overlay 不跟 marker 綁定，所以要同步）
+    if (obj.nameOv && typeof obj.nameOv.setPosition === 'function') {
+      obj.nameOv.setPosition(pos);
+    }
+
+    // 3) 同步 obj.data（避免後續 click/抽屜拿到舊座標）
+    if (obj.data) {
+      obj.data.lat = lat;
+      obj.data.lng = lng;
+    }
+
+    // 4) 同步 placesCache（避免搜尋/其他 UI 用到舊座標）
+    if (Array.isArray(placesCache)) {
+      for (var i = 0; i < placesCache.length; i++) {
+        var p = placesCache[i];
+        if (p && Number(p.id) === idNum) {
+          p.lat = lat;
+          p.lng = lng;
+          break;
+        }
+      }
+    }
+
+    // 5) 若目前正在畫路線（S3），線條要立即反映（不重建 marker）
+    if (mode === 'ROUTE_READY') {
+      drawRouteLine(currentRoutePoints);
+    }
+
+    // 6) 重新套用顯示策略（避免篩選/路線顏色狀態跑掉）
+    applyMarkersByMode(currentRoutePoints);
+
+    return true;
+  }
+
   /* ---------- 聚焦某個地點 ---------- */
   function focusPlace(place) {
     var lat = parseFloat(place.lat);
@@ -869,6 +922,7 @@ var MapModule = (function () {
     setPlaces: setPlaces,
     setMode: setMode,
     focusPlace: focusPlace,
+    updatePlacePosition: updatePlacePosition,
     panToLatLng: panToLatLng,
     buildDirectionsUrl: buildDirectionsUrl,
     showMyLocation: showMyLocation,

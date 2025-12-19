@@ -907,51 +907,66 @@ document.addEventListener('DOMContentLoaded', function () {
     collapsePlaceDetails(true);
     refreshPlaces();
   });
-  // ✅ 更新座標：DB 成功後 → 立刻 get 該點（拿到新座標）→ 先移動/開抽屜 → 再 refresh 重建 marker/overlay
+    // ✅ 更新座標：DB 成功後 → 局部更新 marker/overlay + 同步 cache + 用既有點選流程開抽屜（不 refreshPlaces）
   document.addEventListener('placeCoordUpdate:saved', function (ev) {
     if (state.mode !== Mode.BROWSE) return;
 
     var d = (ev && ev.detail) ? ev.detail : {};
-    var id = d.id ? String(d.id) : '';
-    if (!id) return;
+    var id = d.id ? Number(d.id) : NaN;
+    if (!isFinite(id)) return;
 
     // 先關抽屜避免殘影
     closeSheet('sheet-place');
     state.currentPlace = null;
     collapsePlaceDetails(true);
 
-    // ✅ 以 update 回傳的 place 為準；沒有 place 就退回用事件帶的 lat/lng
+    // ✅ 以事件回傳的 place 為主；沒有就用 lat/lng
     var place = d.place || null;
     var lat = place ? Number(place.lat) : Number(d.lat);
     var lng = place ? Number(place.lng) : Number(d.lng);
+    if (!isFinite(lat) || !isFinite(lng)) return;
 
-    // 1) 先移動畫面到新座標（立即有感）
-    var map = (MapModule && typeof MapModule.getMap === 'function') ? MapModule.getMap() : null;
-    if (map && isFinite(lat) && isFinite(lng)) {
-      map.setCenter({ lat: lat, lng: lng });
-      map.setZoom(16);
-    } else if (MapModule && typeof MapModule.panToLatLng === 'function') {
-      MapModule.panToLatLng(lat, lng, 16);
-    }
-
-    // 2) 更新 currentPlace（避免後續用舊資料）
-    if (place) {
-      state.currentPlace = place;
+    // 1) 局部移動同一顆 marker + overlay（核心）
+    if (MapModule && typeof MapModule.updatePlacePosition === 'function') {
+      MapModule.updatePlacePosition(id, lat, lng);
     } else {
-      // 防呆：至少有 id/lat/lng
-      state.currentPlace = { id: Number(id), lat: lat, lng: lng };
+      console.warn('MapModule.updatePlacePosition not found');
     }
 
-    // 3) 重建 markers（讓點真的移過去）
-    refreshPlaces()
-      .then(function () {
-        // 4) 用最新那筆打開抽屜並對齊
-        handleMarkerClickInBrowseMode(state.currentPlace);
-      })
-      .catch(function (err) {
-        console.error('placeCoordUpdate:saved refresh fail:', err);
-        refreshPlaces();
-      });
+    // 2) 同步 placesCache（避免搜尋/抽屜顯示舊座標）
+    if (Array.isArray(state.placesCache)) {
+      for (var i = 0; i < state.placesCache.length; i++) {
+        if (state.placesCache[i] && Number(state.placesCache[i].id) === id) {
+          if (place) {
+            // 有完整 place：以 place 覆蓋（保留其他欄位同步）
+            state.placesCache[i] = place;
+          } else {
+            state.placesCache[i].lat = lat;
+            state.placesCache[i].lng = lng;
+          }
+          break;
+        }
+      }
+    }
+
+    // 3) 準備要開抽屜的 place（要有完整欄位才顯示正常）
+    var openPlace = place;
+    if (!openPlace) {
+      // 沒有完整 place，就用 cache 找同一筆補齊
+      if (Array.isArray(state.placesCache)) {
+        for (var j = 0; j < state.placesCache.length; j++) {
+          var p = state.placesCache[j];
+          if (p && Number(p.id) === id) { openPlace = p; break; }
+        }
+      }
+    }
+    if (!openPlace) {
+      // 最後防線：至少給 id/lat/lng
+      openPlace = { id: id, lat: lat, lng: lng };
+    }
+
+    // 4) 走你既有「點 marker」流程：聚焦 + 開抽屜 + 對齊抽屜上緣
+    handleMarkerClickInBrowseMode(openPlace);
   });
 
   // ===== map:blankClick 統一入口（唯一監聽）=====
