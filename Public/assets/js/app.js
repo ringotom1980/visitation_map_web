@@ -640,10 +640,23 @@ document.addEventListener('DOMContentLoaded', function () {
     }
   }
 
-  function panMarkerAboveSheetOnce(place, sheetEl, opts) {
+  function isPanelVisible(el) {
+    if (!el) return false;
+    // 用 aria-hidden / display / size 判斷「真的有顯示」
+    var ariaHidden = el.getAttribute('aria-hidden');
+    if (ariaHidden === 'true') return false;
+
+    var cs = window.getComputedStyle(el);
+    if (!cs || cs.display === 'none' || cs.visibility === 'hidden' || cs.opacity === '0') return false;
+
+    var r = el.getBoundingClientRect();
+    return (r.width > 0 && r.height > 0);
+  }
+
+  function panMarkerAboveSheetOnce(place, panelEl, opts) {
     try {
-      if (!place || !sheetEl) return;
-      if (!sheetEl.classList.contains('bottom-sheet--open')) return;
+      if (!place || !panelEl) return;
+      if (!isPanelVisible(panelEl)) return; // ✅ 不再綁 bottom-sheet--open
 
       var lat = (place.lat !== undefined && place.lat !== null) ? Number(place.lat) : NaN;
       var lng = (place.lng !== undefined && place.lng !== null) ? Number(place.lng) : NaN;
@@ -651,7 +664,6 @@ document.addEventListener('DOMContentLoaded', function () {
 
       var gap = (opts && isFinite(opts.gap)) ? Number(opts.gap) : 32;
 
-      // 取得 map & mapDiv
       var map = (MapModule && typeof MapModule.getMap === 'function') ? MapModule.getMap() : null;
       if (!map) return;
 
@@ -661,19 +673,17 @@ document.addEventListener('DOMContentLoaded', function () {
       var mapRect = mapDiv.getBoundingClientRect();
       if (!mapRect || !mapRect.height) return;
 
-      // 抽屜上緣（視窗座標）→ 轉成 mapDiv 內的座標
-      var sheetRect = sheetEl.getBoundingClientRect();
-      var targetY_div = (sheetRect.top - mapRect.top) - gap;
+      // ✅ 目標面板上緣（視窗座標）→ mapDiv 內座標
+      var panelRect = panelEl.getBoundingClientRect();
+      var targetY_div = (panelRect.top - mapRect.top) - gap;
 
-      // 用 Projection 算出「該點」目前在地圖上的像素座標（mapDiv 內座標）
       var ov = ensureProjectionOverlay(map);
       if (!ov) return;
 
       var proj = ov.getProjection && ov.getProjection();
       if (!proj || !proj.fromLatLngToDivPixel) {
-        // projection 還沒 ready：下一拍再試一次
         setTimeout(function () {
-          try { panMarkerAboveSheetOnce(place, sheetEl, opts); } catch (e2) { }
+          try { panMarkerAboveSheetOnce(place, panelEl, opts); } catch (e2) { }
         }, 60);
         return;
       }
@@ -683,11 +693,9 @@ document.addEventListener('DOMContentLoaded', function () {
 
       var markerY_div = pt.y;
 
-      // delta>0 代表 marker 在 target 之下，需要往上推
       var delta = Math.round(markerY_div - targetY_div);
       if (delta <= 0) return;
 
-      // 避免極端值（最多推 map 高度 45%）
       var maxDelta = Math.round(mapRect.height * 0.45);
       if (delta > maxDelta) delta = maxDelta;
 
@@ -695,13 +703,27 @@ document.addEventListener('DOMContentLoaded', function () {
         MapModule.panBy(0, delta);
         return;
       }
-
       if (typeof map.panBy === 'function') {
         map.panBy(0, delta);
       }
     } catch (e) {
       console.warn('panMarkerAboveSheetOnce fail:', e);
     }
+  }
+
+  function getActiveObstructionEl() {
+    // 1) 你的 bottom-sheet（原本）
+    if (sheetPlace && sheetPlace.classList && sheetPlace.classList.contains('bottom-sheet--open')) return sheetPlace;
+
+    // 2) 你截圖那種 modal（你專案的 modal 共同 class）
+    var openedModal = document.querySelector('.modal.modal--open');
+    if (openedModal) return openedModal;
+
+    // 3) 若你有固定的 place 詳細 modal id（你自己把 id 換成實際的）
+    // var placeModal = document.getElementById('modal-place-details');
+    // if (placeModal && placeModal.classList.contains('modal--open')) return placeModal;
+
+    return null;
   }
 
   function alignMyPlaceAfterSheetOpen(place, sheetEl, force) {
@@ -717,9 +739,13 @@ document.addEventListener('DOMContentLoaded', function () {
 
     requestAnimationFrame(function () {
       __alignTimer1 = setTimeout(function () {
-        panMarkerAboveSheetOnce(place, sheetEl, { gap: 32 });
+        var panel = getActiveObstructionEl() || sheetEl;
+        panMarkerAboveSheetOnce(place, panel, { gap: 32 });
+
         __alignTimer2 = setTimeout(function () {
-          panMarkerAboveSheetOnce(place, sheetEl, { gap: 32 });
+          var panel = getActiveObstructionEl() || sheetEl;
+          panMarkerAboveSheetOnce(place, panel, { gap: 32 });
+
         }, 120);
       }, 220);
     });
