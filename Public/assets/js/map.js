@@ -853,16 +853,37 @@ var MapModule = (function () {
   }
 
   /* ---------- 聚焦某個地點 ---------- */
+  // function focusPlace(place) {
+  //   var lat = parseFloat(place.lat);
+  //   var lng = parseFloat(place.lng);
+  //   if (!isFinite(lat) || !isFinite(lng)) return;
+
+  //   var pos = { lat: lat, lng: lng };
+  //   map.panTo(pos);
+  //   map.setZoom(16);
+
+  //   var obj = markersById.get(Number(place.id));
+  //   if (obj && obj.marker) {
+  //     obj.marker.setAnimation(google.maps.Animation.BOUNCE);
+  //     setTimeout(function () { obj.marker.setAnimation(null); }, 700);
+  //   }
+  // }
+  /* ---------- 聚焦某個地點（修正：用 setCenter 取消 panTo 動畫，避免覆蓋 app.js 的 panBy offset） ---------- */
   function focusPlace(place) {
+    if (!map || !place) return;
+
     var lat = parseFloat(place.lat);
     var lng = parseFloat(place.lng);
     if (!isFinite(lat) || !isFinite(lng)) return;
 
     var pos = { lat: lat, lng: lng };
-    map.panTo(pos);
+
+    // ✅ 關鍵修正：不要用 panTo（會動畫拉回中心，覆蓋後續 panBy）
+    map.setCenter(pos);
     map.setZoom(16);
 
-    var obj = markersById.get(Number(place.id));
+    // 取 marker（你 markersById 同時存了數字與字串，這裡也做雙取）
+    var obj = markersById.get(Number(place.id)) || markersById.get(String(place.id));
     if (obj && obj.marker) {
       obj.marker.setAnimation(google.maps.Animation.BOUNCE);
       setTimeout(function () { obj.marker.setAnimation(null); }, 700);
