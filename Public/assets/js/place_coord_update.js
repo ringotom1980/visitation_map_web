@@ -66,8 +66,8 @@
     },
 
     onOpenEdit: function (place) {
-      place = place || {};
-      this._placeId = place.id || null;
+      var pid = Number(place.id);
+      this._placeId = (isFinite(pid) && pid > 0) ? pid : null;
 
       // 只在編輯視窗顯示
       this._setVisible(true);
@@ -94,9 +94,11 @@
     _applyEnabledState: function () {
       if (!this._btn || !this._input) return;
 
-      var canUse = this._enabled && !!this._placeId;
+      var pid = Number(this._placeId);
+      var canUse = this._enabled && isFinite(pid) && pid > 0;
       this._btn.disabled = !canUse;
       this._input.disabled = !canUse;
+
       if (!canUse) this._setError('');
     },
 
@@ -290,10 +292,10 @@
 
     _onClickUpdate: async function () {
       if (!this._enabled) return;
-      if (!this._placeId) return;
 
-      if (!this._PlacesApi || !this._PlacesApi.update || !this._PlacesApi.get) {
-        alert('PlacesApi 未載入，無法更新座標');
+      var pid = Number(this._placeId);
+      if (!isFinite(pid) || pid <= 0) {
+        this._setError('標記 ID 無效，請關閉視窗後重新開啟再試一次');
         return;
       }
 
@@ -316,14 +318,14 @@
         }
 
         // 2) 先從 DB 抓完整資料，避免表單沒回填 / 不在 form / name 缺漏造成必填欄位不足
-        var curJson = await this._PlacesApi.get(this._placeId);
+        var curJson = await this._PlacesApi.get(pid);
         var cur = (curJson && curJson.data) ? curJson.data : null;
         if (!cur) throw new Error('找不到要更新的標記資料');
 
         // 3) 用 DB 現值當 payload 基底（只覆寫 lat/lng）
         //    注意：update.php 會檢核「官兵姓名、類別、撫卹令號」必填，所以必須帶齊。
         var payload = {
-          id: Number(this._placeId),
+          id: pid,
           serviceman_name: (cur.serviceman_name || '').toString(),
           category: (cur.category || '').toString(),
           visit_name: (cur.visit_name || '').toString(),
@@ -347,7 +349,7 @@
         payload.address = payload.address_text;
 
         // 4) ✅ 存 DB
-        var updJson = await this._PlacesApi.update(this._placeId, payload);
+        var updJson = await this._PlacesApi.update(pid, payload);
         var saved = (updJson && updJson.data) ? updJson.data : null;
 
         // 5) 關閉 modal（先成功才關）
@@ -369,7 +371,7 @@
 
         document.dispatchEvent(new CustomEvent('placeCoordUpdate:saved', {
           detail: {
-            id: Number(this._placeId),
+            id: pid,
             lat: finalLat,
             lng: finalLng,
             place: saved

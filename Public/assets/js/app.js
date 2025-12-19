@@ -902,7 +902,6 @@ document.addEventListener('DOMContentLoaded', function () {
   });
 
   document.addEventListener('placeForm:saved', function (ev) {
-  console.warn('[DBG] placeForm:saved fired', ev && ev.detail ? ev.detail : null);
 
   closeSheet('sheet-place');
   state.currentPlace = null;
@@ -912,8 +911,6 @@ document.addEventListener('DOMContentLoaded', function () {
 
   // ✅ 更新座標：DB 成功後 → 局部更新 marker/overlay + 同步 cache + 用既有點選流程開抽屜（不 refreshPlaces）
   document.addEventListener('placeCoordUpdate:saved', function (ev) {
-    console.warn('[DBG] placeCoordUpdate:saved fired', ev && ev.detail ? ev.detail : null);
-
     if (state.mode !== Mode.BROWSE) return;
 
     var d = (ev && ev.detail) ? ev.detail : {};
