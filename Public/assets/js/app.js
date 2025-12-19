@@ -105,12 +105,12 @@ document.addEventListener('DOMContentLoaded', function () {
     PlaceForm.init({ MapModule: MapModule, PlacesApi: PlacesApi, apiRequest: apiRequest });
   }
 
-  // ✅ 更新座標功能（新模組）：初始化
+  // ✅ 初始化「更新座標」模組（PlaceCoordUpdate）
   if (window.PlaceCoordUpdate && typeof window.PlaceCoordUpdate.init === 'function') {
-    window.PlaceCoordUpdate.init({ PlacesApi: PlacesApi, PlaceForm: PlaceForm });
-    if (typeof window.PlaceCoordUpdate.setEnabled === 'function') {
-      window.PlaceCoordUpdate.setEnabled(state.mode === Mode.BROWSE);
-    }
+    window.PlaceCoordUpdate.init({
+      PlacesApi: window.PlacesApi || PlacesApi,
+      PlaceForm: window.PlaceForm
+    });
   }
 
   // ===== 搜尋列（Google Map 風格）：放大鏡搜尋 + 動態 X 清除 =====
@@ -907,7 +907,7 @@ document.addEventListener('DOMContentLoaded', function () {
     collapsePlaceDetails(true);
     refreshPlaces();
   });
-    // ✅ 更新座標：DB 成功後 → 局部更新 marker/overlay + 同步 cache + 用既有點選流程開抽屜（不 refreshPlaces）
+  // ✅ 更新座標：DB 成功後 → 局部更新 marker/overlay + 同步 cache + 用既有點選流程開抽屜（不 refreshPlaces）
   document.addEventListener('placeCoordUpdate:saved', function (ev) {
     if (state.mode !== Mode.BROWSE) return;
 

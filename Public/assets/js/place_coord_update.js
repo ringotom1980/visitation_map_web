@@ -200,6 +200,7 @@
         // 3) 用 DB 現值當 payload 基底（只覆寫 lat/lng）
         //    注意：update.php 會檢核「官兵姓名、類別、撫卹令號」必填，所以必須帶齊。
         var payload = {
+          id: Number(this._placeId),
           serviceman_name: (cur.serviceman_name || '').toString(),
           category: (cur.category || '').toString(),
           visit_name: (cur.visit_name || '').toString(),
@@ -242,7 +243,7 @@
         // 6) ✅ 通知 app.js：用 update 回傳的最新 row 為準（不再 GET）
         document.dispatchEvent(new CustomEvent('placeCoordUpdate:saved', {
           detail: {
-            id: this._placeId,
+            id: Number(this._placeId),
             lat: pos.lat,
             lng: pos.lng,
             place: saved // ★最重要：DB 最新那筆（含 lat/lng/updated_at）
