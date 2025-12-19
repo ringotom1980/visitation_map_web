@@ -521,7 +521,14 @@ var MapModule = (function () {
       });
       var pid = Number(p.id);
       if (!isFinite(pid)) return;
-      markersById.set(Number(p.id), { marker: marker, nameOv: nameOv, data: p });
+
+      var obj = { marker: marker, nameOv: nameOv, data: p };
+
+      // ✅ 同時存「數字 key」與「字串 key」
+      // 這樣不管外面傳 78 或 "78"，都抓得到同一顆 marker
+      markersById.set(pid, obj);
+      markersById.set(String(pid), obj);
+
     });
   }
 
