@@ -928,7 +928,11 @@ document.addEventListener('DOMContentLoaded', function () {
 
     // 1) 局部移動同一顆 marker + overlay（核心）
     if (MapModule && typeof MapModule.updatePlacePosition === 'function') {
+      // 1) 局部更新 marker
       MapModule.updatePlacePosition(id, lat, lng);
+
+      // ✅ 1.5) 移動地圖鏡頭（這一行你現在沒有）
+      MapModule.panToLatLng(lat, lng, 16);
     } else {
       console.warn('MapModule.updatePlacePosition not found');
     }
