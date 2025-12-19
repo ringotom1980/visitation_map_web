@@ -615,33 +615,76 @@ document.addEventListener('DOMContentLoaded', function () {
       || null;
   }
 
-  function panMarkerAboveSheetOnce(sheetEl, opts) {
+  // ===== FIX: 點位對齊到「資訊抽屜上緣」(用 Projection 精準算像素) =====
+  var __lastAlignKey = '';
+  var __alignTimer1 = null;
+  var __alignTimer2 = null;
+  var __projOverlay = null;
+
+  function ensureProjectionOverlay(map) {
     try {
-      if (!sheetEl) return;
+      if (!map || !window.google || !google.maps) return null;
+      if (__projOverlay) return __projOverlay;
+
+      var ov = new google.maps.OverlayView();
+      ov.onAdd = function () { };
+      ov.draw = function () { };
+      ov.onRemove = function () { };
+      ov.setMap(map);
+
+      __projOverlay = ov;
+      return __projOverlay;
+    } catch (e) {
+      console.warn('ensureProjectionOverlay fail:', e);
+      return null;
+    }
+  }
+
+  function panMarkerAboveSheetOnce(place, sheetEl, opts) {
+    try {
+      if (!place || !sheetEl) return;
       if (!sheetEl.classList.contains('bottom-sheet--open')) return;
 
-      var gap = (opts && isFinite(opts.gap)) ? Number(opts.gap) : 10;
+      var lat = (place.lat !== undefined && place.lat !== null) ? Number(place.lat) : NaN;
+      var lng = (place.lng !== undefined && place.lng !== null) ? Number(place.lng) : NaN;
+      if (!isFinite(lat) || !isFinite(lng)) return;
 
-      // 1) 取得 Google Map 的實際 DOM（這才是正確 viewport）
+      var gap = (opts && isFinite(opts.gap)) ? Number(opts.gap) : 32;
+
+      // 取得 map & mapDiv
       var map = (MapModule && typeof MapModule.getMap === 'function') ? MapModule.getMap() : null;
-      var mapDiv = map && typeof map.getDiv === 'function' ? map.getDiv() : null;
+      if (!map) return;
+
+      var mapDiv = (typeof map.getDiv === 'function') ? map.getDiv() : null;
       if (!mapDiv) return;
 
       var mapRect = mapDiv.getBoundingClientRect();
       if (!mapRect || !mapRect.height) return;
 
-      // 2) 抽屜「上緣」的 Y（視窗座標）
+      // 抽屜上緣（視窗座標）→ 轉成 mapDiv 內的座標
       var sheetRect = sheetEl.getBoundingClientRect();
-      var targetY_win = sheetRect.top - gap;
+      var targetY_div = (sheetRect.top - mapRect.top) - gap;
 
-      // 3) marker 在 focusPlace() 後，會落在「mapDiv 的中心」
-      //    以視窗座標表示就是：mapRect.top + mapRect.height/2
-      var markerY_win = mapRect.top + (mapRect.height / 2);
+      // 用 Projection 算出「該點」目前在地圖上的像素座標（mapDiv 內座標）
+      var ov = ensureProjectionOverlay(map);
+      if (!ov) return;
 
-      // 4) 需要把 marker 往上推到 targetY（delta > 0 才需要推）
-      var delta = Math.round(markerY_win - targetY_win);
+      var proj = ov.getProjection && ov.getProjection();
+      if (!proj || !proj.fromLatLngToDivPixel) {
+        // projection 還沒 ready：下一拍再試一次
+        setTimeout(function () {
+          try { panMarkerAboveSheetOnce(place, sheetEl, opts); } catch (e2) { }
+        }, 60);
+        return;
+      }
 
-      // 若 marker 已經在抽屜上緣之上，就不用推
+      var pt = proj.fromLatLngToDivPixel(new google.maps.LatLng(lat, lng));
+      if (!pt || !isFinite(pt.y)) return;
+
+      var markerY_div = pt.y;
+
+      // delta>0 代表 marker 在 target 之下，需要往上推
+      var delta = Math.round(markerY_div - targetY_div);
       if (delta <= 0) return;
 
       // 避免極端值（最多推 map 高度 45%）
@@ -653,7 +696,7 @@ document.addEventListener('DOMContentLoaded', function () {
         return;
       }
 
-      if (map && typeof map.panBy === 'function') {
+      if (typeof map.panBy === 'function') {
         map.panBy(0, delta);
       }
     } catch (e) {
@@ -665,21 +708,18 @@ document.addEventListener('DOMContentLoaded', function () {
     if (!place || !sheetEl) return;
 
     // key 用 place.id + open/closed，避免同一點連點重覆推
-    // 但展開/收合時需要「強制」再對齊，所以加 force 參數
     var key = String(place.id) + '|' + (sheetEl.classList.contains('bottom-sheet--open') ? 'open' : 'closed');
     if (!force && __lastAlignKey === key) return;
     __lastAlignKey = key;
 
-    // 清掉上一輪的 timer，避免連點疊加
     if (__alignTimer1) clearTimeout(__alignTimer1);
     if (__alignTimer2) clearTimeout(__alignTimer2);
 
-    // 等抽屜 transition 高度穩定：做兩次（一次立即、一次補刀）
     requestAnimationFrame(function () {
       __alignTimer1 = setTimeout(function () {
-        panMarkerAboveSheetOnce(sheetEl, { gap: 32 });
+        panMarkerAboveSheetOnce(place, sheetEl, { gap: 32 });
         __alignTimer2 = setTimeout(function () {
-          panMarkerAboveSheetOnce(sheetEl, { gap: 32 });
+          panMarkerAboveSheetOnce(place, sheetEl, { gap: 32 });
         }, 120);
       }, 220);
     });
