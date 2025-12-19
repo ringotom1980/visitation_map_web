@@ -601,11 +601,6 @@ document.addEventListener('DOMContentLoaded', function () {
   initMyLocationNonBlocking();
   applyMode(Mode.BROWSE);
 
-  // ===== FIX: 點位對齊到「資訊抽屜上緣」(一次性、不可累加) =====
-  var __lastAlignKey = '';
-  var __alignTimer1 = null;
-  var __alignTimer2 = null;
-
   function getMapViewportEl() {
     // 依常見結構取地圖容器（你專案若 id 不同也不會壞，會 fallback 到 window.innerHeight）
     return document.getElementById('map')
@@ -712,16 +707,12 @@ document.addEventListener('DOMContentLoaded', function () {
   }
 
   function getActiveObstructionEl() {
-    // 1) 你的 bottom-sheet（原本）
-    if (sheetPlace && sheetPlace.classList && sheetPlace.classList.contains('bottom-sheet--open')) return sheetPlace;
+    // 1) bottom-sheet：用「真的可見」判斷，不綁 bottom-sheet--open
+    if (sheetPlace && isPanelVisible(sheetPlace)) return sheetPlace;
 
-    // 2) 你截圖那種 modal（你專案的 modal 共同 class）
+    // 2) modal：同樣用「真的可見」判斷
     var openedModal = document.querySelector('.modal.modal--open');
-    if (openedModal) return openedModal;
-
-    // 3) 若你有固定的 place 詳細 modal id（你自己把 id 換成實際的）
-    // var placeModal = document.getElementById('modal-place-details');
-    // if (placeModal && placeModal.classList.contains('modal--open')) return placeModal;
+    if (openedModal && isPanelVisible(openedModal)) return openedModal;
 
     return null;
   }
