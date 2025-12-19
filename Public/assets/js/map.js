@@ -774,14 +774,32 @@ var MapModule = (function () {
   function updatePlacePosition(placeId, lat, lng) {
     if (!map) return false;
 
+    // ✅ 同時保留「原始 id（可能是字串）」與「數字 id」
+    var idRaw = placeId;
     var idNum = Number(placeId);
-    if (!isFinite(idNum)) return false;
+
+    // placeId 可能是 "78" 也可能是 78，都接受
+    var hasNum = isFinite(idNum);
 
     lat = Number(lat);
     lng = Number(lng);
     if (!isFinite(lat) || !isFinite(lng)) return false;
 
-    var obj = markersById.get(idNum);
+    // ✅ 關鍵修正：Map key 嚴格比對，先用數字取，不到再用字串取
+    var obj = null;
+
+    if (hasNum) {
+      obj = markersById.get(idNum);
+    }
+    if ((!obj || !obj.marker) && idRaw !== null && idRaw !== undefined) {
+      obj = markersById.get(String(idRaw));
+    }
+
+    // ✅ 再保底：若 placeId 是數字但 Map key 是字串數字
+    if ((!obj || !obj.marker) && hasNum) {
+      obj = markersById.get(String(idNum));
+    }
+
     if (!obj || !obj.marker) return false;
 
     var pos = new google.maps.LatLng(lat, lng);
@@ -789,22 +807,26 @@ var MapModule = (function () {
     // 1) 移動 marker（同一顆）
     obj.marker.setPosition(pos);
 
-    // 2) 移動姓名 overlay（你 overlay 不跟 marker 綁定，所以要同步）
+    // 2) 移動姓名 overlay
     if (obj.nameOv && typeof obj.nameOv.setPosition === 'function') {
       obj.nameOv.setPosition(pos);
     }
 
-    // 3) 同步 obj.data（避免後續 click/抽屜拿到舊座標）
+    // 3) 同步 obj.data
     if (obj.data) {
       obj.data.lat = lat;
       obj.data.lng = lng;
     }
 
-    // 4) 同步 placesCache（避免搜尋/其他 UI 用到舊座標）
+    // 4) 同步 placesCache
     if (Array.isArray(placesCache)) {
       for (var i = 0; i < placesCache.length; i++) {
         var p = placesCache[i];
-        if (p && Number(p.id) === idNum) {
+        if (!p) continue;
+
+        // ✅ 同時比對數字/字串 id
+        var pidNum = Number(p.id);
+        if ((hasNum && isFinite(pidNum) && pidNum === idNum) || String(p.id) === String(idRaw)) {
           p.lat = lat;
           p.lng = lng;
           break;
@@ -812,12 +834,12 @@ var MapModule = (function () {
       }
     }
 
-    // 5) 若目前正在畫路線（S3），線條要立即反映（不重建 marker）
+    // 5) 路線
     if (mode === 'ROUTE_READY') {
       drawRouteLine(currentRoutePoints);
     }
 
-    // 6) 重新套用顯示策略（避免篩選/路線顏色狀態跑掉）
+    // 6) 重新套用顯示策略
     applyMarkersByMode(currentRoutePoints);
 
     return true;
