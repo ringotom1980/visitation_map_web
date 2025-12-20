@@ -1,4 +1,5 @@
 <?php
+
 /**
  * Path: Public/register.php
  * 說明: 帳號申請頁（對外路徑: /register，手機優先）
@@ -8,29 +9,33 @@ require_once __DIR__ . '/../config/auth.php';
 
 // 若已登入，直接導向主地圖
 if (current_user_id()) {
-    header('Location: ' . route_url('app'));
-    exit;
+  header('Location: ' . route_url('app'));
+  exit;
 }
 
 // 讀取「所屬單位」選項（organizations）
 $orgOptions = [];
 
 try {
-    require_once __DIR__ . '/../config/db.php';
-    $pdo = db();
+  require_once __DIR__ . '/../config/db.php';
+  $pdo = db();
 
-    $sql = "SELECT id, name
+  $sql = "SELECT id, name
             FROM organizations
             WHERE is_active = 1
             ORDER BY id ASC";
-    $stmt = $pdo->query($sql);
-    $orgOptions = $stmt->fetchAll() ?: [];
+  $stmt = $pdo->query($sql);
+  $orgOptions = $stmt->fetchAll() ?: [];
 } catch (Throwable $e) {
-    $orgOptions = [];
+  $orgOptions = [];
 }
 
 $pageTitle = APP_NAME . ' - 申請帳號';
-$pageCss   = ['assets/css/login.css']; // 先共用登入/註冊樣式
+$pageCss = [
+  'assets/css/login.css',
+  'assets/css/register.css',
+];
+
 ?>
 <!DOCTYPE html>
 <html lang="zh-Hant">
@@ -56,8 +61,25 @@ $pageCss   = ['assets/css/login.css']; // 先共用登入/註冊樣式
       <h1 class="login-title">申請帳號</h1>
 
       <p class="register-note">
-        請填寫以下資料送出申請，經管理者審核通過後即可登入系統。
+        請填寫以下資料，系統將寄送驗證碼至您的 Email 進行帳號驗證。
       </p>
+      <!-- Email OTP 驗證（第二階段） -->
+      <div id="otpSection" class="otp-section" hidden>
+        <label class="form-group">
+          <span class="form-label">Email 驗證碼</span>
+          <input
+            type="text"
+            id="otp"
+            inputmode="numeric"
+            autocomplete="one-time-code"
+            placeholder="請輸入 6 位數驗證碼"
+            maxlength="6">
+        </label>
+
+        <button type="button" id="btnVerifyOtp" class="btn-primary btn-block">
+          驗證並完成註冊
+        </button>
+      </div>
 
       <form id="registerForm" class="login-form" autocomplete="on">
 
@@ -70,8 +92,7 @@ $pageCss   = ['assets/css/login.css']; // 先共用登入/註冊樣式
             id="name"
             required
             autocomplete="name"
-            placeholder="請輸入姓名"
-          >
+            placeholder="請輸入姓名">
         </label>
 
         <!-- 手機 -->
@@ -85,8 +106,7 @@ $pageCss   = ['assets/css/login.css']; // 先共用登入/註冊樣式
             inputmode="tel"
             autocomplete="tel"
             placeholder="例如：0912-345678 或 0912345678"
-            maxlength="12"
-          >
+            maxlength="12">
         </label>
 
         <!-- Email -->
@@ -99,8 +119,7 @@ $pageCss   = ['assets/css/login.css']; // 先共用登入/註冊樣式
             required
             inputmode="email"
             autocomplete="email"
-            placeholder="name@example.com"
-          >
+            placeholder="name@example.com">
         </label>
 
         <!-- 密碼 -->
@@ -113,8 +132,7 @@ $pageCss   = ['assets/css/login.css']; // 先共用登入/註冊樣式
             required
             autocomplete="new-password"
             minlength="8"
-            placeholder="請輸入密碼（至少 8 碼）"
-          >
+            placeholder="請輸入密碼（至少 8 碼）">
         </label>
 
         <!-- 再次輸入密碼 -->
@@ -127,8 +145,7 @@ $pageCss   = ['assets/css/login.css']; // 先共用登入/註冊樣式
             required
             autocomplete="new-password"
             minlength="8"
-            placeholder="請再輸入一次密碼"
-          >
+            placeholder="請再輸入一次密碼">
         </label>
 
         <!-- 所屬單位 -->
@@ -137,8 +154,7 @@ $pageCss   = ['assets/css/login.css']; // 先共用登入/註冊樣式
           <select
             name="org_id"
             id="org_id"
-            required
-          >
+            required>
             <option value="">請選擇所屬單位</option>
             <?php if (!empty($orgOptions)): ?>
               <?php foreach ($orgOptions as $org): ?>
@@ -160,8 +176,7 @@ $pageCss   = ['assets/css/login.css']; // 先共用登入/註冊樣式
             name="title"
             id="title"
             autocomplete="organization-title"
-            placeholder="例如：政戰幹事"
-          >
+            placeholder="例如：政戰幹事">
         </label>
 
         <!-- 送出按鈕 -->
@@ -188,4 +203,5 @@ $pageCss   = ['assets/css/login.css']; // 先共用登入/註冊樣式
   <script src="<?= asset_url('assets/js/api.js') ?>"></script>
   <script src="<?= asset_url('assets/js/register.js') ?>"></script>
 </body>
+
 </html>
