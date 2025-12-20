@@ -187,25 +187,23 @@ document.addEventListener('DOMContentLoaded', function () {
     function focusAndOpenMyPlace(place) {
       if (!place) return;
 
-      // 關掉其他抽屜
       closeSheet('sheet-poi');
 
-      // 設定狀態與內容
       state.currentPlace = place;
       fillPlaceSheet(place);
       collapsePlaceDetails(true);
 
-      // === 1) 地圖只負責「帶進視野」，不做精準定位 ===
-      var lat = Number(place.lat);
-      var lng = Number(place.lng);
-      if (isFinite(lat) && isFinite(lng)) {
-        MapModule.panToLatLng(lat, lng);
+      // 只走精準路徑：MapModule.focusPlace 必須存在且可用
+      if (!MapModule || typeof MapModule.focusPlace !== 'function') {
+        console.error('MapModule.focusPlace is missing. Check map.js implementation.');
+        return;
       }
+      MapModule.focusPlace(place);
 
-      // === 2) 打開抽屜 ===
+      // 再打開抽屜
       openSheet('sheet-place');
 
-      // === 3) 抽屜穩定後，對齊一次（沒有任何備援） ===
+      // 抽屜打開後，把點對齊到「抽屜上緣」
       alignMyPlaceAfterSheetOpen(place, sheetPlace);
     }
 
@@ -612,9 +610,6 @@ document.addEventListener('DOMContentLoaded', function () {
   }
 
   // ===== FIX: 點位對齊到「資訊抽屜上緣」(用 Projection 精準算像素) =====
-  var __lastAlignKey = '';
-  var __alignTimer1 = null;
-  var __alignTimer2 = null;
   var __projOverlay = null;
 
   function ensureProjectionOverlay(map) {
@@ -649,98 +644,76 @@ document.addEventListener('DOMContentLoaded', function () {
     return (r.width > 0 && r.height > 0);
   }
 
-  function panMarkerAboveSheetOnce(place, panelEl, opts) {
-    try {
-      if (!place || !panelEl) return;
-      if (!isPanelVisible(panelEl)) return; // ✅ 不再綁 bottom-sheet--open
-
-      var lat = (place.lat !== undefined && place.lat !== null) ? Number(place.lat) : NaN;
-      var lng = (place.lng !== undefined && place.lng !== null) ? Number(place.lng) : NaN;
-      if (!isFinite(lat) || !isFinite(lng)) return;
-
-      var map = (MapModule && typeof MapModule.getMap === 'function') ? MapModule.getMap() : null;
-      if (!map) return;
-
-      var mapDiv = (typeof map.getDiv === 'function') ? map.getDiv() : null;
-      if (!mapDiv) return;
-
-      var mapRect = mapDiv.getBoundingClientRect();
-      if (!mapRect || !mapRect.height) return;
-
-      // ✅ 目標面板上緣（視窗座標）→ mapDiv 內座標
-      // 改用「實際白色卡片」當對齊基準
-      var innerEl = getSheetInnerEl(panelEl);
-      if (!innerEl) return;
-
-      var innerRect = innerEl.getBoundingClientRect();
-
-      // marker 中心要落在「抽屜上緣 + 安全距離」
-      var gapPx =
-        (opts && isFinite(opts.gap)) ? opts.gap : FOCUS_GAP_PX;
-
-      var targetY_div =
-        (innerRect.top - mapRect.top) - gapPx;
-
+  function panMarkerAboveSheet(place, sheetInner, gapPx) {
+    var map = MapModule.getMap && MapModule.getMap();
+    var proj = MapModule.getProjection && MapModule.getProjection();
+    if (!proj) {
       var ov = ensureProjectionOverlay(map);
-      if (!ov) return;
-
-      var proj = ov.getProjection && ov.getProjection();
-
-      if (!proj || !proj.fromLatLngToDivPixel) {
-        setTimeout(function () {
-          try { panMarkerAboveSheetOnce(place, panelEl, opts); } catch (e2) { }
-        }, 60);
-        return;
-      }
-
-      var pt = proj.fromLatLngToDivPixel(new google.maps.LatLng(lat, lng));
-      if (!pt || !isFinite(pt.y)) return;
-
-      var markerY_div = pt.y;
-
-      var delta = Math.round(markerY_div - targetY_div);
-      if (delta <= 0) return;
-
-      var maxDelta = Math.round(mapRect.height * 0.45);
-      if (delta > maxDelta) delta = maxDelta;
-
-      if (MapModule && typeof MapModule.panBy === 'function') {
-        MapModule.panBy(0, delta);
-        return;
-      }
-      if (typeof map.panBy === 'function') {
-        map.panBy(0, delta);
-      }
-    } catch (e) {
-      console.warn('panMarkerAboveSheetOnce fail:', e);
-    }
-  }
-
-  function getActiveObstructionEl() {
-    // 1) bottom-sheet：用「真的可見」判斷，不綁 bottom-sheet--open
-    if (sheetPlace && isPanelVisible(sheetPlace)) return sheetPlace;
-
-    // 2) modal：同樣用「真的可見」判斷
-    var openedModal = document.querySelector('.modal.modal--open');
-    if (openedModal && isPanelVisible(openedModal)) return openedModal;
-
-    return null;
-  }
-
-  function alignMyPlaceAfterSheetOpen(place, sheetEl) {
-    if (!place || !sheetEl) return;
-
-    // 清掉前一次殘留（避免連點）
-    if (__alignTimer1) {
-      clearTimeout(__alignTimer1);
-      __alignTimer1 = null;
+      proj = ov && ov.getProjection && ov.getProjection();
     }
 
-    // 只等抽屜 transition 完成，然後「只對齊一次」
-    __alignTimer1 = setTimeout(function () {
-      var panel = getActiveObstructionEl() || sheetEl;
-      panMarkerAboveSheetOnce(place, panel, { gap: FOCUS_GAP_PX });
-    }, 320); // ⬅ 與 bottom-sheet transition 時間對齊
+    if (!map || !proj) {
+      console.warn('[ALIGN] missing map/projection', { hasMap: !!map, hasProj: !!proj });
+      return;
+    }
+
+    var lat = Number(place.lat);
+    var lng = Number(place.lng);
+    if (!isFinite(lat) || !isFinite(lng)) return;
+
+    var latLng = new google.maps.LatLng(lat, lng);
+
+    // ✅ 取 marker 在「map container」內的像素位置
+    var markerPx = null;
+    if (typeof proj.fromLatLngToContainerPixel === 'function') {
+      markerPx = proj.fromLatLngToContainerPixel(latLng);
+    } else if (typeof proj.fromLatLngToDivPixel === 'function') {
+      markerPx = proj.fromLatLngToDivPixel(latLng);
+    }
+    if (!markerPx) return;
+
+    // ✅ 目標：marker 的 y 要落在「抽屜上緣 - gap」，但要先換算成 map container 座標
+    var mapRect = map.getDiv().getBoundingClientRect();
+    var sheetRect = sheetInner.getBoundingClientRect();
+
+    // 抽屜上緣在 viewport 的 y => 轉成 map container 內的 y
+    var targetY = (sheetRect.top - mapRect.top) - Number(gapPx || 0);
+
+    // 需要往上移：markerPx.y > targetY => panBy 正值會往下？(Google Maps: panBy(x,y) y>0 地圖往下移，視覺上 marker 往上)
+    var deltaY = markerPx.y - targetY;
+
+    console.warn('[ALIGN] markerY=', markerPx.y, 'targetY=', targetY, 'panByY=', deltaY);
+
+    map.panBy(0, deltaY);
+  }
+
+  function alignMyPlaceAfterSheetOpen(place, sheetEl, force) {
+    if (!place) return;
+
+    // 允許呼叫端指定（你原本就有傳 sheetPlace）
+    var root = sheetEl || document.getElementById('sheet-place');
+    if (!root) return;
+
+    // 必須真的 open 才做
+    if (!root.classList.contains('bottom-sheet--open')) {
+      if (!force) return;
+    }
+
+    var sheetInner = root.querySelector('.bottom-sheet__inner');
+    if (!sheetInner) return;
+
+    var map = MapModule.getMap && MapModule.getMap();
+    if (!map || !window.google || !google.maps) return;
+
+    // 讓地圖完成 pan/zoom 後，再等抽屜 layout 穩定，最後才做 panBy
+    google.maps.event.addListenerOnce(map, 'idle', function () {
+      // 等兩拍，避免「抽屜 transition 高度」與「字體重排」造成 sheetRect.top 浮動
+      requestAnimationFrame(function () {
+        requestAnimationFrame(function () {
+          panMarkerAboveSheet(place, sheetInner, FOCUS_GAP_PX);
+        });
+      });
+    });
   }
 
   if (btnMyLocation) {

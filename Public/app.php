@@ -405,6 +405,7 @@ $pageCss = [
   <script src="<?= asset_url('assets/js/filters.js') ?>"></script>
   <script src="<?= asset_url('assets/js/filters_ui.js') ?>"></script>
   <script src="<?= asset_url('assets/js/place_coord_update.js') ?>"></script>
+  <script src="<?= asset_url('assets/js/focus_camera.js') ?>"></script>
   <script src="<?= asset_url('assets/js/app.js') ?>"></script>
 </body>
 

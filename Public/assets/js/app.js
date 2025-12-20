@@ -101,10 +101,14 @@ document.addEventListener('DOMContentLoaded', function () {
     return;
   }
 
-  MapModule.init({
-    onSearchPlaceSelected: handleSearchPlaceSelected,
-    onMapLongPressForNewPlace: handleMapLongPressForNewPlace
-  });
+  // ✅ 初始化鏡頭聚焦模組（FocusCamera）
+  if (window.FocusCamera && typeof window.FocusCamera.init === 'function') {
+    window.FocusCamera.init({
+      MapModule: MapModule,
+      focusZoom: 16
+    });
+  }
+
   if (window.PlaceForm) {
     PlaceForm.init({ MapModule: MapModule, PlacesApi: PlacesApi, apiRequest: apiRequest });
   }
@@ -193,12 +197,14 @@ document.addEventListener('DOMContentLoaded', function () {
       fillPlaceSheet(place);
       collapsePlaceDetails(true);
 
-      // 只走精準路徑：MapModule.focusPlace 必須存在且可用
-      if (!MapModule || typeof MapModule.focusPlace !== 'function') {
-        console.error('MapModule.focusPlace is missing. Check map.js implementation.');
-        return;
+      // ✅ 聚焦放大統一交給 FocusCamera（抽出去的目的）
+      if (window.FocusCamera && typeof window.FocusCamera.focusToPlace === 'function') {
+        window.FocusCamera.focusToPlace(place);
+      } else if (MapModule && typeof MapModule.panToLatLng === 'function') {
+        var lat = (place.lat !== undefined && place.lat !== null) ? Number(place.lat) : null;
+        var lng = (place.lng !== undefined && place.lng !== null) ? Number(place.lng) : null;
+        if (isFinite(lat) && isFinite(lng)) MapModule.panToLatLng(lat, lng, 16);
       }
-      MapModule.focusPlace(place);
 
       // 再打開抽屜
       openSheet('sheet-place');
@@ -875,6 +881,10 @@ document.addEventListener('DOMContentLoaded', function () {
     document.body.appendChild(sheetBackdrop);
 
     sheetBackdrop.addEventListener('click', function () {
+      if (window.FocusCamera && typeof window.FocusCamera.restoreOverview === 'function') {
+        window.FocusCamera.restoreOverview();
+      }
+
       closeSheet('sheet-place');
       closeSheet('sheet-poi');
       state.currentPlace = null;
@@ -885,12 +895,17 @@ document.addEventListener('DOMContentLoaded', function () {
       escBound = true;
       document.addEventListener('keydown', function (e) {
         if (e.key === 'Escape') {
+          if (window.FocusCamera && typeof window.FocusCamera.restoreOverview === 'function') {
+            window.FocusCamera.restoreOverview();
+          }
+
           closeSheet('sheet-place');
           closeSheet('sheet-poi');
           state.currentPlace = null;
           collapsePlaceDetails(true);
         }
       });
+
     }
 
     return sheetBackdrop;
@@ -1014,6 +1029,9 @@ document.addEventListener('DOMContentLoaded', function () {
 
     // S1：BROWSE → 點地圖空白才關資訊抽屜
     if (state.mode === Mode.BROWSE) {
+      if (window.FocusCamera && typeof window.FocusCamera.restoreOverview === 'function') {
+        window.FocusCamera.restoreOverview();
+      }
       closeSheet('sheet-place');
       closeSheet('sheet-poi');
       state.currentPlace = null;
@@ -1400,15 +1418,13 @@ document.addEventListener('DOMContentLoaded', function () {
     fillPlaceSheet(place);
     collapsePlaceDetails(true);
 
-    // 1) 先把地圖置中到這個點（reset，避免累加）
-    if (MapModule && typeof MapModule.focusPlace === 'function') {
-      MapModule.focusPlace(place);
-    } else {
+    // 1) 先把地圖置中 + 放大（交給 FocusCamera；它會記住前視角供回復）
+    if (window.FocusCamera && typeof window.FocusCamera.focusToPlace === 'function') {
+      window.FocusCamera.focusToPlace(place);
+    } else if (MapModule && typeof MapModule.panToLatLng === 'function') {
       var lat = (place.lat !== undefined && place.lat !== null) ? Number(place.lat) : null;
       var lng = (place.lng !== undefined && place.lng !== null) ? Number(place.lng) : null;
-      if (isFinite(lat) && isFinite(lng) && MapModule && typeof MapModule.panToLatLng === 'function') {
-        MapModule.panToLatLng(lat, lng);
-      }
+      if (isFinite(lat) && isFinite(lng)) MapModule.panToLatLng(lat, lng, 16);
     }
 
     // 2) 打開抽屜
@@ -1912,6 +1928,10 @@ document.addEventListener('DOMContentLoaded', function () {
 
       // 點在 modal / toolbar / 搜尋列
       if (e.target.closest('.app-toolbar, .modal, .pac-container')) return;
+
+      if (window.FocusCamera && typeof window.FocusCamera.restoreOverview === 'function') {
+        window.FocusCamera.restoreOverview();
+      }
 
       closeSheet('sheet-place');
       state.currentPlace = null;
