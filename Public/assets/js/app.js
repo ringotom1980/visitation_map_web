@@ -647,138 +647,49 @@ document.addEventListener('DOMContentLoaded', function () {
     return (r.width > 0 && r.height > 0);
   }
 
-  function panMarkerAboveSheetOnce(place, panelEl, opts) {
-    console.warn('[ALIGN] panMarkerAboveSheetOnce', {
-      lat: place.lat,
-      lng: place.lng,
-      gap: FOCUS_GAP_PX
-    });
-//上面這5行測試用
-    try {
-      if (!place || !panelEl) return;
-      if (!isPanelVisible(panelEl)) return; // ✅ 不再綁 bottom-sheet--open
+  function panMarkerAboveSheet(place, sheetInner, gapPx) {
+    var map = MapModule.getMap();
+    var projection = MapModule.getProjection && MapModule.getProjection();
+    if (!map || !projection) return;
 
-      var lat = (place.lat !== undefined && place.lat !== null) ? Number(place.lat) : NaN;
-      var lng = (place.lng !== undefined && place.lng !== null) ? Number(place.lng) : NaN;
-      if (!isFinite(lat) || !isFinite(lng)) return;
+    var lat = Number(place.lat);
+    var lng = Number(place.lng);
+    if (!isFinite(lat) || !isFinite(lng)) return;
 
-      var map = (MapModule && typeof MapModule.getMap === 'function') ? MapModule.getMap() : null;
-      if (!map) return;
+    var point = projection.fromLatLngToPoint(new google.maps.LatLng(lat, lng));
 
-      var mapDiv = (typeof map.getDiv === 'function') ? map.getDiv() : null;
-      if (!mapDiv) return;
+    var scale = Math.pow(2, map.getZoom());
+    var markerPixelY = point.y * scale;
 
-      var mapRect = mapDiv.getBoundingClientRect();
-      if (!mapRect || !mapRect.height) return;
+    var sheetRect = sheetInner.getBoundingClientRect();
+    var targetPixelY = sheetRect.top - gapPx;
 
-      // ✅ 目標面板上緣（視窗座標）→ mapDiv 內座標
-      // 改用「實際白色卡片」當對齊基準
-      var innerEl = getSheetInnerEl(panelEl);
-      if (!innerEl) return;
+    var mapRect = map.getDiv().getBoundingClientRect();
+    var currentCenterPixelY =
+      projection.fromLatLngToPoint(map.getCenter()).y * scale -
+      mapRect.top;
 
-      var innerRect = innerEl.getBoundingClientRect();
+    var deltaY = markerPixelY - (targetPixelY + currentCenterPixelY);
 
-      // marker 中心要落在「抽屜上緣 + 安全距離」
-      var gapPx =
-        (opts && isFinite(opts.gap)) ? opts.gap : FOCUS_GAP_PX;
+    console.warn('[ALIGN] panBy y =', deltaY);
 
-      var targetY_div =
-        (innerRect.top - mapRect.top) - gapPx;
-
-      var ov = ensureProjectionOverlay(map);
-      if (!ov) return;
-
-      var proj = ov.getProjection && ov.getProjection();
-
-      if (!proj || !proj.fromLatLngToDivPixel) {
-        setTimeout(function () {
-          try { panMarkerAboveSheetOnce(place, panelEl, opts); } catch (e2) { }
-        }, 60);
-        return;
-      }
-
-      var pt = proj.fromLatLngToDivPixel(new google.maps.LatLng(lat, lng));
-      if (!pt || !isFinite(pt.y)) return;
-
-      var markerY_div = pt.y;
-
-      var delta = Math.round(markerY_div - targetY_div);
-      if (delta <= 0) return;
-
-      var maxDelta = Math.round(mapRect.height * 0.45);
-      if (delta > maxDelta) delta = maxDelta;
-
-      if (MapModule && typeof MapModule.panBy === 'function') {
-        MapModule.panBy(0, delta);
-        return;
-      }
-      if (typeof map.panBy === 'function') {
-        map.panBy(0, delta);
-      }
-    } catch (e) {
-      console.warn('panMarkerAboveSheetOnce fail:', e);
-    }
+    map.panBy(0, deltaY);
   }
 
-  function getActiveObstructionEl() {
-    // 1) bottom-sheet：用「真的可見」判斷，不綁 bottom-sheet--open
-    if (sheetPlace && isPanelVisible(sheetPlace)) return sheetPlace;
+  function alignMyPlaceAfterSheetOpen(place) {
+    if (!place) return;
 
-    // 2) modal：同樣用「真的可見」判斷
-    var openedModal = document.querySelector('.modal.modal--open');
-    if (openedModal && isPanelVisible(openedModal)) return openedModal;
+    var sheetInner = document.querySelector(
+      '#sheet-place.bottom-sheet--open .bottom-sheet__inner'
+    );
+    if (!sheetInner) return;
 
-    return null;
-  }
+    var map = MapModule.getMap();
+    if (!map) return;
 
-  var __alignSeq = 0;
-
-  function alignMyPlaceAfterSheetOpen(place, sheetEl, force) {
-    console.warn('[ALIGN] alignMyPlaceAfterSheetOpen CALLED', place && place.id);
-    //上面這行是測試用
-    if (!place || !sheetEl) return;
-
-    // 必須真的可見才做（精準，不猜）
-    if (!isPanelVisible(sheetEl)) return;
-
-    // key 用 place.id（避免同一點連點重覆推）
-    var key = String(place.id) + '|open';
-    if (!force && __lastAlignKey === key) return;
-    __lastAlignKey = key;
-
-    if (__alignTimer1) clearTimeout(__alignTimer1);
-    if (__alignTimer2) clearTimeout(__alignTimer2);
-
-    // 用序號讓「後來的呼叫」可以取消「之前排程的 callback」
-    var seq = ++__alignSeq;
-
-    requestAnimationFrame(function () {
-      __alignTimer1 = setTimeout(function () {
-        if (seq !== __alignSeq) return;
-
-        var panel = getActiveObstructionEl() || sheetEl;
-
-        // 只走精準路徑：必須能用 google.maps.event.addListenerOnce 等 idle
-        var map = (MapModule && typeof MapModule.getMap === 'function') ? MapModule.getMap() : null;
-        if (!map || !window.google || !google.maps || !google.maps.event || typeof google.maps.event.addListenerOnce !== 'function') {
-          console.error('Google Maps event.addListenerOnce not available; cannot align safely.');
-          return;
-        }
-
-        google.maps.event.addListenerOnce(map, 'idle', function () {
-          if (seq !== __alignSeq) return;
-
-          panMarkerAboveSheetOnce(place, panel, { gap: FOCUS_GAP_PX });
-
-          __alignTimer2 = setTimeout(function () {
-            if (seq !== __alignSeq) return;
-
-            var panel2 = getActiveObstructionEl() || sheetEl;
-            panMarkerAboveSheetOnce(place, panel2, { gap: FOCUS_GAP_PX });
-          }, 160);
-        });
-
-      }, 260);
+    // 等地圖 idle，確保 projection 正確
+    map.addListenerOnce('idle', function () {
+      panMarkerAboveSheet(place, sheetInner, FOCUS_GAP_PX);
     });
   }
 
