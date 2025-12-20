@@ -187,28 +187,25 @@ document.addEventListener('DOMContentLoaded', function () {
     function focusAndOpenMyPlace(place) {
       if (!place) return;
 
+      // 關掉其他抽屜
       closeSheet('sheet-poi');
 
+      // 設定狀態與內容
       state.currentPlace = place;
       fillPlaceSheet(place);
       collapsePlaceDetails(true);
 
-      // 先把地圖移到點（只做一次，避免跳動/覆蓋 offset）
-      if (MapModule && MapModule.focusPlace) {
-        MapModule.focusPlace(place);
-      } else {
-        // 備援
-        var lat = (place.lat !== undefined && place.lat !== null) ? Number(place.lat) : null;
-        var lng = (place.lng !== undefined && place.lng !== null) ? Number(place.lng) : null;
-        if (isFinite(lat) && isFinite(lng) && MapModule && MapModule.panToLatLng) {
-          MapModule.panToLatLng(lat, lng);
-        }
+      // === 1) 地圖只負責「帶進視野」，不做精準定位 ===
+      var lat = Number(place.lat);
+      var lng = Number(place.lng);
+      if (isFinite(lat) && isFinite(lng)) {
+        MapModule.panToLatLng(lat, lng);
       }
 
-      // 再打開抽屜
+      // === 2) 打開抽屜 ===
       openSheet('sheet-place');
 
-      // 抽屜打開後，把點對齊到「抽屜上緣」
+      // === 3) 抽屜穩定後，對齊一次（沒有任何備援） ===
       alignMyPlaceAfterSheetOpen(place, sheetPlace);
     }
 
@@ -730,48 +727,20 @@ document.addEventListener('DOMContentLoaded', function () {
     return null;
   }
 
-  function alignMyPlaceAfterSheetOpen(place, sheetEl, force) {
+  function alignMyPlaceAfterSheetOpen(place, sheetEl) {
     if (!place || !sheetEl) return;
 
-    // key 用 place.id + open/closed，避免同一點連點重覆推
-    var key = String(place.id) + '|' + (sheetEl.classList.contains('bottom-sheet--open') ? 'open' : 'closed');
-    if (!force && __lastAlignKey === key) return;
-    __lastAlignKey = key;
+    // 清掉前一次殘留（避免連點）
+    if (__alignTimer1) {
+      clearTimeout(__alignTimer1);
+      __alignTimer1 = null;
+    }
 
-    if (__alignTimer1) clearTimeout(__alignTimer1);
-    if (__alignTimer2) clearTimeout(__alignTimer2);
-
-    requestAnimationFrame(function () {
-      __alignTimer1 = setTimeout(function () {
-        var panel = getActiveObstructionEl() || sheetEl;
-
-        // ✅ 等地圖 idle 再算 projection + panBy（避免 setCenter/setZoom 後投影未穩）
-        var map = (MapModule && typeof MapModule.getMap === 'function') ? MapModule.getMap() : null;
-        if (map && typeof map.addListenerOnce === 'function') {
-          map.addListenerOnce('idle', function () {
-            panMarkerAboveSheetOnce(place, panel, { gap: FOCUS_GAP_PX });
-
-            __alignTimer2 = setTimeout(function () {
-              var panel2 = getActiveObstructionEl() || sheetEl;
-              panMarkerAboveSheetOnce(place, panel2, { gap: FOCUS_GAP_PX });
-
-            }, 160);
-          });
-          return;
-        }
-
-        // fallback（極少數情況）
-        panMarkerAboveSheetOnce(place, panel, { gap: FOCUS_GAP_PX });
-
-        __alignTimer2 = setTimeout(function () {
-          var panel2 = getActiveObstructionEl() || sheetEl;
-          panMarkerAboveSheetOnce(place, panel2, { gap: FOCUS_GAP_PX });
-
-        }, 160);
-
-      }, 260); // ✅ 比你原本 220 稍微多一點，讓面板 transition 更穩
-    });
-
+    // 只等抽屜 transition 完成，然後「只對齊一次」
+    __alignTimer1 = setTimeout(function () {
+      var panel = getActiveObstructionEl() || sheetEl;
+      panMarkerAboveSheetOnce(place, panel, { gap: FOCUS_GAP_PX });
+    }, 320); // ⬅ 與 bottom-sheet transition 時間對齊
   }
 
   if (btnMyLocation) {
