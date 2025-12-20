@@ -740,10 +740,9 @@ document.addEventListener('DOMContentLoaded', function () {
         MapModule.panToLatLng(
           state.fallbackCenter.lat,
           state.fallbackCenter.lng,
-          12
+          16
         );
       }
-
     });
   }
 
