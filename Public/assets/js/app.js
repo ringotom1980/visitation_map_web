@@ -684,7 +684,11 @@ document.addEventListener('DOMContentLoaded', function () {
       var targetY_div =
         (innerRect.top - mapRect.top) - gapPx;
 
+      var ov = ensureProjectionOverlay(map);
+      if (!ov) return;
+
       var proj = ov.getProjection && ov.getProjection();
+
       if (!proj || !proj.fromLatLngToDivPixel) {
         setTimeout(function () {
           try { panMarkerAboveSheetOnce(place, panelEl, opts); } catch (e2) { }
@@ -762,7 +766,7 @@ document.addEventListener('DOMContentLoaded', function () {
         __alignTimer2 = setTimeout(function () {
           var panel2 = getActiveObstructionEl() || sheetEl;
           panMarkerAboveSheetOnce(place, panel2, { gap: FOCUS_GAP_PX });
-          
+
         }, 160);
 
       }, 260); // ✅ 比你原本 220 稍微多一點，讓面板 transition 更穩
