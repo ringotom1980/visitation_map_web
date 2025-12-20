@@ -730,7 +730,20 @@ document.addEventListener('DOMContentLoaded', function () {
 
   if (btnMyLocation) {
     btnMyLocation.addEventListener('click', function () {
-      requestMyLocation(true);
+
+      // ✅ 直接回到「登入/重整時的位置」
+      if (state.fallbackCenter && MapModule) {
+        MapModule.showMyLocation(
+          state.fallbackCenter.lat,
+          state.fallbackCenter.lng
+        );
+        MapModule.panToLatLng(
+          state.fallbackCenter.lat,
+          state.fallbackCenter.lng,
+          12
+        );
+      }
+
     });
   }
 
