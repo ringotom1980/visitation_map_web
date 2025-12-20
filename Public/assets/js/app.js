@@ -65,6 +65,10 @@ document.addEventListener('DOMContentLoaded', function () {
   // 詳細區 DOM
   var detailsWrap = document.getElementById('sheet-place-details');
 
+  // ===== 可調的焦聚安全距離（marker 與抽屜上緣的距離）=====
+  // 單位：px，你之後只要改這個數字
+  var FOCUS_GAP_PX = 48;
+
   // ====== FIX: 動態設定 toolbar 高度，給 FAB 定位用 ======
   (function syncToolbarHeight() {
     var toolbar = document.querySelector('.app-toolbar');
@@ -657,8 +661,6 @@ document.addEventListener('DOMContentLoaded', function () {
       var lng = (place.lng !== undefined && place.lng !== null) ? Number(place.lng) : NaN;
       if (!isFinite(lat) || !isFinite(lng)) return;
 
-      var gap = (opts && isFinite(opts.gap)) ? Number(opts.gap) : 32;
-
       var map = (MapModule && typeof MapModule.getMap === 'function') ? MapModule.getMap() : null;
       if (!map) return;
 
@@ -669,8 +671,15 @@ document.addEventListener('DOMContentLoaded', function () {
       if (!mapRect || !mapRect.height) return;
 
       // ✅ 目標面板上緣（視窗座標）→ mapDiv 內座標
-      var panelRect = panelEl.getBoundingClientRect();
-      var targetY_div = (panelRect.top - mapRect.top) - gap;
+      // 改用「實際白色卡片」當對齊基準
+      var innerEl = getSheetInnerEl(panelEl);
+      if (!innerEl) return;
+
+      var innerRect = innerEl.getBoundingClientRect();
+
+      // marker 中心要落在「抽屜上緣 + 安全距離」
+      var targetY_div =
+        (innerRect.top - mapRect.top) - FOCUS_GAP_PX;
 
       var ov = ensureProjectionOverlay(map);
       if (!ov) return;
@@ -1836,6 +1845,12 @@ document.addEventListener('DOMContentLoaded', function () {
         emitRouteChanged();
       });
     });
+  }
+
+  //專門抓抽屜實際上緣」的 helper
+  function getSheetInnerEl(sheetEl) {
+    if (!sheetEl) return null;
+    return sheetEl.querySelector('.bottom-sheet__inner');
   }
 
   // ===== canonical + alias helpers =====
