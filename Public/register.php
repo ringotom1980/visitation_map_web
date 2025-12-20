@@ -63,24 +63,7 @@ $pageCss = [
       <p class="register-note">
         請填寫以下資料，系統將寄送驗證碼至您的 Email 進行帳號驗證。
       </p>
-      <!-- Email OTP 驗證（第二階段） -->
-      <div id="otpSection" class="otp-section" hidden>
-        <label class="form-group">
-          <span class="form-label">Email 驗證碼</span>
-          <input
-            type="text"
-            id="otp"
-            inputmode="numeric"
-            autocomplete="one-time-code"
-            placeholder="請輸入 6 位數驗證碼"
-            maxlength="6">
-        </label>
-
-        <button type="button" id="btnVerifyOtp" class="btn-primary btn-block">
-          驗證並完成註冊
-        </button>
-      </div>
-
+      
       <form id="registerForm" class="login-form" autocomplete="on">
 
         <!-- 姓名 -->
@@ -186,6 +169,23 @@ $pageCss = [
         <p class="login-extra">
           已有帳號？<a href="<?= route_url('login') ?>">回登入頁</a>
         </p>
+        <!-- Email OTP 驗證（第二階段） -->
+        <div id="otpSection" class="otp-section" hidden>
+          <label class="form-group">
+            <span class="form-label">Email 驗證碼</span>
+            <input
+              type="text"
+              id="otp"
+              inputmode="numeric"
+              autocomplete="one-time-code"
+              placeholder="請輸入 6 位數驗證碼"
+              maxlength="6">
+          </label>
+
+          <button type="button" id="btnVerifyOtp" class="btn-primary btn-block">
+            驗證並完成註冊
+          </button>
+        </div>
 
         <!-- 顯示申請結果訊息 -->
         <p id="registerMessage" class="login-message"></p>
