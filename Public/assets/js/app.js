@@ -101,6 +101,12 @@ document.addEventListener('DOMContentLoaded', function () {
     return;
   }
 
+  // ✅ 必須先初始化地圖，否則 #map 會是空的（沒有 .gm-style）
+  MapModule.init({
+    onSearchPlaceSelected: handleSearchPlaceSelected,
+    onMapLongPressForNewPlace: handleMapLongPressForNewPlace
+  });
+
   // ✅ 初始化鏡頭聚焦模組（FocusCamera）
   if (window.FocusCamera && typeof window.FocusCamera.init === 'function') {
     window.FocusCamera.init({
