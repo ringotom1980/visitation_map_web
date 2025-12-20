@@ -863,12 +863,6 @@ var MapModule = (function () {
 
     // 僅做「明確置中」，不做 fitBounds（fitBounds 會改 zoom、也容易覆蓋你後續的 panBy 對齊）
     map.panTo({ lat: lat, lng: lng });
-
-    // 視需求：如果你希望點選後至少放大到某個層級，打開這段（否則刪掉）
-    var z = (typeof map.getZoom === 'function') ? Number(map.getZoom()) : NaN;
-    if (isFinite(z) && z < 15 && typeof map.setZoom === 'function') {
-      map.setZoom(15);
-    }
   }
 
   function panToLatLng(lat, lng, zoom) {
@@ -890,6 +884,21 @@ var MapModule = (function () {
 
   function getMap() {
     return map || null;
+  }
+
+  function getProjection() {
+    // 確保 Projection helper 已建立
+    try {
+      if (!map) return null;
+      ensureProjectionHelper();
+      if (!projHelper) return null;
+
+      var proj = projHelper.getProjection();
+      return proj || null;
+    } catch (e) {
+      console.warn('getProjection fail:', e);
+      return null;
+    }
   }
 
   /* ---------- 組 Google 導航 URL ---------- */
@@ -967,6 +976,7 @@ var MapModule = (function () {
     searchByText: searchByText,
     panBy: panBy,
     getMap: getMap,
+    getProjection: getProjection,
     _markersById: markersById,
   };
 })();

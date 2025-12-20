@@ -610,9 +610,6 @@ document.addEventListener('DOMContentLoaded', function () {
   }
 
   // ===== FIX: 點位對齊到「資訊抽屜上緣」(用 Projection 精準算像素) =====
-  var __lastAlignKey = '';
-  var __alignTimer1 = null;
-  var __alignTimer2 = null;
   var __projOverlay = null;
 
   function ensureProjectionOverlay(map) {
@@ -648,47 +645,74 @@ document.addEventListener('DOMContentLoaded', function () {
   }
 
   function panMarkerAboveSheet(place, sheetInner, gapPx) {
-    var map = MapModule.getMap();
-    var projection = MapModule.getProjection && MapModule.getProjection();
-    if (!map || !projection) return;
+    var map = MapModule.getMap && MapModule.getMap();
+    var proj = MapModule.getProjection && MapModule.getProjection();
+    if (!proj) {
+      var ov = ensureProjectionOverlay(map);
+      proj = ov && ov.getProjection && ov.getProjection();
+    }
+
+    if (!map || !proj) {
+      console.warn('[ALIGN] missing map/projection', { hasMap: !!map, hasProj: !!proj });
+      return;
+    }
 
     var lat = Number(place.lat);
     var lng = Number(place.lng);
     if (!isFinite(lat) || !isFinite(lng)) return;
 
-    var point = projection.fromLatLngToPoint(new google.maps.LatLng(lat, lng));
+    var latLng = new google.maps.LatLng(lat, lng);
 
-    var scale = Math.pow(2, map.getZoom());
-    var markerPixelY = point.y * scale;
+    // ✅ 取 marker 在「map container」內的像素位置
+    var markerPx = null;
+    if (typeof proj.fromLatLngToContainerPixel === 'function') {
+      markerPx = proj.fromLatLngToContainerPixel(latLng);
+    } else if (typeof proj.fromLatLngToDivPixel === 'function') {
+      markerPx = proj.fromLatLngToDivPixel(latLng);
+    }
+    if (!markerPx) return;
 
-    var sheetRect = sheetInner.getBoundingClientRect();
-    var targetPixelY = sheetRect.top - gapPx;
-
+    // ✅ 目標：marker 的 y 要落在「抽屜上緣 - gap」，但要先換算成 map container 座標
     var mapRect = map.getDiv().getBoundingClientRect();
-    var currentCenterPixelY =
-      projection.fromLatLngToPoint(map.getCenter()).y * scale -
-      mapRect.top;
+    var sheetRect = sheetInner.getBoundingClientRect();
 
-    var deltaY = markerPixelY - (targetPixelY + currentCenterPixelY);
+    // 抽屜上緣在 viewport 的 y => 轉成 map container 內的 y
+    var targetY = (sheetRect.top - mapRect.top) - Number(gapPx || 0);
 
-    console.warn('[ALIGN] panBy y =', deltaY);
+    // 需要往上移：markerPx.y > targetY => panBy 正值會往下？(Google Maps: panBy(x,y) y>0 地圖往下移，視覺上 marker 往上)
+    var deltaY = markerPx.y - targetY;
+
+    console.warn('[ALIGN] markerY=', markerPx.y, 'targetY=', targetY, 'panByY=', deltaY);
 
     map.panBy(0, deltaY);
   }
 
-  function alignMyPlaceAfterSheetOpen(place) {
+  function alignMyPlaceAfterSheetOpen(place, sheetEl, force) {
     if (!place) return;
 
-    var sheetInner = document.querySelector(
-      '#sheet-place.bottom-sheet--open .bottom-sheet__inner'
-    );
+    // 允許呼叫端指定（你原本就有傳 sheetPlace）
+    var root = sheetEl || document.getElementById('sheet-place');
+    if (!root) return;
+
+    // 必須真的 open 才做
+    if (!root.classList.contains('bottom-sheet--open')) {
+      if (!force) return;
+    }
+
+    var sheetInner = root.querySelector('.bottom-sheet__inner');
     if (!sheetInner) return;
 
-    var map = MapModule.getMap();
-    if (!map) return;
+    var map = MapModule.getMap && MapModule.getMap();
+    if (!map || !window.google || !google.maps) return;
 
+    // 讓地圖完成 pan/zoom 後，再等抽屜 layout 穩定，最後才做 panBy
     google.maps.event.addListenerOnce(map, 'idle', function () {
-      panMarkerAboveSheet(place, sheetInner, FOCUS_GAP_PX);
+      // 等兩拍，避免「抽屜 transition 高度」與「字體重排」造成 sheetRect.top 浮動
+      requestAnimationFrame(function () {
+        requestAnimationFrame(function () {
+          panMarkerAboveSheet(place, sheetInner, FOCUS_GAP_PX);
+        });
+      });
     });
   }
 
