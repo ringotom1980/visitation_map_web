@@ -67,7 +67,7 @@ document.addEventListener('DOMContentLoaded', function () {
 
   // ===== 可調的焦聚安全距離（marker 與抽屜上緣的距離）=====
   // 單位：px，你之後只要改這個數字
-  var FOCUS_GAP_PX = 12;
+  var FOCUS_GAP_PX = 32;
 
   // ====== FIX: 動態設定 toolbar 高度，給 FAB 定位用 ======
   (function syncToolbarHeight() {
