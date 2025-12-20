@@ -648,6 +648,12 @@ document.addEventListener('DOMContentLoaded', function () {
   }
 
   function panMarkerAboveSheetOnce(place, panelEl, opts) {
+    console.warn('[ALIGN] panMarkerAboveSheetOnce', {
+      lat: place.lat,
+      lng: place.lng,
+      gap: FOCUS_GAP_PX
+    });
+//上面這5行測試用
     try {
       if (!place || !panelEl) return;
       if (!isPanelVisible(panelEl)) return; // ✅ 不再綁 bottom-sheet--open
@@ -728,6 +734,8 @@ document.addEventListener('DOMContentLoaded', function () {
   var __alignSeq = 0;
 
   function alignMyPlaceAfterSheetOpen(place, sheetEl, force) {
+    console.warn('[ALIGN] alignMyPlaceAfterSheetOpen CALLED', place && place.id);
+    //上面這行是測試用
     if (!place || !sheetEl) return;
 
     // 必須真的可見才做（精準，不猜）
