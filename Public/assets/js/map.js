@@ -853,40 +853,21 @@ var MapModule = (function () {
   }
 
   /* ---------- 聚焦某個地點 ---------- */
-  // function focusPlace(place) {
-  //   var lat = parseFloat(place.lat);
-  //   var lng = parseFloat(place.lng);
-  //   if (!isFinite(lat) || !isFinite(lng)) return;
-
-  //   var pos = { lat: lat, lng: lng };
-  //   map.panTo(pos);
-  //   map.setZoom(16);
-
-  //   var obj = markersById.get(Number(place.id));
-  //   if (obj && obj.marker) {
-  //     obj.marker.setAnimation(google.maps.Animation.BOUNCE);
-  //     setTimeout(function () { obj.marker.setAnimation(null); }, 700);
-  //   }
-  // }
-  /* ---------- 聚焦某個地點（修正：用 setCenter 取消 panTo 動畫，避免覆蓋 app.js 的 panBy offset） ---------- */
   function focusPlace(place) {
-    if (!map || !place) return;
+    if (!map) return;
+    if (!place) return;
 
-    var lat = parseFloat(place.lat);
-    var lng = parseFloat(place.lng);
+    var lat = Number(place.lat);
+    var lng = Number(place.lng);
     if (!isFinite(lat) || !isFinite(lng)) return;
 
-    var pos = { lat: lat, lng: lng };
+    // 僅做「明確置中」，不做 fitBounds（fitBounds 會改 zoom、也容易覆蓋你後續的 panBy 對齊）
+    map.panTo({ lat: lat, lng: lng });
 
-    // ✅ 關鍵修正：不要用 panTo（會動畫拉回中心，覆蓋後續 panBy）
-    map.setCenter(pos);
-    map.setZoom(16);
-
-    // 取 marker（你 markersById 同時存了數字與字串，這裡也做雙取）
-    var obj = markersById.get(Number(place.id)) || markersById.get(String(place.id));
-    if (obj && obj.marker) {
-      obj.marker.setAnimation(google.maps.Animation.BOUNCE);
-      setTimeout(function () { obj.marker.setAnimation(null); }, 700);
+    // 視需求：如果你希望點選後至少放大到某個層級，打開這段（否則刪掉）
+    var z = (typeof map.getZoom === 'function') ? Number(map.getZoom()) : NaN;
+    if (isFinite(z) && z < 15 && typeof map.setZoom === 'function') {
+      map.setZoom(15);
     }
   }
 

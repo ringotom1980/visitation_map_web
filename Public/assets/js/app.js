@@ -187,25 +187,23 @@ document.addEventListener('DOMContentLoaded', function () {
     function focusAndOpenMyPlace(place) {
       if (!place) return;
 
-      // 關掉其他抽屜
       closeSheet('sheet-poi');
 
-      // 設定狀態與內容
       state.currentPlace = place;
       fillPlaceSheet(place);
       collapsePlaceDetails(true);
 
-      // === 1) 地圖只負責「帶進視野」，不做精準定位 ===
-      var lat = Number(place.lat);
-      var lng = Number(place.lng);
-      if (isFinite(lat) && isFinite(lng)) {
-        MapModule.panToLatLng(lat, lng);
+      // 只走精準路徑：MapModule.focusPlace 必須存在且可用
+      if (!MapModule || typeof MapModule.focusPlace !== 'function') {
+        console.error('MapModule.focusPlace is missing. Check map.js implementation.');
+        return;
       }
+      MapModule.focusPlace(place);
 
-      // === 2) 打開抽屜 ===
+      // 再打開抽屜
       openSheet('sheet-place');
 
-      // === 3) 抽屜穩定後，對齊一次（沒有任何備援） ===
+      // 抽屜打開後，把點對齊到「抽屜上緣」
       alignMyPlaceAfterSheetOpen(place, sheetPlace);
     }
 
@@ -727,20 +725,53 @@ document.addEventListener('DOMContentLoaded', function () {
     return null;
   }
 
-  function alignMyPlaceAfterSheetOpen(place, sheetEl) {
+  var __alignSeq = 0;
+
+  function alignMyPlaceAfterSheetOpen(place, sheetEl, force) {
     if (!place || !sheetEl) return;
 
-    // 清掉前一次殘留（避免連點）
-    if (__alignTimer1) {
-      clearTimeout(__alignTimer1);
-      __alignTimer1 = null;
-    }
+    // 必須真的可見才做（精準，不猜）
+    if (!isPanelVisible(sheetEl)) return;
 
-    // 只等抽屜 transition 完成，然後「只對齊一次」
-    __alignTimer1 = setTimeout(function () {
-      var panel = getActiveObstructionEl() || sheetEl;
-      panMarkerAboveSheetOnce(place, panel, { gap: FOCUS_GAP_PX });
-    }, 320); // ⬅ 與 bottom-sheet transition 時間對齊
+    // key 用 place.id（避免同一點連點重覆推）
+    var key = String(place.id) + '|open';
+    if (!force && __lastAlignKey === key) return;
+    __lastAlignKey = key;
+
+    if (__alignTimer1) clearTimeout(__alignTimer1);
+    if (__alignTimer2) clearTimeout(__alignTimer2);
+
+    // 用序號讓「後來的呼叫」可以取消「之前排程的 callback」
+    var seq = ++__alignSeq;
+
+    requestAnimationFrame(function () {
+      __alignTimer1 = setTimeout(function () {
+        if (seq !== __alignSeq) return;
+
+        var panel = getActiveObstructionEl() || sheetEl;
+
+        // 只走精準路徑：必須能用 google.maps.event.addListenerOnce 等 idle
+        var map = (MapModule && typeof MapModule.getMap === 'function') ? MapModule.getMap() : null;
+        if (!map || !window.google || !google.maps || !google.maps.event || typeof google.maps.event.addListenerOnce !== 'function') {
+          console.error('Google Maps event.addListenerOnce not available; cannot align safely.');
+          return;
+        }
+
+        google.maps.event.addListenerOnce(map, 'idle', function () {
+          if (seq !== __alignSeq) return;
+
+          panMarkerAboveSheetOnce(place, panel, { gap: FOCUS_GAP_PX });
+
+          __alignTimer2 = setTimeout(function () {
+            if (seq !== __alignSeq) return;
+
+            var panel2 = getActiveObstructionEl() || sheetEl;
+            panMarkerAboveSheetOnce(place, panel2, { gap: FOCUS_GAP_PX });
+          }, 160);
+        });
+
+      }, 260);
+    });
   }
 
   if (btnMyLocation) {

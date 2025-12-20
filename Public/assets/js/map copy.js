@@ -475,8 +475,9 @@ var MapModule = (function () {
 
     myLocationOverlay = new MyLocationOverlay(pos);
 
-    map.panTo({ lat: lat, lng: lng });
-    map.setZoom(15);
+    // map.panTo({ lat: lat, lng: lng });
+    // map.setZoom(15);
+
   }
 
   /* ---------- 載入標記 ---------- */
@@ -518,8 +519,16 @@ var MapModule = (function () {
         }
 
       });
+      var pid = Number(p.id);
+      if (!isFinite(pid)) return;
 
-      markersById.set(p.id, { marker: marker, nameOv: nameOv, data: p });
+      var obj = { marker: marker, nameOv: nameOv, data: p };
+
+      // ✅ 同時存「數字 key」與「字串 key」
+      // 這樣不管外面傳 78 或 "78"，都抓得到同一顆 marker
+      markersById.set(pid, obj);
+      markersById.set(String(pid), obj);
+
     });
   }
 
@@ -768,20 +777,128 @@ var MapModule = (function () {
     }
   }
 
+  /* ---------- 更新某個地點座標：只移動同一顆 marker + overlay（局部更新） ---------- */
+  function updatePlacePosition(placeId, lat, lng) {
+    if (!map) return false;
+
+    // ✅ 同時保留「原始 id（可能是字串）」與「數字 id」
+    var idRaw = placeId;
+    var idNum = Number(placeId);
+
+    // placeId 可能是 "78" 也可能是 78，都接受
+    var hasNum = isFinite(idNum);
+
+    lat = Number(lat);
+    lng = Number(lng);
+    if (!isFinite(lat) || !isFinite(lng)) return false;
+
+    // ✅ 關鍵修正：Map key 嚴格比對，先用數字取，不到再用字串取
+    var obj = null;
+
+    if (hasNum) {
+      obj = markersById.get(idNum);
+    }
+    if ((!obj || !obj.marker) && idRaw !== null && idRaw !== undefined) {
+      obj = markersById.get(String(idRaw));
+    }
+
+    // ✅ 再保底：若 placeId 是數字但 Map key 是字串數字
+    if ((!obj || !obj.marker) && hasNum) {
+      obj = markersById.get(String(idNum));
+    }
+
+    if (!obj || !obj.marker) return false;
+
+    var pos = new google.maps.LatLng(lat, lng);
+
+    // 1) 移動 marker（同一顆）
+    obj.marker.setPosition(pos);
+
+    // 2) 移動姓名 overlay
+    if (obj.nameOv && typeof obj.nameOv.setPosition === 'function') {
+      obj.nameOv.setPosition(pos);
+    }
+
+    // 3) 同步 obj.data
+    if (obj.data) {
+      obj.data.lat = lat;
+      obj.data.lng = lng;
+    }
+
+    // 4) 同步 placesCache
+    if (Array.isArray(placesCache)) {
+      for (var i = 0; i < placesCache.length; i++) {
+        var p = placesCache[i];
+        if (!p) continue;
+
+        // ✅ 同時比對數字/字串 id
+        var pidNum = Number(p.id);
+        if ((hasNum && isFinite(pidNum) && pidNum === idNum) || String(p.id) === String(idRaw)) {
+          p.lat = lat;
+          p.lng = lng;
+          break;
+        }
+      }
+    }
+
+    // 5) 路線
+    if (mode === 'ROUTE_READY') {
+      drawRouteLine(currentRoutePoints);
+    }
+
+    // 6) 重新套用顯示策略
+    applyMarkersByMode(currentRoutePoints);
+
+    return true;
+  }
+
   /* ---------- 聚焦某個地點 ---------- */
+  // function focusPlace(place) {
+  //   var lat = parseFloat(place.lat);
+  //   var lng = parseFloat(place.lng);
+  //   if (!isFinite(lat) || !isFinite(lng)) return;
+
+  //   var pos = { lat: lat, lng: lng };
+  //   map.panTo(pos);
+  //   map.setZoom(16);
+
+  //   var obj = markersById.get(Number(place.id));
+  //   if (obj && obj.marker) {
+  //     obj.marker.setAnimation(google.maps.Animation.BOUNCE);
+  //     setTimeout(function () { obj.marker.setAnimation(null); }, 700);
+  //   }
+  // }
+  /* ---------- 聚焦某個地點（修正：用 setCenter 取消 panTo 動畫，避免覆蓋 app.js 的 panBy offset） ---------- */
   function focusPlace(place) {
+    if (!map || !place) return;
+
     var lat = parseFloat(place.lat);
     var lng = parseFloat(place.lng);
     if (!isFinite(lat) || !isFinite(lng)) return;
 
     var pos = { lat: lat, lng: lng };
-    map.panTo(pos);
+
+    // ✅ 關鍵修正：不要用 panTo（會動畫拉回中心，覆蓋後續 panBy）
+    map.setCenter(pos);
     map.setZoom(16);
 
-    var obj = markersById.get(place.id);
+    // 取 marker（你 markersById 同時存了數字與字串，這裡也做雙取）
+    var obj = markersById.get(Number(place.id)) || markersById.get(String(place.id));
     if (obj && obj.marker) {
       obj.marker.setAnimation(google.maps.Animation.BOUNCE);
       setTimeout(function () { obj.marker.setAnimation(null); }, 700);
+    }
+  }
+
+  function panToLatLng(lat, lng, zoom) {
+    if (!map) return;
+    lat = Number(lat);
+    lng = Number(lng);
+    if (!isFinite(lat) || !isFinite(lng)) return;
+
+    map.panTo({ lat: lat, lng: lng });
+    if (zoom !== undefined && zoom !== null && isFinite(Number(zoom))) {
+      map.setZoom(Number(zoom));
     }
   }
 
@@ -856,6 +973,8 @@ var MapModule = (function () {
     setPlaces: setPlaces,
     setMode: setMode,
     focusPlace: focusPlace,
+    updatePlacePosition: updatePlacePosition,
+    panToLatLng: panToLatLng,
     buildDirectionsUrl: buildDirectionsUrl,
     showMyLocation: showMyLocation,
     getTempNewPlaceLatLng: getTempNewPlaceLatLng,
