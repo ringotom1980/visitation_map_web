@@ -687,8 +687,7 @@ document.addEventListener('DOMContentLoaded', function () {
     var map = MapModule.getMap();
     if (!map) return;
 
-    // 等地圖 idle，確保 projection 正確
-    map.addListenerOnce('idle', function () {
+    google.maps.event.addListenerOnce(map, 'idle', function () {
       panMarkerAboveSheet(place, sheetInner, FOCUS_GAP_PX);
     });
   }
