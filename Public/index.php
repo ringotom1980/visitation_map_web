@@ -57,11 +57,6 @@ if (isset($_GET['applied']) && $_GET['applied'] === '1') {
             placeholder="name@example.com">
         </label>
 
-        <p class="login-extra">
-          還沒有帳號？
-          <a href="<?= route_url('register') ?>">申請帳號</a>
-        </p>
-
         <label class="form-group">
           <span class="form-label">密碼</span>
           <input
@@ -74,7 +69,10 @@ if (isset($_GET['applied']) && $_GET['applied'] === '1') {
         </label>
 
         <button type="submit" class="btn-primary btn-block">登入</button>
-
+        <p class="login-extra">
+          還沒有帳號？
+          <a href="<?= route_url('register') ?>">申請帳號</a>
+        </p>
         <p class="login-extra">
           忘記密碼？
           <a href="<?= route_url('forgot') ?>">重設密碼</a>
