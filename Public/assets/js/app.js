@@ -678,11 +678,11 @@ document.addEventListener('DOMContentLoaded', function () {
       var innerRect = innerEl.getBoundingClientRect();
 
       // marker 中心要落在「抽屜上緣 + 安全距離」
-      var targetY_div =
-        (innerRect.top - mapRect.top) - FOCUS_GAP_PX;
+      var gapPx =
+        (opts && isFinite(opts.gap)) ? opts.gap : FOCUS_GAP_PX;
 
-      var ov = ensureProjectionOverlay(map);
-      if (!ov) return;
+      var targetY_div =
+        (innerRect.top - mapRect.top) - gapPx;
 
       var proj = ov.getProjection && ov.getProjection();
       if (!proj || !proj.fromLatLngToDivPixel) {
@@ -745,22 +745,24 @@ document.addEventListener('DOMContentLoaded', function () {
         var map = (MapModule && typeof MapModule.getMap === 'function') ? MapModule.getMap() : null;
         if (map && typeof map.addListenerOnce === 'function') {
           map.addListenerOnce('idle', function () {
-            panMarkerAboveSheetOnce(place, panel, { gap: 32 });
+            panMarkerAboveSheetOnce(place, panel, { gap: FOCUS_GAP_PX });
 
             __alignTimer2 = setTimeout(function () {
               var panel2 = getActiveObstructionEl() || sheetEl;
-              panMarkerAboveSheetOnce(place, panel2, { gap: 32 });
+              panMarkerAboveSheetOnce(place, panel2, { gap: FOCUS_GAP_PX });
+
             }, 160);
           });
           return;
         }
 
         // fallback（極少數情況）
-        panMarkerAboveSheetOnce(place, panel, { gap: 32 });
+        panMarkerAboveSheetOnce(place, panel, { gap: FOCUS_GAP_PX });
 
         __alignTimer2 = setTimeout(function () {
           var panel2 = getActiveObstructionEl() || sheetEl;
-          panMarkerAboveSheetOnce(place, panel2, { gap: 32 });
+          panMarkerAboveSheetOnce(place, panel2, { gap: FOCUS_GAP_PX });
+          
         }, 160);
 
       }, 260); // ✅ 比你原本 220 稍微多一點，讓面板 transition 更穩
