@@ -1035,9 +1035,6 @@ document.addEventListener('DOMContentLoaded', function () {
 
     // S1：BROWSE → 點地圖空白才關資訊抽屜
     if (state.mode === Mode.BROWSE) {
-      if (window.FocusCamera && typeof window.FocusCamera.restoreOverview === 'function') {
-        window.FocusCamera.restoreOverview();
-      }
       closeSheet('sheet-place');
       closeSheet('sheet-poi');
       state.currentPlace = null;
