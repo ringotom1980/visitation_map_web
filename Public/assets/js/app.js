@@ -1024,7 +1024,7 @@ document.addEventListener('DOMContentLoaded', function () {
     }
   });
 
-  // ===== map:blankClick 統一入口（唯一監聽）=====
+  // ===== map:blankClick 統一入口（唯一監聽） =====
   document.addEventListener('map:blankClick', function () {
 
     // S2：路線規劃 → 點地圖空白 = 離開規劃
