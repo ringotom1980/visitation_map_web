@@ -57,6 +57,11 @@ if (isset($_GET['applied']) && $_GET['applied'] === '1') {
             placeholder="name@example.com">
         </label>
 
+        <p class="login-extra">
+          還沒有帳號？
+          <a href="<?= route_url('register') ?>">申請帳號</a>
+        </p>
+
         <label class="form-group">
           <span class="form-label">密碼</span>
           <input
@@ -71,8 +76,8 @@ if (isset($_GET['applied']) && $_GET['applied'] === '1') {
         <button type="submit" class="btn-primary btn-block">登入</button>
 
         <p class="login-extra">
-          還沒有帳號？
-          <a href="<?= route_url('register') ?>">申請帳號</a>
+          忘記密碼？
+          <a href="<?= route_url('forgot') ?>">重設密碼</a>
         </p>
 
         <p
@@ -83,7 +88,7 @@ if (isset($_GET['applied']) && $_GET['applied'] === '1') {
 
       </form>
       <p class="login-extra small">
-        忘記密碼請聯絡苗栗縣後備指揮部留守科協助重設
+        帳號有問題無法登入，請聯絡苗栗縣後備指揮部留守科協助
       </p>
 
     </main>
@@ -113,7 +118,7 @@ if (isset($_GET['applied']) && $_GET['applied'] === '1') {
   <!-- 共用 JS + 此頁專屬 JS 都寫在這裡，不再透過 footer.php -->
   <script src="<?= asset_url('assets/js/api.js') ?>"></script>
   <script src="<?= asset_url('assets/js/login.js') ?>"></script>
-  
+
 </body>
 
 </html>
