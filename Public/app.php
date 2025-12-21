@@ -12,6 +12,71 @@ require_once __DIR__ . '/../config/auth.php';
 
 // A2/A3：主頁必須登入
 require_login_page();
+// ================================
+// E2：Trusted Device Gate（防止按上一頁繞過 DEVICE OTP）
+// - 任何進入 app.php 都必須檢查：user + device_id 是否 TRUSTED
+// - 同時用 no-store 避免瀏覽器回上一頁用快取直接顯示 app
+// ================================
+header('Cache-Control: no-store, no-cache, must-revalidate, max-age=0');
+header('Pragma: no-cache');
+header('Expires: 0');
+
+// 取得登入使用者
+$user = current_user();
+$uid  = (int)($user['id'] ?? 0);
+
+if ($uid <= 0) {
+  // 理論上 require_login_page 已處理，但保底
+  header('Location: /login');
+  exit;
+}
+
+// 取得 device_id（由 device_otp_verify.php 成功後 setcookie）
+$deviceId = $_COOKIE['device_id'] ?? '';
+
+/**
+ * 導向 device verify 頁（不要猜你的 rewrite helper 是否存在）
+ * - 若你專案有 route_url('device_verify') 就用它
+ * - 否則 fallback 到 /device_verify（依你目前流程命名）
+ */
+$deviceVerifyUrl = '/device_verify';
+if (function_exists('route_url')) {
+  // 你若有定義漂亮網址 helper，就優先用
+  try {
+    $deviceVerifyUrl = route_url('device_verify');
+  } catch (Throwable $e) {
+    // ignore，fallback
+  }
+}
+
+// 沒有 device_id → 一律要求做 device verify
+if ($deviceId === '') {
+  header('Location: ' . $deviceVerifyUrl);
+  exit;
+}
+
+// DB 檢查：trusted_devices 必須是 TRUSTED
+// 注意：這裡假設 db() 可用（你整個專案其他 api 已在用 db()）
+// 若你這隻頁面沒載入 db()，我再幫你補 require_once 對應的 db 檔
+$pdo = db();
+
+$stmt = $pdo->prepare("
+  SELECT 1
+  FROM trusted_devices
+  WHERE user_id = :uid
+    AND device_id = :did
+    AND status = 'TRUSTED'
+  LIMIT 1
+");
+$stmt->execute([
+  ':uid' => $uid,
+  ':did' => $deviceId,
+]);
+
+if (!$stmt->fetchColumn()) {
+  header('Location: ' . $deviceVerifyUrl);
+  exit;
+}
 
 $pageTitle = APP_NAME;
 $pageCss = [
