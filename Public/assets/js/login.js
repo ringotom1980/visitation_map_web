@@ -6,53 +6,44 @@
 document.addEventListener('DOMContentLoaded', () => {
   const form  = document.getElementById('loginForm');
   const msgEl = document.getElementById('loginMessage');
-
   if (!form) return;
+
+  const setMsg = (text, cls) => {
+    if (!msgEl) return;
+    msgEl.textContent = text || '';
+    msgEl.classList.remove('error', 'success');
+    if (cls) msgEl.classList.add(cls);
+  };
 
   form.addEventListener('submit', async (e) => {
     e.preventDefault();
+    setMsg('', null);
 
-    if (msgEl) {
-      msgEl.textContent = '';
-      msgEl.classList.remove('error', 'success');
-    }
-
-    const email    = document.getElementById('email').value.trim();
-    const password = document.getElementById('password').value;
+    const email = (document.getElementById('email')?.value || '').trim();
+    const password = (document.getElementById('password')?.value || '');
 
     if (!email || !password) {
-      if (msgEl) {
-        msgEl.textContent = '請輸入帳號與密碼';
-        msgEl.classList.add('error');
-      }
+      setMsg('請輸入帳號與密碼', 'error');
       return;
     }
 
     try {
-      // ✅ apiRequest 回傳整包 JSON：{ success, data }
-      const json = await apiRequest('/auth/login', 'POST', { email, password });
+      // ✅ 直接打 API 實體路徑，避免被前端路由 rewrite
+      const json = await apiRequest('/api/auth/login', { method: 'POST', body: { email, password } });
       const data = json && json.data ? json.data : null;
 
-      if (msgEl) {
-        msgEl.textContent = '登入成功，跳轉中…';
-        msgEl.classList.add('success');
-      }
+      setMsg('登入成功，跳轉中…', 'success');
 
-      // 後端優先：若有帶 redirect，就用它
-      let target = data && data.redirect ? data.redirect : '';
-
-      // 沒帶 redirect 就看 role
+      let target = (data && data.redirect) ? data.redirect : '';
       if (!target) {
         const role = data && data.role ? data.role : '';
         target = (role === 'ADMIN') ? '/admin' : '/app';
       }
 
       window.location.href = target;
+
     } catch (err) {
-      if (msgEl) {
-        msgEl.textContent = (err && err.message) ? err.message : '登入失敗';
-        msgEl.classList.add('error');
-      }
+      setMsg((err && err.message) ? err.message : '登入失敗', 'error');
     }
   });
 });
