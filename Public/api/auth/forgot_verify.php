@@ -3,6 +3,10 @@
  * Path: Public/api/auth/forgot_verify.php
  * 說明: 忘記密碼 - 驗證 OTP 並重設密碼
  * Method: POST /api/auth/forgot_verify
+ *
+ * 節流策略（方案A）：
+ * - 入口先擋封鎖者（不累計）：throttle_assert_not_blocked(OTP_RESET_VERIFY_FAIL)
+ * - 只在失敗時累計：throttle_hit(OTP_RESET_VERIFY_FAIL)
  */
 
 declare(strict_types=1);
@@ -43,7 +47,7 @@ if (mb_strlen($newPw, 'UTF-8') < 8) {
     json_error('新密碼至少 8 碼', 400);
 }
 
-// ✅ 入口先擋已封鎖者（不累計）
+// 入口先擋已封鎖者（不累計）
 throttle_assert_not_blocked('OTP_RESET_VERIFY_FAIL', 'IP_EMAIL', $email);
 
 $pdo = db();
@@ -55,15 +59,11 @@ try {
     $u = $stmt->fetch();
 
     if (!$u) {
-        // ✅ 只在失敗時累計（15 分鐘內最多 10 次，超過封 15 分鐘）
         throttle_hit('OTP_RESET_VERIFY_FAIL', 'IP_EMAIL', $email, 900, 10, 15);
-
         auth_event('RESET_VERIFY_FAIL', null, $email, 'user not found');
         json_error('驗證失敗，請重新申請驗證碼', 400);
     }
-
     if (($u['status'] ?? '') !== 'ACTIVE') {
-        // 停權/未啟用：不算爆破，但仍留稽核
         auth_event('RESET_VERIFY_FAIL', (int)$u['id'], $email, 'inactive');
         json_error('帳號尚未啟用或已停權', 403);
     }
@@ -81,7 +81,6 @@ try {
 
     if (!$row) {
         throttle_hit('OTP_RESET_VERIFY_FAIL', 'IP_EMAIL', $email, 900, 10, 15);
-
         auth_event('RESET_VERIFY_FAIL', (int)$u['id'], $email, 'no otp');
         json_error('尚未申請驗證碼或驗證碼已失效，請重新申請', 400);
     }
@@ -91,10 +90,7 @@ try {
     $failCount = (int)$row['fail_count'];
 
     if ($failCount >= 5) {
-        // OTP 本身已達上限：同時也把 IP+Email 維度 hit，避免換 OTP 繼續轟炸 verify
-        throttle_hit('OTP_RESET_VERIFY_FAIL', 'IP_EMAIL', $email, 900, 10, 15);
-
-        auth_event('RESET_VERIFY_FAIL', (int)$u['id'], $email, 'too many otp fails');
+        auth_event('RESET_VERIFY_FAIL', (int)$u['id'], $email, 'too many fails');
         json_error('驗證碼錯誤次數過多，請重新申請驗證碼', 429);
     }
 
@@ -102,7 +98,6 @@ try {
     $exp = new DateTimeImmutable($expiresAt);
     if ($now > $exp) {
         throttle_hit('OTP_RESET_VERIFY_FAIL', 'IP_EMAIL', $email, 900, 10, 15);
-
         auth_event('RESET_VERIFY_FAIL', (int)$u['id'], $email, 'expired');
         json_error('驗證碼已過期，請重新申請', 400);
     }
@@ -112,7 +107,6 @@ try {
         $stmt->execute([':id' => $otpId]);
 
         throttle_hit('OTP_RESET_VERIFY_FAIL', 'IP_EMAIL', $email, 900, 10, 15);
-
         auth_event('RESET_VERIFY_FAIL', (int)$u['id'], $email, 'otp mismatch');
 
         if ($failCount + 1 >= 5) {
@@ -139,6 +133,9 @@ try {
 
 } catch (Throwable $e) {
     if ($pdo->inTransaction()) $pdo->rollBack();
+
+    throttle_hit('OTP_RESET_VERIFY_FAIL', 'IP_EMAIL', $email, 900, 10, 15);
+
     auth_event('RESET_VERIFY_FAIL', null, $email ?: null, 'exception');
     json_error('系統忙碌中，請稍後再試。', 500);
 }
