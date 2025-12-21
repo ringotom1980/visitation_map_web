@@ -29,7 +29,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
     try {
       // ✅ 直接打 API 實體路徑，避免被前端路由 rewrite
-      const json = await apiRequest('/api/auth/login', { method: 'POST', body: { email, password } });
+      const json = await apiRequest('auth/login', 'POST', { email, password });
       const data = json && json.data ? json.data : null;
 
       setMsg('登入成功，跳轉中…', 'success');
