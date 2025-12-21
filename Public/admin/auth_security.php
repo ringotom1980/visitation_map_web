@@ -126,6 +126,6 @@ $pageCss   = ['assets/css/base.css', 'assets/css/admin.css'];
 </main>
 
 <script src="<?= asset_url('assets/js/api.js') ?>"></script>
-<script src="<?= asset_url('assets/js/admin_auth_security.js') ?>"></script>
+<script src="<?= asset_url('assets/js/auth_security.js') ?>"></script>
 </body>
 </html>
