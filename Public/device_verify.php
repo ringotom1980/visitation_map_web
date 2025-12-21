@@ -4,14 +4,31 @@
  * 說明: 裝置驗證（DEVICE OTP）
  */
 
+declare(strict_types=1);
+
 require_once __DIR__ . '/../config/auth.php';
 require_login();
 
+// 防止瀏覽器用快取「回上一頁」看到不該看到的內容
+header('Cache-Control: no-store, no-cache, must-revalidate, max-age=0');
+header('Pragma: no-cache');
+header('Expires: 0');
+
 $pageTitle = APP_NAME . ' - 裝置驗證';
 $pageCss   = [
-  'assets/css/login.css',        // 若要沿用 login 系列版型
+  'assets/css/login.css',
   'assets/css/device_verify.css'
 ];
+
+// 驗證成功要回去哪（預設 /app）
+$returnTo = '/app';
+if (isset($_GET['return'])) {
+  $rt = (string)$_GET['return'];
+  // 只允許站內路徑，避免 open redirect
+  if ($rt !== '' && $rt[0] === '/' && strpos($rt, '//') !== 0) {
+    $returnTo = $rt;
+  }
+}
 ?>
 <!DOCTYPE html>
 <html lang="zh-Hant">
@@ -49,7 +66,7 @@ $pageCss   = [
           >
         </label>
 
-        <button id="dv-verify" class="btn-primary btn-block">
+        <button id="dv-verify" class="btn-primary btn-block" type="button">
           驗證裝置
         </button>
 
@@ -69,7 +86,10 @@ $pageCss   = [
 
   </div>
 
-  <!-- JS：完全照 forgot.php 的方式 -->
+  <script>
+    window.__DV_RETURN_TO__ = <?= json_encode($returnTo, JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE) ?>;
+  </script>
+
   <script src="<?= asset_url('assets/js/api.js') ?>"></script>
   <script src="<?= asset_url('assets/js/device_verify.js') ?>"></script>
 </body>

@@ -24,12 +24,28 @@ if (ini_get('session.use_cookies')) {
         session_name(),
         '',
         time() - 42000,
-        $params['path'],
-        $params['domain'],
-        $params['secure'],
-        $params['httponly']
+        $params['path'] ?? '/',
+        $params['domain'] ?? '',
+        (bool)($params['secure'] ?? false),
+        (bool)($params['httponly'] ?? true)
     );
 }
 session_destroy();
+
+/**
+ * ✅ 同步清除 device_id（避免放棄驗證後仍殘留）
+ * 注意 secure 判斷：若你有 X-Forwarded-Proto=https 就視為 https
+ */
+$isHttps = false;
+if (!empty($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off') $isHttps = true;
+if (!empty($_SERVER['HTTP_X_FORWARDED_PROTO']) && strtolower((string)$_SERVER['HTTP_X_FORWARDED_PROTO']) === 'https') $isHttps = true;
+
+setcookie('device_id', '', [
+    'expires'  => time() - 3600,
+    'path'     => '/',
+    'secure'   => $isHttps,
+    'httponly' => true,
+    'samesite' => 'Lax',
+]);
 
 json_success(['message' => '已登出']);
