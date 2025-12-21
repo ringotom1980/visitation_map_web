@@ -12,6 +12,7 @@ require_once __DIR__ . '/../config/auth.php';
 
 // A2/A3：主頁必須登入
 require_login_page();
+
 // ================================
 // E2：Trusted Device Gate（防止按上一頁繞過 DEVICE OTP）
 // - 任何進入 app.php 都必須檢查：user + device_id 是否 TRUSTED
@@ -20,6 +21,11 @@ require_login_page();
 header('Cache-Control: no-store, no-cache, must-revalidate, max-age=0');
 header('Pragma: no-cache');
 header('Expires: 0');
+
+// 確保 db() 可用（若 auth.php 沒帶到 bootstrap，這裡補上）
+if (!function_exists('db')) {
+  require_once __DIR__ . '/api/common/bootstrap.php';
+}
 
 // 取得登入使用者
 $user = current_user();
@@ -34,20 +40,21 @@ if ($uid <= 0) {
 // 取得 device_id（由 device_otp_verify.php 成功後 setcookie）
 $deviceId = $_COOKIE['device_id'] ?? '';
 
-/**
- * 導向 device verify 頁（不要猜你的 rewrite helper 是否存在）
- * - 若你專案有 route_url('device_verify') 就用它
- * - 否則 fallback 到 /device_verify（依你目前流程命名）
- */
+// ----------------------------
+// ✅ 設定「裝置驗證頁」URL（避免 rewrite 指回 app.php 造成無限導向）
+// 1) 若 Public/device_verify.php 存在，優先用 /device_verify.php（最穩）
+// 2) 否則才用 /device_verify（漂亮網址）
+// 並帶 return=/app，方便驗證完成後回主頁
+// ----------------------------
 $deviceVerifyUrl = '/device_verify';
-if (function_exists('route_url')) {
-  // 你若有定義漂亮網址 helper，就優先用
-  try {
-    $deviceVerifyUrl = route_url('device_verify');
-  } catch (Throwable $e) {
-    // ignore，fallback
-  }
+
+$deviceVerifyFile = __DIR__ . '/device_verify.php';
+if (is_file($deviceVerifyFile)) {
+  $deviceVerifyUrl = '/device_verify.php';
 }
+
+// 加 return 參數（不依賴任何 helper）
+$deviceVerifyUrl .= (strpos($deviceVerifyUrl, '?') === false ? '?' : '&') . 'return=' . rawurlencode('/app');
 
 // 沒有 device_id → 一律要求做 device verify
 if ($deviceId === '') {
@@ -56,8 +63,6 @@ if ($deviceId === '') {
 }
 
 // DB 檢查：trusted_devices 必須是 TRUSTED
-// 注意：這裡假設 db() 可用（你整個專案其他 api 已在用 db()）
-// 若你這隻頁面沒載入 db()，我再幫你補 require_once 對應的 db 檔
 $pdo = db();
 
 $stmt = $pdo->prepare("
@@ -87,6 +92,7 @@ $pageCss = [
   'assets/css/place_coord_update.css',
 ];
 ?>
+
 <!DOCTYPE html>
 <html lang="zh-Hant">
 <?php require __DIR__ . '/partials/head.php'; ?>
