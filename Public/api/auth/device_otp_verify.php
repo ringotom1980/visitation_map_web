@@ -149,10 +149,15 @@ try {
     json_success(['trusted' => true]);
 
 } catch (Throwable $e) {
-    // 例外也算失敗命中（5 次封 15 分鐘）
-    throttle_hit('OTP_DEVICE_VERIFY_FAIL', 'IP_EMAIL', $email, 900, 5, 15);
-    throttle_hit('OTP_DEVICE_VERIFY_FAIL', 'IP', null, 900, 5, 15);
 
-    auth_event('OTP_VERIFY_FAIL', (int)$user['id'], $email, 'DEVICE exception');
+    // ❗ catch 內禁止 throttle_hit / throttle_check
+    auth_event(
+        'OTP_VERIFY_FAIL',
+        (int)$user['id'],
+        $email,
+        'DEVICE exception: ' . $e->getMessage()
+    );
+
     json_error('系統忙碌中，請稍後再試。', 500);
 }
+

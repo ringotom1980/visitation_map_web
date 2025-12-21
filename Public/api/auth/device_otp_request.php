@@ -118,9 +118,12 @@ try {
 } catch (Throwable $e) {
     if ($pdo->inTransaction()) $pdo->rollBack();
 
-    throttle_hit('OTP_DEVICE_REQ_FAIL', 'IP_EMAIL', $email, 900, 5, 15);
-    throttle_hit('OTP_DEVICE_REQ_FAIL', 'IP', null, 900, 5, 15);
+    auth_event(
+        'DEVICE_OTP_FAIL',
+        (int)$user['id'],
+        $email ?: null,
+        'exception: ' . $e->getMessage()
+    );
 
-    auth_event('DEVICE_OTP_FAIL', (int)$user['id'], $email ?: null, 'exception');
     json_error('系統忙碌中，請稍後再試。', 500);
 }
