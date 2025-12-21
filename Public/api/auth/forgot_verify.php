@@ -1,7 +1,7 @@
 <?php
 /**
  * Path: Public/api/auth/forgot_verify.php
- * 說明: 忘記密碼 - 驗證 OTP（purpose=RESET）→ 更新 users.password_hash
+ * 說明: 忘記密碼 - 驗證 OTP 並重設密碼
  * Method: POST /api/auth/forgot_verify
  */
 
@@ -25,34 +25,44 @@ if (empty($input)) {
 $email = trim((string)($input['email'] ?? ''));
 $otp   = trim((string)($input['otp'] ?? ''));
 $newPw = (string)($input['new_password'] ?? '');
-$newPw2= (string)($input['new_password_confirm'] ?? '');
 
-if ($email === '' || !filter_var($email, FILTER_VALIDATE_EMAIL)) {
+if ($email === '' || $otp === '' || $newPw === '') {
+    auth_event('RESET_VERIFY_FAIL', null, $email ?: null, 'missing');
+    json_error('請輸入 Email、驗證碼與新密碼', 400);
+}
+if (!filter_var($email, FILTER_VALIDATE_EMAIL)) {
+    auth_event('RESET_VERIFY_FAIL', null, $email, 'invalid email');
     json_error('Email 格式不正確', 400);
 }
 if (!preg_match('/^\d{6}$/', $otp)) {
+    auth_event('RESET_VERIFY_FAIL', null, $email, 'invalid otp format');
     json_error('驗證碼格式不正確（需為 6 位數字）', 400);
 }
-if ($newPw === '' || $newPw2 === '' || strlen($newPw) < 8) {
-    json_error('新密碼長度至少需 8 碼', 400);
+if (mb_strlen($newPw, 'UTF-8') < 8) {
+    auth_event('RESET_VERIFY_FAIL', null, $email, 'weak password');
+    json_error('新密碼至少 8 碼', 400);
 }
-if ($newPw !== $newPw2) {
-    json_error('兩次輸入的新密碼不一致', 400);
-}
+
+// ✅ RESET OTP 驗證節流
+throttle_check('OTP_RESET_VERIFY', 'IP_EMAIL', $email, 900, 20);
 
 $pdo = db();
 
 try {
-    // 使用者存在且 ACTIVE（這裡不需要再做「不洩漏」，因為已到 verify 步驟）
-    $stmt = $pdo->prepare("SELECT id, status FROM users WHERE email=:email LIMIT 1");
+    // 查 user
+    $stmt = $pdo->prepare('SELECT id, status FROM users WHERE email = :email LIMIT 1');
     $stmt->execute([':email' => $email]);
     $u = $stmt->fetch();
-    if (!$u || ((string)($u['status'] ?? '')) !== 'ACTIVE') {
-        json_error('帳號不存在或未啟用', 400);
+    if (!$u) {
+        auth_event('RESET_VERIFY_FAIL', null, $email, 'user not found');
+        json_error('驗證失敗，請重新申請驗證碼', 400);
     }
-    $userId = (int)$u['id'];
+    if (($u['status'] ?? '') !== 'ACTIVE') {
+        auth_event('RESET_VERIFY_FAIL', (int)$u['id'], $email, 'inactive');
+        json_error('帳號尚未啟用或已停權', 403);
+    }
 
-    // 取得最新一筆未驗證 RESET OTP
+    // 取最新未驗證 RESET OTP
     $stmt = $pdo->prepare("
         SELECT id, code_hash, expires_at, fail_count
         FROM otp_tokens
@@ -64,6 +74,7 @@ try {
     $row = $stmt->fetch();
 
     if (!$row) {
+        auth_event('RESET_VERIFY_FAIL', (int)$u['id'], $email, 'no otp');
         json_error('尚未申請驗證碼或驗證碼已失效，請重新申請', 400);
     }
 
@@ -72,12 +83,14 @@ try {
     $failCount = (int)$row['fail_count'];
 
     if ($failCount >= 5) {
+        auth_event('RESET_VERIFY_FAIL', (int)$u['id'], $email, 'too many fails');
         json_error('驗證碼錯誤次數過多，請重新申請驗證碼', 429);
     }
 
     $now = new DateTimeImmutable('now');
     $exp = new DateTimeImmutable($expiresAt);
     if ($now > $exp) {
+        auth_event('RESET_VERIFY_FAIL', (int)$u['id'], $email, 'expired');
         json_error('驗證碼已過期，請重新申請', 400);
     }
 
@@ -85,6 +98,7 @@ try {
         $stmt = $pdo->prepare("UPDATE otp_tokens SET fail_count = fail_count + 1 WHERE id=:id");
         $stmt->execute([':id' => $otpId]);
 
+        auth_event('RESET_VERIFY_FAIL', (int)$u['id'], $email, 'otp mismatch');
         if ($failCount + 1 >= 5) {
             json_error('驗證碼錯誤次數過多，請重新申請驗證碼', 429);
         }
@@ -94,9 +108,9 @@ try {
     $pdo->beginTransaction();
 
     // 更新密碼
-    $newHash = password_hash($newPw, PASSWORD_DEFAULT);
-    $stmt = $pdo->prepare("UPDATE users SET password_hash=:pw WHERE id=:id");
-    $stmt->execute([':pw' => $newHash, ':id' => $userId]);
+    $pwHash = password_hash($newPw, PASSWORD_DEFAULT);
+    $stmt = $pdo->prepare("UPDATE users SET password_hash=:pw, updated_at=NOW() WHERE id=:id");
+    $stmt->execute([':pw' => $pwHash, ':id' => (int)$u['id']]);
 
     // 標記 OTP 已驗證
     $stmt = $pdo->prepare("UPDATE otp_tokens SET verified_at = NOW() WHERE id=:id");
@@ -104,11 +118,11 @@ try {
 
     $pdo->commit();
 
-    json_success([
-        'redirect' => route_url('login') . '?reset=1'
-    ]);
+    auth_event('RESET_OK', (int)$u['id'], $email, 'password reset');
+    json_success(['redirect' => route_url('login')]);
 
 } catch (Throwable $e) {
     if ($pdo->inTransaction()) $pdo->rollBack();
+    auth_event('RESET_VERIFY_FAIL', null, $email ?: null, 'exception');
     json_error('系統忙碌中，請稍後再試。', 500);
 }

@@ -1,7 +1,7 @@
 <?php
 /**
  * Path: Public/api/auth/forgot_request.php
- * 說明: 忘記密碼 - 寄送 Email OTP（purpose=RESET）
+ * 說明: 忘記密碼 - 申請 OTP（寄送 RESET）
  * Method: POST /api/auth/forgot_request
  */
 
@@ -24,11 +24,13 @@ if (empty($input)) {
 
 $email = trim((string)($input['email'] ?? ''));
 if ($email === '' || !filter_var($email, FILTER_VALIDATE_EMAIL)) {
-    // 這裡可選擇也用「不洩漏」訊息，但為 UX 仍回輸入錯誤
-    json_error('請帶入正確的 Email', 400);
+    auth_event('RESET_FAIL', null, $email ?: null, 'invalid email');
+    json_error('請輸入正確的 Email', 400);
 }
 
-// OTP 規格
+// ✅ RESET OTP 寄送節流
+throttle_check('OTP_RESET', 'IP_EMAIL', $email, 900, 5);
+
 $otpTtlMin = 10;
 
 function gen_otp_6(): string {
@@ -44,7 +46,7 @@ function send_reset_otp_mail(string $toEmail, string $otp): bool
     $subject = '重設密碼驗證碼（10 分鐘內有效）';
 
     $body = "您好，\n\n"
-          . "您正在進行「遺眷親訪地圖系統」的密碼重設。\n\n"
+          . "您正在申請「遺眷親訪地圖系統」重設密碼。\n\n"
           . "您的驗證碼（OTP）：{$otp}\n"
           . "有效時間：10 分鐘\n\n"
           . "若非本人操作，請忽略此信。\n\n"
@@ -62,61 +64,33 @@ function send_reset_otp_mail(string $toEmail, string $otp): bool
 }
 
 $pdo = db();
-$ip = $_SERVER['REMOTE_ADDR'] ?? null;
-$ua = $_SERVER['HTTP_USER_AGENT'] ?? null;
-$ua = $ua ? mb_substr($ua, 0, 255, 'UTF-8') : null;
 
 try {
-    // ---- 最小風控：IP 1 分鐘最多 3 次 ----
-    if ($ip) {
-        $stmt = $pdo->prepare("
-            SELECT COUNT(*) AS c
-            FROM otp_tokens
-            WHERE purpose='RESET'
-              AND created_ip = :ip
-              AND sent_at >= DATE_SUB(NOW(), INTERVAL 1 MINUTE)
-        ");
-        $stmt->execute([':ip' => $ip]);
-        $c = (int)($stmt->fetchColumn() ?: 0);
-        if ($c >= 3) {
-            json_error('操作過於頻繁，請稍後再試', 429);
-        }
-    }
-
-    // ---- 最小風控：同 Email 10 分鐘最多 3 次 ----
-    $stmt = $pdo->prepare("
-        SELECT COUNT(*) AS c
-        FROM otp_tokens
-        WHERE purpose='RESET'
-          AND email = :email
-          AND sent_at >= DATE_SUB(NOW(), INTERVAL 10 MINUTE)
-    ");
-    $stmt->execute([':email' => $email]);
-    $c2 = (int)($stmt->fetchColumn() ?: 0);
-    if ($c2 >= 3) {
-        json_error('已寄送驗證碼，請稍後再試', 429);
-    }
-
-    // 查使用者是否存在且啟用（但回應永遠不洩漏）
-    $stmt = $pdo->prepare("SELECT id, status FROM users WHERE email=:email LIMIT 1");
+    // 查 user（但回應一律同樣訊息，避免帳號枚舉）
+    $stmt = $pdo->prepare('SELECT id FROM users WHERE email = :email LIMIT 1');
     $stmt->execute([':email' => $email]);
     $u = $stmt->fetch();
 
-    // 不存在或非 ACTIVE：直接回 success（避免帳號枚舉）
-    if (!$u || ((string)($u['status'] ?? '')) !== 'ACTIVE') {
-        json_success(['message' => '若該 Email 存在且已啟用，驗證碼已寄送（10 分鐘內有效）']);
+    if (!$u) {
+        // 稽核仍記錄，但回應不揭露
+        auth_event('RESET_OTP_SENT', null, $email, 'user not found (masked)');
+        json_success(['message' => '若此 Email 存在，驗證碼已寄送（10 分鐘內有效）']);
     }
 
-    // 清除舊的未驗證 RESET OTP
+    $pdo->beginTransaction();
+
+    // 清除舊 RESET OTP
     $stmt = $pdo->prepare("
         DELETE FROM otp_tokens
         WHERE purpose='RESET' AND email=:email AND verified_at IS NULL
     ");
     $stmt->execute([':email' => $email]);
 
-    // 建新 OTP
-    $otp = gen_otp_6();
+    $otp     = gen_otp_6();
     $otpHash = password_hash($otp, PASSWORD_DEFAULT);
+
+    $ip = $_SERVER['REMOTE_ADDR'] ?? null;
+    $ua = $_SERVER['HTTP_USER_AGENT'] ?? null;
 
     $stmt = $pdo->prepare("
         INSERT INTO otp_tokens
@@ -127,19 +101,25 @@ try {
     $stmt->execute([
         ':email' => $email,
         ':hash'  => $otpHash,
-        ':ttl'   => 10,
+        ':ttl'   => $otpTtlMin,
         ':ip'    => $ip,
-        ':ua'    => $ua,
+        ':ua'    => $ua ? mb_substr($ua, 0, 255, 'UTF-8') : null,
     ]);
 
-    // 寄信
     $ok = send_reset_otp_mail($email, $otp);
     if (!$ok) {
+        $pdo->rollBack();
+        auth_event('RESET_FAIL', (int)$u['id'], $email, 'mail send failed');
         json_error('寄送驗證碼失敗，請稍後再試', 500);
     }
 
-    json_success(['message' => '若該 Email 存在且已啟用，驗證碼已寄送（10 分鐘內有效）']);
+    $pdo->commit();
+
+    auth_event('RESET_OTP_SENT', (int)$u['id'], $email, 'otp sent');
+    json_success(['message' => '若此 Email 存在，驗證碼已寄送（10 分鐘內有效）']);
 
 } catch (Throwable $e) {
+    if ($pdo->inTransaction()) $pdo->rollBack();
+    auth_event('RESET_FAIL', null, $email ?: null, 'exception');
     json_error('系統忙碌中，請稍後再試。', 500);
 }

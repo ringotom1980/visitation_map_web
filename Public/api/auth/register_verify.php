@@ -13,7 +13,6 @@ if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
     json_error('Method not allowed', 405);
 }
 
-// 讀 JSON 或 form-data
 $input = $_POST;
 if (empty($input)) {
     $raw = file_get_contents('php://input');
@@ -27,19 +26,24 @@ $email = trim((string)($input['email'] ?? ''));
 $otp   = trim((string)($input['otp'] ?? ''));
 
 if ($email === '' || $otp === '') {
+    auth_event('REGISTER_VERIFY_FAIL', null, $email ?: null, 'missing');
     json_error('請輸入 Email 與驗證碼', 400);
 }
 if (!filter_var($email, FILTER_VALIDATE_EMAIL)) {
+    auth_event('REGISTER_VERIFY_FAIL', null, $email, 'invalid email');
     json_error('Email 格式不正確', 400);
 }
 if (!preg_match('/^\d{6}$/', $otp)) {
+    auth_event('REGISTER_VERIFY_FAIL', null, $email, 'invalid otp format');
     json_error('驗證碼格式不正確（需為 6 位數字）', 400);
 }
+
+// ✅ OTP 驗證節流（15 分鐘 20 次）
+throttle_check('OTP_REGISTER_VERIFY', 'IP_EMAIL', $email, 900, 20);
 
 $pdo = db();
 
 try {
-    // 1) 取得最新一筆未驗證 OTP（REGISTER）
     $stmt = $pdo->prepare("
         SELECT id, code_hash, expires_at, fail_count
         FROM otp_tokens
@@ -51,6 +55,7 @@ try {
     $row = $stmt->fetch();
 
     if (!$row) {
+        auth_event('REGISTER_VERIFY_FAIL', null, $email, 'no otp');
         json_error('尚未申請驗證碼或驗證碼已失效，請重新申請', 400);
     }
 
@@ -59,32 +64,28 @@ try {
     $failCount = (int)$row['fail_count'];
 
     if ($failCount >= 5) {
+        auth_event('REGISTER_VERIFY_FAIL', null, $email, 'too many fails');
         json_error('驗證碼錯誤次數過多，請重新申請驗證碼', 429);
     }
 
-    // 過期判斷
     $now = new DateTimeImmutable('now');
     $exp = new DateTimeImmutable($expiresAt);
     if ($now > $exp) {
+        auth_event('REGISTER_VERIFY_FAIL', null, $email, 'expired');
         json_error('驗證碼已過期，請重新申請', 400);
     }
 
-    // 2) 驗證 OTP
-    $ok = password_verify($otp, (string)$row['code_hash']);
-    if (!$ok) {
-        // 增加 fail_count
+    if (!password_verify($otp, (string)$row['code_hash'])) {
         $stmt = $pdo->prepare("UPDATE otp_tokens SET fail_count = fail_count + 1 WHERE id=:id");
         $stmt->execute([':id' => $otpId]);
 
-        // 若剛好到 5 次，提示更明確
+        auth_event('REGISTER_VERIFY_FAIL', null, $email, 'otp mismatch');
         if ($failCount + 1 >= 5) {
             json_error('驗證碼錯誤次數過多，請重新申請驗證碼', 429);
         }
-
         json_error('驗證碼錯誤', 400);
     }
 
-    // 3) 取得 pending 註冊資料
     $stmt = $pdo->prepare("
         SELECT id, name, phone, email, organization_id, title, password_hash
         FROM pending_registrations
@@ -94,19 +95,19 @@ try {
     $stmt->execute([':email' => $email]);
     $pending = $stmt->fetch();
     if (!$pending) {
+        auth_event('REGISTER_VERIFY_FAIL', null, $email, 'no pending');
         json_error('查無註冊暫存資料，請重新註冊', 400);
     }
 
-    // 4) 再次確認 users 沒有同 email（避免 race）
     $stmt = $pdo->prepare('SELECT id FROM users WHERE email = :email LIMIT 1');
     $stmt->execute([':email' => $email]);
     if ($stmt->fetch()) {
+        auth_event('REGISTER_VERIFY_FAIL', null, $email, 'already registered');
         json_error('此 Email 已註冊，請直接登入或使用忘記密碼', 409);
     }
 
     $pdo->beginTransaction();
 
-    // 5) 建立 users（ACTIVE，role=USER）
     $stmt = $pdo->prepare("
         INSERT INTO users
           (name, phone, email, organization_id, title, role, status, password_hash, last_login_at, created_at, updated_at)
@@ -122,21 +123,21 @@ try {
         ':pw'     => (string)$pending['password_hash'],
     ]);
 
-    // 6) 標記 OTP 已驗證
+    $userId = (int)$pdo->lastInsertId();
+
     $stmt = $pdo->prepare("UPDATE otp_tokens SET verified_at = NOW() WHERE id=:id");
     $stmt->execute([':id' => $otpId]);
 
-    // 7) 刪除 pending
     $stmt = $pdo->prepare("DELETE FROM pending_registrations WHERE email=:email");
     $stmt->execute([':email' => $email]);
 
     $pdo->commit();
 
-    json_success([
-        'redirect' => route_url('login') . '?applied=1'
-    ]);
+    auth_event('REGISTER_OK', $userId, $email, 'created user');
+    json_success(['redirect' => route_url('login') . '?applied=1']);
 
 } catch (Throwable $e) {
     if ($pdo->inTransaction()) $pdo->rollBack();
+    auth_event('REGISTER_VERIFY_FAIL', null, $email ?: null, 'exception');
     json_error('系統忙碌中，請稍後再試。', 500);
 }

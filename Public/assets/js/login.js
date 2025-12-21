@@ -1,6 +1,6 @@
 /**
  * Path: Public/assets/js/login.js
- * 說明: 登入頁表單送出行為
+ * 說明: 登入頁表單送出行為（配合 api.js 回傳整包 JSON）
  */
 
 document.addEventListener('DOMContentLoaded', () => {
@@ -29,8 +29,9 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     try {
-      // apiRequest 會回傳 json.data，也就是 login.php 裡 json_success 的內容
-      const data = await apiRequest('/auth/login', 'POST', { email, password });
+      // ✅ apiRequest 回傳整包 JSON：{ success, data }
+      const json = await apiRequest('/auth/login', 'POST', { email, password });
+      const data = json && json.data ? json.data : null;
 
       if (msgEl) {
         msgEl.textContent = '登入成功，跳轉中…';
@@ -38,21 +39,18 @@ document.addEventListener('DOMContentLoaded', () => {
       }
 
       // 後端優先：若有帶 redirect，就用它
-      let target = data.redirect;
+      let target = data && data.redirect ? data.redirect : '';
 
-      // 沒帶 redirect（理論上不會），就退而求其次看 role
+      // 沒帶 redirect 就看 role
       if (!target) {
-        if (data.role === 'ADMIN') {
-          target = '/admin';
-        } else {
-          target = '/app';
-        }
+        const role = data && data.role ? data.role : '';
+        target = (role === 'ADMIN') ? '/admin' : '/app';
       }
 
       window.location.href = target;
     } catch (err) {
       if (msgEl) {
-        msgEl.textContent = err.message || '登入失敗';
+        msgEl.textContent = (err && err.message) ? err.message : '登入失敗';
         msgEl.classList.add('error');
       }
     }

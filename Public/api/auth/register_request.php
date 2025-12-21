@@ -13,7 +13,6 @@ if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
     json_error('Method not allowed', 405);
 }
 
-// 讀 JSON 或 form-data
 $input = $_POST;
 if (empty($input)) {
     $raw = file_get_contents('php://input');
@@ -31,24 +30,25 @@ $title           = trim((string)($input['title'] ?? ''));
 $password        = (string)($input['password'] ?? '');
 
 if ($name === '' || $phone === '' || $email === '' || $organizationId <= 0 || $title === '' || $password === '') {
+    auth_event('REGISTER_FAIL', null, $email ?: null, 'missing fields');
     json_error('註冊資料不完整（全部欄位皆為必填）', 400);
 }
-
 if (!filter_var($email, FILTER_VALIDATE_EMAIL)) {
+    auth_event('REGISTER_FAIL', null, $email, 'invalid email');
     json_error('Email 格式不正確', 400);
 }
 
-// OTP 規格（已核定）
-$otpLength = 6;
+// ✅ OTP 寄送節流（15 分鐘 5 次）
+throttle_check('OTP_REGISTER', 'IP_EMAIL', $email, 900, 5);
+
+// OTP 規格
 $otpTtlMin = 10;
 
-// 產生 6 位數 OTP
 function gen_otp_6(): string {
     $n = random_int(0, 999999);
     return str_pad((string)$n, 6, '0', STR_PAD_LEFT);
 }
 
-// 寄送 Email（Hostinger mail()）
 function send_register_otp_mail(string $toEmail, string $otp): bool
 {
     $fromName  = '遺眷親訪地圖系統';
@@ -63,7 +63,6 @@ function send_register_otp_mail(string $toEmail, string $otp): bool
           . "若非本人操作，請忽略此信。\n\n"
           . "— 遺眷親訪地圖系統\n";
 
-    // 避免中文主旨亂碼
     $encodedSubject = '=?UTF-8?B?' . base64_encode($subject) . '?=';
 
     $headers = [];
@@ -78,23 +77,25 @@ function send_register_otp_mail(string $toEmail, string $otp): bool
 $pdo = db();
 
 try {
-    // 1) 檢查 users 是否已存在
+    // users 已存在
     $stmt = $pdo->prepare('SELECT id FROM users WHERE email = :email LIMIT 1');
     $stmt->execute([':email' => $email]);
     if ($stmt->fetch()) {
+        auth_event('REGISTER_FAIL', null, $email, 'email already registered');
         json_error('此 Email 已註冊，請直接登入或使用忘記密碼', 409);
     }
 
-    // 2) 檢查 organization 是否存在（避免 FK 例外訊息不友善）
+    // organization 存在
     $stmt = $pdo->prepare('SELECT id FROM organizations WHERE id = :id LIMIT 1');
     $stmt->execute([':id' => $organizationId]);
     if (!$stmt->fetch()) {
+        auth_event('REGISTER_FAIL', null, $email, 'invalid organization');
         json_error('所屬單位不存在（organization_id 無效）', 400);
     }
 
     $pdo->beginTransaction();
 
-    // 3) upsert pending_registrations（若同 email 已申請過，更新內容與密碼）
+    // upsert pending_registrations
     $passwordHash = password_hash($password, PASSWORD_DEFAULT);
 
     $sqlUpsert = '
@@ -120,16 +121,19 @@ try {
         ':pw'     => $passwordHash,
     ]);
 
-    // 4) 清除舊的未驗證 OTP（REGISTER）
+    // 清除舊 REGISTER OTP
     $stmt = $pdo->prepare("
         DELETE FROM otp_tokens
         WHERE purpose='REGISTER' AND email=:email AND verified_at IS NULL
     ");
     $stmt->execute([':email' => $email]);
 
-    // 5) 建立新 OTP
-    $otp = gen_otp_6();
+    // 建立新 OTP
+    $otp     = gen_otp_6();
     $otpHash = password_hash($otp, PASSWORD_DEFAULT);
+
+    $ip = $_SERVER['REMOTE_ADDR'] ?? null;
+    $ua = $_SERVER['HTTP_USER_AGENT'] ?? null;
 
     $stmt = $pdo->prepare("
         INSERT INTO otp_tokens
@@ -137,10 +141,6 @@ try {
         VALUES
           ('REGISTER', :email, :hash, DATE_ADD(NOW(), INTERVAL :ttl MINUTE), NOW(), 0, NULL, :ip, :ua)
     ");
-
-    $ip = $_SERVER['REMOTE_ADDR'] ?? null;
-    $ua = $_SERVER['HTTP_USER_AGENT'] ?? null;
-
     $stmt->execute([
         ':email' => $email,
         ':hash'  => $otpHash,
@@ -149,20 +149,21 @@ try {
         ':ua'    => $ua ? mb_substr($ua, 0, 255, 'UTF-8') : null,
     ]);
 
-    // 6) 寄信（在 transaction 內寄信：若寄信失敗就 rollback，避免 DB 有 OTP 但使用者收不到）
+    // transaction 內寄信
     $ok = send_register_otp_mail($email, $otp);
     if (!$ok) {
         $pdo->rollBack();
+        auth_event('REGISTER_FAIL', null, $email, 'mail send failed');
         json_error('寄送驗證碼失敗（mail()），請稍後再試或聯絡管理者', 500);
     }
 
     $pdo->commit();
 
-    json_success([
-        'message' => '驗證碼已寄送至信箱（10 分鐘內有效）'
-    ]);
+    auth_event('REGISTER_OTP_SENT', null, $email, 'otp sent');
+    json_success(['message' => '驗證碼已寄送至信箱（10 分鐘內有效）']);
 
 } catch (Throwable $e) {
     if ($pdo->inTransaction()) $pdo->rollBack();
+    auth_event('REGISTER_FAIL', null, $email ?: null, 'exception');
     json_error('系統忙碌中，請稍後再試。', 500);
 }
