@@ -39,13 +39,5 @@ session_destroy();
 $isHttps = false;
 if (!empty($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off') $isHttps = true;
 if (!empty($_SERVER['HTTP_X_FORWARDED_PROTO']) && strtolower((string)$_SERVER['HTTP_X_FORWARDED_PROTO']) === 'https') $isHttps = true;
-
-setcookie('device_id', '', [
-    'expires'  => time() - 3600,
-    'path'     => '/',
-    'secure'   => $isHttps,
-    'httponly' => true,
-    'samesite' => 'Lax',
-]);
-
+// ✅ E2 正確行為：登出只清 session，不動 device_id
 json_success(['message' => '已登出']);
