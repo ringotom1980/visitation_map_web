@@ -77,22 +77,31 @@ function auth_event(string $type, ?int $userId = null, ?string $email = null, ?s
 
 function throttle_keys(string $scope, ?string $email): array
 {
-    $ip = $_SERVER['REMOTE_ADDR'] ?? null;
-    $email = $email ? trim($email) : null;
+    $ip = $_SERVER['REMOTE_ADDR'] ?? '';
+    $ip = trim((string)$ip);
+    $email = $email ? trim((string)$email) : '';
 
-    $keyIp = ($scope === 'IP' || $scope === 'IP_EMAIL')
-        ? ($ip ? mb_substr($ip, 0, 45, 'UTF-8') : null)
-        : null;
+    $keyIp = '';
+    $keyEmail = '';
 
-    $keyEmail = ($scope === 'EMAIL' || $scope === 'IP_EMAIL')
-        ? ($email ? mb_substr($email, 0, 191, 'UTF-8') : null)
-        : null;
+    if ($scope === 'IP') {
+        if ($ip === '') return [null, null]; // key 不足 → 不做節流，避免誤擋
+        $keyIp = mb_substr($ip, 0, 45, 'UTF-8');
+        $keyEmail = '';
+        return [$keyIp, $keyEmail];
+    }
 
-    // key 不足則回傳 null 讓上層決定不做，避免誤擋
-    if ($scope === 'IP' && !$keyIp) return [null, null];
-    if ($scope === 'EMAIL' && !$keyEmail) return [null, null];
-    if ($scope === 'IP_EMAIL' && (!$keyIp || !$keyEmail)) return [null, null];
+    if ($scope === 'EMAIL') {
+        if ($email === '') return [null, null];
+        $keyIp = '';
+        $keyEmail = mb_substr($email, 0, 191, 'UTF-8');
+        return [$keyIp, $keyEmail];
+    }
 
+    // IP_EMAIL
+    if ($ip === '' || $email === '') return [null, null];
+    $keyIp = mb_substr($ip, 0, 45, 'UTF-8');
+    $keyEmail = mb_substr($email, 0, 191, 'UTF-8');
     return [$keyIp, $keyEmail];
 }
 
@@ -113,7 +122,7 @@ function throttle_check(string $action, string $scope, ?string $email = null, in
     $stmt = $pdo->prepare("
         SELECT id, window_start, window_sec, count, blocked_until
         FROM auth_throttles
-        WHERE scope=:scope AND action=:action AND ip <=> :ip AND email <=> :email
+        WHERE scope=:scope AND action=:action AND ip = :ip AND email = :email
         LIMIT 1
     ");
     $stmt->execute([
@@ -189,7 +198,7 @@ function throttle_assert_not_blocked(string $action, string $scope, ?string $ema
     $stmt = $pdo->prepare("
         SELECT blocked_until
         FROM auth_throttles
-        WHERE scope=:scope AND action=:action AND ip <=> :ip AND email <=> :email
+        WHERE scope=:scope AND action=:action AND ip = :ip AND email = :email
         LIMIT 1
     ");
     $stmt->execute([

@@ -47,7 +47,10 @@ async function apiRequest(path, method, data) {
   try {
     json = await res.json();
   } catch (e) {
-    throw new Error('伺服器回傳非 JSON 格式');
+    var text = '';
+    try { text = await res.text(); } catch (_) {}
+    text = String(text || '').slice(0, 200);
+    throw new Error('伺服器回傳非 JSON 格式（HTTP ' + res.status + '）: ' + text);
   }
 
   // HTTP 錯誤 或 後端明確 success=false

@@ -61,8 +61,8 @@ try {
 
     if (!$user) {
         // 只在失敗時累計（15 分鐘內最多 10 次，超過封 15 分鐘）
-        throttle_hit('LOGIN_FAIL', 'IP_EMAIL', $email, 900, 10, 15);
-        throttle_hit('LOGIN_FAIL', 'IP', null, 900, 30, 15); // IP-only 可略放寬，避免誤傷 NAT
+        throttle_hit('LOGIN_FAIL', 'IP_EMAIL', $email, 900, 5, 15);
+        throttle_hit('LOGIN_FAIL', 'IP', null, 900, 5, 15); // IP-only 可略放寬，避免誤傷 NAT
 
         auth_event('LOGIN_FAIL', null, $email, 'bad credentials (no user)');
         json_error('帳號或密碼錯誤', 400);
@@ -75,8 +75,8 @@ try {
     }
 
     if (!password_verify($password, (string)$user['password_hash'])) {
-        throttle_hit('LOGIN_FAIL', 'IP_EMAIL', $email, 900, 10, 15);
-        throttle_hit('LOGIN_FAIL', 'IP', null, 900, 30, 15);
+        throttle_hit('LOGIN_FAIL', 'IP_EMAIL', $email, 900, 5, 15);
+        throttle_hit('LOGIN_FAIL', 'IP', null, 900, 5, 15);
 
         auth_event('LOGIN_FAIL', (int)$user['id'], $email, 'bad credentials (pw mismatch)');
         json_error('帳號或密碼錯誤', 400);
@@ -113,8 +113,8 @@ try {
 
 } catch (Throwable $e) {
     // 例外也算異常（fail-only）
-    throttle_hit('LOGIN_FAIL', 'IP_EMAIL', $email, 900, 10, 15);
-    throttle_hit('LOGIN_FAIL', 'IP', null, 900, 30, 15);
+    throttle_hit('LOGIN_FAIL', 'IP_EMAIL', $email, 900, 5, 15);
+    throttle_hit('LOGIN_FAIL', 'IP', null, 900, 5, 15);
 
     auth_event('LOGIN_FAIL', null, $email ?: null, 'exception');
     json_error('系統忙碌中，請稍後再試。', 500);
