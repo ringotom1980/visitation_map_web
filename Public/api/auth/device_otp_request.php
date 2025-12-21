@@ -1,0 +1,154 @@
+<?php
+/**
+ * Path: Public/api/auth/device_otp_request.php
+ * 說明: 裝置驗證 - 申請 OTP（寄送 DEVICE）
+ * Method: POST /api/auth/device_otp_request
+ *
+ * 規則（方案A）：
+ * - request 節流：OTP_DEVICE_REQ（IP_EMAIL + IP）→ 15 分鐘 5 次（超過封 15 分鐘）
+ * - fail-only：OTP_DEVICE_REQ_FAIL（只在寄信失敗/例外時 hit；入口先 assert_not_blocked）
+ * - 回應建議固定（避免帳號枚舉）：不論 user 是否存在都回同一句
+ */
+
+declare(strict_types=1);
+
+require_once __DIR__ . '/../common/bootstrap.php';
+
+if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
+    json_error('Method not allowed', 405);
+}
+
+// 支援 JSON 或 form-data
+$input = $_POST;
+if (empty($input)) {
+    $raw = file_get_contents('php://input');
+    if ($raw) {
+        $json = json_decode($raw, true);
+        if (is_array($json)) $input = $json;
+    }
+}
+
+$email = trim((string)($input['email'] ?? ''));
+if ($email === '' || !filter_var($email, FILTER_VALIDATE_EMAIL)) {
+    auth_event('DEVICE_OTP_FAIL', null, $email ?: null, 'invalid email');
+    json_error('請輸入正確的 Email', 400);
+}
+
+// A) fail-only：入口先擋已封鎖者（不累計）
+throttle_assert_not_blocked('OTP_DEVICE_REQ_FAIL', 'IP_EMAIL', $email);
+throttle_assert_not_blocked('OTP_DEVICE_REQ_FAIL', 'IP', null);
+
+// B) request 節流：寄信本身要計數（15 分鐘 5 次）
+throttle_check('OTP_DEVICE_REQ', 'IP_EMAIL', $email, 900, 5);
+throttle_check('OTP_DEVICE_REQ', 'IP', null, 900, 5);
+
+$otpTtlMin = 10;
+
+function gen_otp_6(): string {
+    $n = random_int(0, 999999);
+    return str_pad((string)$n, 6, '0', STR_PAD_LEFT);
+}
+
+function send_device_otp_mail(string $toEmail, string $otp): bool
+{
+    $fromName  = '遺眷親訪地圖系統';
+    $fromEmail = 'system_mail_noreply@ml.jinghong.pw';
+
+    $subject = '裝置驗證碼（10 分鐘內有效）';
+
+    $body = "您好，\n\n"
+          . "您正在進行「遺眷親訪地圖系統」裝置驗證。\n\n"
+          . "您的驗證碼（OTP）：{$otp}\n"
+          . "有效時間：10 分鐘\n\n"
+          . "若非本人操作，請忽略此信。\n\n"
+          . "— 遺眷親訪地圖系統\n";
+
+    $encodedSubject = '=?UTF-8?B?' . base64_encode($subject) . '?=';
+
+    $headers = [];
+    $headers[] = 'From: ' . mb_encode_mimeheader($fromName, 'UTF-8') . " <{$fromEmail}>";
+    $headers[] = 'MIME-Version: 1.0';
+    $headers[] = 'Content-Type: text/plain; charset=UTF-8';
+    $headers[] = 'Content-Transfer-Encoding: 8bit';
+
+    return mail($toEmail, $encodedSubject, $body, implode("\r\n", $headers));
+}
+
+$pdo = db();
+
+try {
+    // 查 user（回應建議固定避免帳號枚舉）
+    $stmt = $pdo->prepare('SELECT id, status FROM users WHERE email = :email LIMIT 1');
+    $stmt->execute([':email' => $email]);
+    $u = $stmt->fetch();
+
+    $maskedOkMsg = ['message' => '若此 Email 存在，驗證碼已寄送（10 分鐘內有效）'];
+
+    // 不存在 / 非 ACTIVE：不寄信，但回固定訊息
+    if (!$u) {
+        auth_event('DEVICE_OTP_SENT', null, $email, 'user not found (masked)');
+        json_success($maskedOkMsg);
+    }
+    if (($u['status'] ?? '') !== 'ACTIVE') {
+        auth_event('DEVICE_OTP_SENT', (int)$u['id'], $email, 'inactive (masked)');
+        json_success($maskedOkMsg);
+    }
+
+    $pdo->beginTransaction();
+
+    // 清除舊 DEVICE OTP（未驗證）
+    $stmt = $pdo->prepare("
+        DELETE FROM otp_tokens
+        WHERE purpose='DEVICE' AND email=:email AND verified_at IS NULL
+    ");
+    $stmt->execute([':email' => $email]);
+
+    // 建立新 OTP
+    $otp     = gen_otp_6();
+    $otpHash = password_hash($otp, PASSWORD_DEFAULT);
+
+    $ip = $_SERVER['REMOTE_ADDR'] ?? null;
+    $ua = $_SERVER['HTTP_USER_AGENT'] ?? null;
+
+    $stmt = $pdo->prepare("
+        INSERT INTO otp_tokens
+          (purpose, email, code_hash, expires_at, sent_at, fail_count, verified_at, created_ip, created_ua)
+        VALUES
+          ('DEVICE', :email, :hash, DATE_ADD(NOW(), INTERVAL :ttl MINUTE), NOW(), 0, NULL, :ip, :ua)
+    ");
+    $stmt->execute([
+        ':email' => $email,
+        ':hash'  => $otpHash,
+        ':ttl'   => $otpTtlMin,
+        ':ip'    => $ip,
+        ':ua'    => $ua ? mb_substr($ua, 0, 255, 'UTF-8') : null,
+    ]);
+
+    // 寄信
+    $ok = send_device_otp_mail($email, $otp);
+    if (!$ok) {
+        $pdo->rollBack();
+
+        // fail-only：寄信失敗才累計（5 次封 15 分鐘）
+        throttle_hit('OTP_DEVICE_REQ_FAIL', 'IP_EMAIL', $email, 900, 5, 15);
+        throttle_hit('OTP_DEVICE_REQ_FAIL', 'IP', null, 900, 5, 15);
+
+        auth_event('DEVICE_OTP_FAIL', (int)$u['id'], $email, 'mail send failed');
+        json_error('寄送驗證碼失敗，請稍後再試', 500);
+    }
+
+    $pdo->commit();
+
+    auth_event('DEVICE_OTP_SENT', (int)$u['id'], $email, 'otp sent');
+    json_success($maskedOkMsg);
+
+} catch (Throwable $e) {
+    if ($pdo->inTransaction()) $pdo->rollBack();
+
+    // fail-only：例外也算異常（5 次封 15 分鐘）
+    throttle_hit('OTP_DEVICE_REQ_FAIL', 'IP_EMAIL', $email, 900, 5, 15);
+    throttle_hit('OTP_DEVICE_REQ_FAIL', 'IP', null, 900, 5, 15);
+
+    auth_event('DEVICE_OTP_FAIL', null, $email ?: null, 'exception');
+    json_error('系統忙碌中，請稍後再試。', 500);
+}
