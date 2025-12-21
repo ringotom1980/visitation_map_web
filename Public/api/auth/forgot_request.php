@@ -1,4 +1,5 @@
 <?php
+
 /**
  * Path: Public/api/auth/forgot_request.php
  * 說明: 忘記密碼 - 申請 OTP（寄送 RESET）
@@ -30,10 +31,13 @@ if ($email === '' || !filter_var($email, FILTER_VALIDATE_EMAIL)) {
 
 // ✅ RESET OTP 寄送節流
 throttle_check('OTP_RESET', 'IP_EMAIL', $email, 900, 5);
+// 建議：同 IP 對任何 email 的 RESET 申請也要有限制（避免換 email 轟炸寄信）
+throttle_check('OTP_RESET', 'IP', null, 900, 5);
 
 $otpTtlMin = 10;
 
-function gen_otp_6(): string {
+function gen_otp_6(): string
+{
     $n = random_int(0, 999999);
     return str_pad((string)$n, 6, '0', STR_PAD_LEFT);
 }
@@ -46,11 +50,11 @@ function send_reset_otp_mail(string $toEmail, string $otp): bool
     $subject = '重設密碼驗證碼（10 分鐘內有效）';
 
     $body = "您好，\n\n"
-          . "您正在申請「遺眷親訪地圖系統」重設密碼。\n\n"
-          . "您的驗證碼（OTP）：{$otp}\n"
-          . "有效時間：10 分鐘\n\n"
-          . "若非本人操作，請忽略此信。\n\n"
-          . "— 遺眷親訪地圖系統\n";
+        . "您正在申請「遺眷親訪地圖系統」重設密碼。\n\n"
+        . "您的驗證碼（OTP）：{$otp}\n"
+        . "有效時間：10 分鐘\n\n"
+        . "若非本人操作，請忽略此信。\n\n"
+        . "— 遺眷親訪地圖系統\n";
 
     $encodedSubject = '=?UTF-8?B?' . base64_encode($subject) . '?=';
 
@@ -72,9 +76,9 @@ try {
     $u = $stmt->fetch();
 
     if (!$u) {
-        // 稽核仍記錄，但回應不揭露
         auth_event('RESET_OTP_SENT', null, $email, 'user not found (masked)');
         json_success(['message' => '若此 Email 存在，驗證碼已寄送（10 分鐘內有效）']);
+        // 不會跑到這裡，但保留 return 會更清楚
     }
 
     $pdo->beginTransaction();
@@ -117,7 +121,6 @@ try {
 
     auth_event('RESET_OTP_SENT', (int)$u['id'], $email, 'otp sent');
     json_success(['message' => '若此 Email 存在，驗證碼已寄送（10 分鐘內有效）']);
-
 } catch (Throwable $e) {
     if ($pdo->inTransaction()) $pdo->rollBack();
     auth_event('RESET_FAIL', null, $email ?: null, 'exception');

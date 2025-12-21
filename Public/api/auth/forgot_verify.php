@@ -43,8 +43,8 @@ if (mb_strlen($newPw, 'UTF-8') < 8) {
     json_error('新密碼至少 8 碼', 400);
 }
 
-// ✅ RESET OTP 驗證節流
-throttle_check('OTP_RESET_VERIFY', 'IP_EMAIL', $email, 900, 20);
+// ✅ 入口先擋已封鎖者（不累計）
+throttle_assert_not_blocked('OTP_RESET_VERIFY_FAIL', 'IP_EMAIL', $email);
 
 $pdo = db();
 
@@ -53,11 +53,17 @@ try {
     $stmt = $pdo->prepare('SELECT id, status FROM users WHERE email = :email LIMIT 1');
     $stmt->execute([':email' => $email]);
     $u = $stmt->fetch();
+
     if (!$u) {
+        // ✅ 只在失敗時累計（15 分鐘內最多 10 次，超過封 15 分鐘）
+        throttle_hit('OTP_RESET_VERIFY_FAIL', 'IP_EMAIL', $email, 900, 10, 15);
+
         auth_event('RESET_VERIFY_FAIL', null, $email, 'user not found');
         json_error('驗證失敗，請重新申請驗證碼', 400);
     }
+
     if (($u['status'] ?? '') !== 'ACTIVE') {
+        // 停權/未啟用：不算爆破，但仍留稽核
         auth_event('RESET_VERIFY_FAIL', (int)$u['id'], $email, 'inactive');
         json_error('帳號尚未啟用或已停權', 403);
     }
@@ -74,6 +80,8 @@ try {
     $row = $stmt->fetch();
 
     if (!$row) {
+        throttle_hit('OTP_RESET_VERIFY_FAIL', 'IP_EMAIL', $email, 900, 10, 15);
+
         auth_event('RESET_VERIFY_FAIL', (int)$u['id'], $email, 'no otp');
         json_error('尚未申請驗證碼或驗證碼已失效，請重新申請', 400);
     }
@@ -83,13 +91,18 @@ try {
     $failCount = (int)$row['fail_count'];
 
     if ($failCount >= 5) {
-        auth_event('RESET_VERIFY_FAIL', (int)$u['id'], $email, 'too many fails');
+        // OTP 本身已達上限：同時也把 IP+Email 維度 hit，避免換 OTP 繼續轟炸 verify
+        throttle_hit('OTP_RESET_VERIFY_FAIL', 'IP_EMAIL', $email, 900, 10, 15);
+
+        auth_event('RESET_VERIFY_FAIL', (int)$u['id'], $email, 'too many otp fails');
         json_error('驗證碼錯誤次數過多，請重新申請驗證碼', 429);
     }
 
     $now = new DateTimeImmutable('now');
     $exp = new DateTimeImmutable($expiresAt);
     if ($now > $exp) {
+        throttle_hit('OTP_RESET_VERIFY_FAIL', 'IP_EMAIL', $email, 900, 10, 15);
+
         auth_event('RESET_VERIFY_FAIL', (int)$u['id'], $email, 'expired');
         json_error('驗證碼已過期，請重新申請', 400);
     }
@@ -98,7 +111,10 @@ try {
         $stmt = $pdo->prepare("UPDATE otp_tokens SET fail_count = fail_count + 1 WHERE id=:id");
         $stmt->execute([':id' => $otpId]);
 
+        throttle_hit('OTP_RESET_VERIFY_FAIL', 'IP_EMAIL', $email, 900, 10, 15);
+
         auth_event('RESET_VERIFY_FAIL', (int)$u['id'], $email, 'otp mismatch');
+
         if ($failCount + 1 >= 5) {
             json_error('驗證碼錯誤次數過多，請重新申請驗證碼', 429);
         }
