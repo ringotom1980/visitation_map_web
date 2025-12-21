@@ -1,4 +1,5 @@
 <?php
+
 /**
  * Path: Public/api/auth/device_otp_verify.php
  * 說明: 驗證 DEVICE OTP，成功後標記 trusted_devices
@@ -8,6 +9,7 @@
  * - 只有「失敗」才 hit：15 分鐘 5 次，超過封 15 分鐘
  * - OTP token 自身 fail_count >= 5：要求重發
  */
+
 declare(strict_types=1);
 
 require_once __DIR__ . '/../common/bootstrap.php';
@@ -126,28 +128,29 @@ try {
 
     // upsert trusted_devices
     $stmt = $pdo->prepare("
-        INSERT INTO trusted_devices
-          (user_id, device_id, device_fingerprint, status, trusted_at, last_seen_at, last_ip, last_ua)
-        VALUES
-          (:uid, :did, :fp, 'TRUSTED', NOW(), NOW(), :ip, :ua)
-        ON DUPLICATE KEY UPDATE
-          status='TRUSTED',
-          trusted_at=IFNULL(trusted_at, NOW()),
-          last_seen_at=NOW(),
-          last_ip=:ip,
-          last_ua=:ua
-    ");
+    INSERT INTO trusted_devices
+      (user_id, device_id, device_fingerprint, status, trusted_at, last_seen_at, last_ip, last_ua)
+    VALUES
+      (:uid, :did, :fp, 'TRUSTED', NOW(), NOW(), :ip_ins, :ua_ins)
+    ON DUPLICATE KEY UPDATE
+      status='TRUSTED',
+      trusted_at=IFNULL(trusted_at, NOW()),
+      last_seen_at=NOW(),
+      last_ip=:ip_upd,
+      last_ua=:ua_upd
+");
     $stmt->execute([
-        ':uid' => (int)$user['id'],
-        ':did' => $deviceId,
-        ':fp'  => $fingerprint,
-        ':ip'  => $_SERVER['REMOTE_ADDR'] ?? null,
-        ':ua'  => $ua,
+        ':uid'    => (int)$user['id'],
+        ':did'    => $deviceId,
+        ':fp'     => $fingerprint,
+        ':ip_ins' => $_SERVER['REMOTE_ADDR'] ?? null,
+        ':ua_ins' => $ua,
+        ':ip_upd' => $_SERVER['REMOTE_ADDR'] ?? null,
+        ':ua_upd' => $ua,
     ]);
 
     auth_event('OTP_VERIFY_OK', (int)$user['id'], $email, 'DEVICE');
     json_success(['trusted' => true]);
-
 } catch (Throwable $e) {
 
     // ❗ catch 內禁止 throttle_hit / throttle_check
@@ -160,4 +163,3 @@ try {
 
     json_error('系統忙碌中，請稍後再試。', 500);
 }
-
