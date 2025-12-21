@@ -14,6 +14,11 @@ if (!$user) {
     json_error('尚未登入', 401);
 }
 
+// ⭐ 關鍵：釋放 session lock，避免與 list/options 排隊
+if (session_status() === PHP_SESSION_ACTIVE) {
+    session_write_close();
+}
+
 /**
  * 由單位名稱推定縣市（以 organizations.name 為準）
  * 例：臺中市後備指揮部 -> 臺中市；金門縣後備服務中心 -> 金門縣

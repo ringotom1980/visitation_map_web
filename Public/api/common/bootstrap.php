@@ -1,4 +1,5 @@
 <?php
+
 /**
  * Path: Public/api/common/bootstrap.php
  * 說明: 所有 API 共用啟動（header、DB、auth、JSON 輸出）
@@ -46,6 +47,25 @@ function json_ok($payload = null): void
 function json_fail(string $message, int $httpStatus = 400, $code = null): void
 {
     json_error($message, $httpStatus, $code);
+}
+
+/**
+ * 取得登入者（API 用）＋立刻釋放 session lock，避免多支 API 並發互卡
+ * - 重要：只要後面不再需要寫 $_SESSION，就要釋放
+ */
+function require_api_user(): array
+{
+    $user = current_user();
+    if (!$user) {
+        json_error('尚未登入', 401);
+    }
+
+    // ⭐ 關鍵：釋放 session lock，讓同 session 的其他並發 API 不必排隊
+    if (session_status() === PHP_SESSION_ACTIVE) {
+        session_write_close();
+    }
+
+    return $user;
 }
 
 /**

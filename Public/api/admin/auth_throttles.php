@@ -19,8 +19,8 @@ if ($_SERVER['REQUEST_METHOD'] !== 'GET') {
     json_error('Method not allowed', 405);
 }
 
-$user = current_user();
-if (!$user || (string)($user['role'] ?? '') !== 'ADMIN') {
+$user = require_api_user();
+if ((string)($user['role'] ?? '') !== 'ADMIN') {
     json_error('Forbidden', 403);
 }
 

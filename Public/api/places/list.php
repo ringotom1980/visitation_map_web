@@ -12,10 +12,7 @@ if ($_SERVER['REQUEST_METHOD'] !== 'GET') {
     json_error('Method not allowed', 405);
 }
 
-$user = current_user();
-if (!$user) {
-    json_error('尚未登入', 401);
-}
+$user = require_api_user();
 
 $pdo = db();
 
