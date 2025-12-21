@@ -1,13 +1,12 @@
 <?php
 /**
  * Path: Public/api/auth/register_request.php
- * 說明: 註冊申請（建立 pending_registrations + 寄送 Email OTP）
+ * 說明: 註冊申請（pending_registrations + 寄送 REGISTER OTP）
  * Method: POST /api/auth/register_request
  *
- * 節流策略（方案A）：
- * - A) fail-only 封鎖：只在異常/失敗（寄信失敗、例外）時 throttle_hit(OTP_REGISTER_REQ_FAIL)
- * - B) request 節流：寄信本身有成本 → throttle_check(OTP_REGISTER_REQ) 每次都計數
- * - C) 入口先擋封鎖期：throttle_assert_not_blocked(OTP_REGISTER_REQ_FAIL)
+ * 規則（方案A）：
+ * - request 節流：OTP_REGISTER_REQ（IP_EMAIL + IP）→ 15 分鐘 5 次（超過封 15 分鐘）
+ * - fail-only：OTP_REGISTER_REQ_FAIL（只在寄信失敗/例外時 hit；入口先 assert_not_blocked）
  */
 
 declare(strict_types=1);
@@ -43,28 +42,19 @@ if (!filter_var($email, FILTER_VALIDATE_EMAIL)) {
     auth_event('REGISTER_FAIL', null, $email, 'invalid email');
     json_error('Email 格式不正確', 400);
 }
-if (mb_strlen($password, 'UTF-8') < 8) {
-    auth_event('REGISTER_FAIL', null, $email, 'weak password');
-    json_error('密碼至少 8 碼', 400);
-}
 
-/**
- * A) fail-only：入口先擋已封鎖者（不累計）
- */
+// A) fail-only：入口先擋已封鎖者（不累計）
 throttle_assert_not_blocked('OTP_REGISTER_REQ_FAIL', 'IP_EMAIL', $email);
 throttle_assert_not_blocked('OTP_REGISTER_REQ_FAIL', 'IP', null);
 
-/**
- * B) request 節流：寄信本身就必須計數（不是 fail-only）
- */
-throttle_check('OTP_REGISTER_REQ', 'IP_EMAIL', $email, 900, 5, 15);
-throttle_check('OTP_REGISTER_REQ', 'IP', null, 900, 5, 15);
+// B) request 節流：寄信本身要計數（15 分鐘 5 次）
+throttle_check('OTP_REGISTER_REQ', 'IP_EMAIL', $email, 900, 5);
+throttle_check('OTP_REGISTER_REQ', 'IP', null, 900, 5);
 
 // OTP 規格
 $otpTtlMin = 10;
 
-function gen_otp_6(): string
-{
+function gen_otp_6(): string {
     $n = random_int(0, 999999);
     return str_pad((string)$n, 6, '0', STR_PAD_LEFT);
 }
@@ -75,12 +65,13 @@ function send_register_otp_mail(string $toEmail, string $otp): bool
     $fromEmail = 'system_mail_noreply@ml.jinghong.pw';
 
     $subject = '註冊驗證碼（10 分鐘內有效）';
+
     $body = "您好，\n\n"
-        . "您正在申請「遺眷親訪地圖系統」帳號。\n\n"
-        . "您的驗證碼（OTP）：{$otp}\n"
-        . "有效時間：10 分鐘\n\n"
-        . "若非本人操作，請忽略此信。\n\n"
-        . "— 遺眷親訪地圖系統\n";
+          . "您正在申請「遺眷親訪地圖系統」帳號。\n\n"
+          . "您的驗證碼（OTP）：{$otp}\n"
+          . "有效時間：10 分鐘\n\n"
+          . "若非本人操作，請忽略此信。\n\n"
+          . "— 遺眷親訪地圖系統\n";
 
     $encodedSubject = '=?UTF-8?B?' . base64_encode($subject) . '?=';
 
@@ -114,7 +105,7 @@ try {
 
     $pdo->beginTransaction();
 
-    // upsert pending_registrations
+    // upsert pending_registrations（email 有 UNIQUE）
     $passwordHash = password_hash($password, PASSWORD_DEFAULT);
 
     $sqlUpsert = '
@@ -168,12 +159,12 @@ try {
         ':ua'    => $ua ? mb_substr($ua, 0, 255, 'UTF-8') : null,
     ]);
 
-    // transaction 內寄信：失敗就 rollback
+    // 寄信
     $ok = send_register_otp_mail($email, $otp);
     if (!$ok) {
         $pdo->rollBack();
 
-        // fail-only：寄信失敗視為異常，累計並可能封鎖
+        // fail-only：寄信失敗才累計（5 次封 15 分鐘）
         throttle_hit('OTP_REGISTER_REQ_FAIL', 'IP_EMAIL', $email, 900, 5, 15);
         throttle_hit('OTP_REGISTER_REQ_FAIL', 'IP', null, 900, 5, 15);
 
@@ -189,9 +180,9 @@ try {
 } catch (Throwable $e) {
     if ($pdo->inTransaction()) $pdo->rollBack();
 
-    // fail-only：例外也視為異常
-    throttle_hit('OTP_REGISTER_REQ_FAIL', 'IP_EMAIL', $email, 900, 10, 15);
-    throttle_hit('OTP_REGISTER_REQ_FAIL', 'IP', null, 900, 10, 15);
+    // fail-only：例外也算異常（5 次封 15 分鐘）
+    throttle_hit('OTP_REGISTER_REQ_FAIL', 'IP_EMAIL', $email, 900, 5, 15);
+    throttle_hit('OTP_REGISTER_REQ_FAIL', 'IP', null, 900, 5, 15);
 
     auth_event('REGISTER_FAIL', null, $email ?: null, 'exception');
     json_error('系統忙碌中，請稍後再試。', 500);

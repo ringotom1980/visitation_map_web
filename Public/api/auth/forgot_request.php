@@ -4,12 +4,10 @@
  * 說明: 忘記密碼 - 申請 OTP（寄送 RESET）
  * Method: POST /api/auth/forgot_request
  *
- * 節流策略（方案A）：
- * - A) fail-only 封鎖：只在異常/失敗（寄信失敗、例外）時 throttle_hit(OTP_RESET_REQ_FAIL)
- * - B) request 節流：寄信本身有成本 → throttle_check(OTP_RESET_REQ) 每次都計數
- * - C) 入口先擋封鎖期：throttle_assert_not_blocked(OTP_RESET_REQ_FAIL)
- *
- * 防枚舉：回應永遠同一句「若存在則已寄送」
+ * 規則（方案A）：
+ * - request 節流：OTP_RESET_REQ（IP_EMAIL + IP）→ 15 分鐘 5 次（超過封 15 分鐘）
+ * - fail-only：OTP_RESET_REQ_FAIL（只在寄信失敗/例外時 hit；入口先 assert_not_blocked）
+ * - 回應固定（避免帳號枚舉）：不論 user 是否存在都回同一句
  */
 
 declare(strict_types=1);
@@ -35,22 +33,17 @@ if ($email === '' || !filter_var($email, FILTER_VALIDATE_EMAIL)) {
     json_error('請輸入正確的 Email', 400);
 }
 
-/**
- * A) fail-only：入口先擋已封鎖者（不累計）
- */
+// A) fail-only：入口先擋已封鎖者（不累計）
 throttle_assert_not_blocked('OTP_RESET_REQ_FAIL', 'IP_EMAIL', $email);
 throttle_assert_not_blocked('OTP_RESET_REQ_FAIL', 'IP', null);
 
-/**
- * B) request 節流：寄信本身就必須計數
- */
-throttle_check('OTP_RESET_REQ', 'IP_EMAIL', $email, 900, 5, 15);
-throttle_check('OTP_RESET_REQ', 'IP', null, 900, 5, 15);
+// B) request 節流：寄信本身要計數（15 分鐘 5 次）
+throttle_check('OTP_RESET_REQ', 'IP_EMAIL', $email, 900, 5);
+throttle_check('OTP_RESET_REQ', 'IP', null, 900, 5);
 
 $otpTtlMin = 10;
 
-function gen_otp_6(): string
-{
+function gen_otp_6(): string {
     $n = random_int(0, 999999);
     return str_pad((string)$n, 6, '0', STR_PAD_LEFT);
 }
@@ -61,12 +54,13 @@ function send_reset_otp_mail(string $toEmail, string $otp): bool
     $fromEmail = 'system_mail_noreply@ml.jinghong.pw';
 
     $subject = '重設密碼驗證碼（10 分鐘內有效）';
+
     $body = "您好，\n\n"
-        . "您正在申請「遺眷親訪地圖系統」重設密碼。\n\n"
-        . "您的驗證碼（OTP）：{$otp}\n"
-        . "有效時間：10 分鐘\n\n"
-        . "若非本人操作，請忽略此信。\n\n"
-        . "— 遺眷親訪地圖系統\n";
+          . "您正在申請「遺眷親訪地圖系統」重設密碼。\n\n"
+          . "您的驗證碼（OTP）：{$otp}\n"
+          . "有效時間：10 分鐘\n\n"
+          . "若非本人操作，請忽略此信。\n\n"
+          . "— 遺眷親訪地圖系統\n";
 
     $encodedSubject = '=?UTF-8?B?' . base64_encode($subject) . '?=';
 
@@ -82,24 +76,26 @@ function send_reset_otp_mail(string $toEmail, string $otp): bool
 $pdo = db();
 
 try {
-    // 查 user（回應一律同樣訊息，避免帳號枚舉）
+    // 查 user（但回應固定）
     $stmt = $pdo->prepare('SELECT id, status FROM users WHERE email = :email LIMIT 1');
     $stmt->execute([':email' => $email]);
     $u = $stmt->fetch();
 
+    // 不論是否存在/是否 ACTIVE，都回固定訊息（避免帳號枚舉）
+    $maskedOkMsg = ['message' => '若此 Email 存在，驗證碼已寄送（10 分鐘內有效）'];
+
     if (!$u) {
         auth_event('RESET_OTP_SENT', null, $email, 'user not found (masked)');
-        json_success(['message' => '若此 Email 存在，驗證碼已寄送（10 分鐘內有效）']);
+        json_success($maskedOkMsg);
     }
-
     if (($u['status'] ?? '') !== 'ACTIVE') {
         auth_event('RESET_OTP_SENT', (int)$u['id'], $email, 'inactive (masked)');
-        json_success(['message' => '若此 Email 存在，驗證碼已寄送（10 分鐘內有效）']);
+        json_success($maskedOkMsg);
     }
 
     $pdo->beginTransaction();
 
-    // 清除舊 RESET OTP
+    // 清除舊 RESET OTP（未驗證）
     $stmt = $pdo->prepare("
         DELETE FROM otp_tokens
         WHERE purpose='RESET' AND email=:email AND verified_at IS NULL
@@ -130,6 +126,7 @@ try {
     if (!$ok) {
         $pdo->rollBack();
 
+        // fail-only：寄信失敗才累計（5 次封 15 分鐘）
         throttle_hit('OTP_RESET_REQ_FAIL', 'IP_EMAIL', $email, 900, 5, 15);
         throttle_hit('OTP_RESET_REQ_FAIL', 'IP', null, 900, 5, 15);
 
@@ -140,13 +137,14 @@ try {
     $pdo->commit();
 
     auth_event('RESET_OTP_SENT', (int)$u['id'], $email, 'otp sent');
-    json_success(['message' => '若此 Email 存在，驗證碼已寄送（10 分鐘內有效）']);
+    json_success($maskedOkMsg);
 
 } catch (Throwable $e) {
     if ($pdo->inTransaction()) $pdo->rollBack();
 
-    throttle_hit('OTP_RESET_REQ_FAIL', 'IP_EMAIL', $email, 900, 10, 15);
-    throttle_hit('OTP_RESET_REQ_FAIL', 'IP', null, 900, 10, 15);
+    // fail-only：例外也算異常（5 次封 15 分鐘）
+    throttle_hit('OTP_RESET_REQ_FAIL', 'IP_EMAIL', $email, 900, 5, 15);
+    throttle_hit('OTP_RESET_REQ_FAIL', 'IP', null, 900, 5, 15);
 
     auth_event('RESET_FAIL', null, $email ?: null, 'exception');
     json_error('系統忙碌中，請稍後再試。', 500);

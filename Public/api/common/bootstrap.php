@@ -101,7 +101,7 @@ function throttle_keys(string $scope, ?string $email): array
  * - blocked_until > now() → 擋
  * - window 內 count 累計，超過 maxCount → 封鎖 15 分鐘
  */
-function throttle_check(string $action, string $scope, ?string $email = null, int $windowSec = 900, int $maxCount = 10, int $blockMinutes = 15): void
+function throttle_check(string $action, string $scope, ?string $email = null, int $windowSec = 900, int $maxCount = 5, int $blockMinutes = 15): void
 {
     $pdo = db();
     [$keyIp, $keyEmail] = throttle_keys($scope, $email);
@@ -147,7 +147,7 @@ function throttle_check(string $action, string $scope, ?string $email = null, in
 
         $newCount = (int)$row['count'] + 1;
 
-        if ($newCount > $maxCount) {
+        if ($newCount >= $maxCount) {
             $stmt = $pdo->prepare("
                 UPDATE auth_throttles
                 SET count=:c, blocked_until=DATE_ADD(NOW(), INTERVAL :bm MINUTE)
@@ -213,7 +213,7 @@ function throttle_assert_not_blocked(string $action, string $scope, ?string $ema
 /**
  * fail-only：只在失敗時呼叫（窗口內累計；超過門檻才封鎖）
  */
-function throttle_hit(string $action, string $scope, ?string $email = null, int $windowSec = 900, int $maxCount = 10, int $blockMinutes = 15): void
+function throttle_hit(string $action, string $scope, ?string $email = null, int $windowSec = 900, int $maxCount = 5, int $blockMinutes = 15): void
 {
     // 這裡的邏輯與 throttle_check 幾乎相同，但「不應該被成功路徑呼叫」
     throttle_check($action, $scope, $email, $windowSec, $maxCount, $blockMinutes);
