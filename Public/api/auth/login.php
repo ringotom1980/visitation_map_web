@@ -58,32 +58,75 @@ $pdo = db();
 /**
  * 共用：判斷是否 HTTPS（含反向代理）
  */
+// function is_https_request(): bool
+// {
+//     if (!empty($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off') return true;
+//     if (!empty($_SERVER['HTTP_X_FORWARDED_PROTO']) && strtolower((string)$_SERVER['HTTP_X_FORWARDED_PROTO']) === 'https') return true;
+//     return false;
+// }
 function is_https_request(): bool
 {
     if (!empty($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off') return true;
-    if (!empty($_SERVER['HTTP_X_FORWARDED_PROTO']) && strtolower((string)$_SERVER['HTTP_X_FORWARDED_PROTO']) === 'https') return true;
+    if (!empty($_SERVER['SERVER_PORT']) && (int)$_SERVER['SERVER_PORT'] === 443) return true;
+
+    $xfp = (string)($_SERVER['HTTP_X_FORWARDED_PROTO'] ?? '');
+    if ($xfp !== '' && strtolower($xfp) === 'https') return true;
+
+    $xfs = (string)($_SERVER['HTTP_X_FORWARDED_SSL'] ?? '');
+    if ($xfs !== '' && strtolower($xfs) === 'on') return true;
+
+    $cfv = (string)($_SERVER['HTTP_CF_VISITOR'] ?? '');
+    if ($cfv !== '' && stripos($cfv, '"https"') !== false) return true;
+
     return false;
 }
 
 /**
  * 共用：確保 device_id cookie 存在
  */
+// function ensure_device_id_cookie(): string
+// {
+//     $deviceId = (string)($_COOKIE['device_id'] ?? '');
+//     if ($deviceId !== '') return $deviceId;
+
+//     $deviceId = bin2hex(random_bytes(32));
+//         setcookie('device_id', $deviceId, [
+//         'expires'  => time() + 86400 * 365,
+//         'path'     => '/',
+//         'secure'   => is_https_request(),
+//         'httponly' => true,
+//         'samesite' => 'Lax',
+//     ]);
+//     // 讓本次 request 也拿得到
+//     $_COOKIE['device_id'] = $deviceId;
+
+//     return $deviceId;
+// }
 function ensure_device_id_cookie(): string
 {
     $deviceId = (string)($_COOKIE['device_id'] ?? '');
     if ($deviceId !== '') return $deviceId;
 
     $deviceId = bin2hex(random_bytes(32));
-        setcookie('device_id', $deviceId, [
-        'expires'  => time() + 86400 * 365,
-        'path'     => '/',
-        'secure'   => is_https_request(),
-        'httponly' => true,
-        'samesite' => 'Lax',
-    ]);
-    // 讓本次 request 也拿得到
-    $_COOKIE['device_id'] = $deviceId;
+    $expires  = time() + 86400 * 365;
+    $secure   = is_https_request();
+    $httpOnly = true;
 
+    // SameSite=Lax：符合你目前同站登入流程
+    // PHP 7.3+ 可以用 options array；7.2 用 path hack
+    if (PHP_VERSION_ID >= 70300) {
+        setcookie('device_id', $deviceId, [
+            'expires'  => $expires,
+            'path'     => '/',
+            'secure'   => $secure,
+            'httponly' => $httpOnly,
+            'samesite' => 'Lax',
+        ]);
+    } else {
+        setcookie('device_id', $deviceId, $expires, '/; samesite=Lax', '', $secure, $httpOnly);
+    }
+
+    $_COOKIE['device_id'] = $deviceId;
     return $deviceId;
 }
 
@@ -238,6 +281,7 @@ try {
 
     // ===== E2: 確保 device_id + trusted 判斷 =====
     $deviceId = ensure_device_id_cookie();
+auth_event('DEVICE_COOKIE_IN', (int)$user['id'], $email, 'device_id=' . (string)($_COOKIE['device_id'] ?? ''));
 
     // 查是否已信任
     $stmt = $pdo->prepare("

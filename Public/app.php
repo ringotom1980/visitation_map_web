@@ -12,8 +12,6 @@ require_once __DIR__ . '/../config/auth.php';
 
 // A2/A3：主頁必須登入
 require_login_page();
-// A2/A3：主頁必須登入
-require_login_page();
 
 // ================================
 // E2：Trusted Device Gate（防止按上一頁繞過 DEVICE OTP）
@@ -25,10 +23,10 @@ header('Pragma: no-cache');
 header('Expires: 0');
 
 // 確保 db() 可用
-if (!function_exists('db')) {
-  require_once __DIR__ . '/api/common/bootstrap.php';
-}
-
+// if (!function_exists('db')) {
+//   require_once __DIR__ . '/api/common/bootstrap.php';
+// }
+require_once __DIR__ . '/../config/db.php';
 // 取得登入使用者
 $user = current_user();
 $uid  = (int)($user['id'] ?? 0);
