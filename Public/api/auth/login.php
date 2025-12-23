@@ -1,4 +1,5 @@
 <?php
+
 /**
  * Path: Public/api/auth/login.php
  * 說明: 使用者登入 API（POST /api/auth/login）
@@ -76,10 +77,18 @@ function ensure_device_id_cookie(): string
     setcookie('device_id', $deviceId, [
         'expires'  => time() + 86400 * 365,
         'path'     => '/',
-        'secure'   => is_https_request(),
+        'secure'   => true,
         'httponly' => true,
         'samesite' => 'Lax',
     ]);
+
+    // setcookie('device_id', $deviceId, [
+    //     'expires'  => time() + 86400 * 365,
+    //     'path'     => '/',
+    //     'secure'   => is_https_request(),
+    //     'httponly' => true,
+    //     'samesite' => 'Lax',
+    // ]);
     // 讓本次 request 也拿得到
     $_COOKIE['device_id'] = $deviceId;
 
@@ -114,11 +123,11 @@ function send_device_otp_for_login(PDO $pdo, int $uid, string $email): void
         $subject   = '裝置驗證碼（10 分鐘內有效）';
 
         $body = "您好，\n\n"
-              . "您正在進行「遺眷親訪地圖系統」裝置驗證。\n\n"
-              . "您的驗證碼（OTP）：{$otp}\n"
-              . "有效時間：10 分鐘\n\n"
-              . "若非本人操作，請忽略此信。\n\n"
-              . "— 遺眷親訪地圖系統\n";
+            . "您正在進行「遺眷親訪地圖系統」裝置驗證。\n\n"
+            . "您的驗證碼（OTP）：{$otp}\n"
+            . "有效時間：10 分鐘\n\n"
+            . "若非本人操作，請忽略此信。\n\n"
+            . "— 遺眷親訪地圖系統\n";
 
         $encodedSubject = '=?UTF-8?B?' . base64_encode($subject) . '?=';
 
@@ -178,7 +187,6 @@ function send_device_otp_for_login(PDO $pdo, int $uid, string $email): void
 
         auth_event('DEVICE_OTP_SENT', $uid, $email, 'otp sent (login flow)');
         return;
-
     } catch (Throwable $e) {
         if ($pdo->inTransaction()) $pdo->rollBack();
 
@@ -264,7 +272,7 @@ try {
             'email'             => (string)$user['email'],
             'role'              => (string)$user['role'],
             'organization_id'   => (int)$user['organization_id'],
-            'need_device_verify'=> true,
+            'need_device_verify' => true,
             'redirect'          => route_url('device-verify'), // 你要在 .htaccess 加路由
         ]);
     }
@@ -284,7 +292,6 @@ try {
         'organization_id' => (int)$user['organization_id'],
         'redirect'        => $redirect,
     ]);
-
 } catch (Throwable $e) {
     throttle_hit('LOGIN_FAIL', 'IP_EMAIL', $email, 900, 5, 15);
     throttle_hit('LOGIN_FAIL', 'IP', null, 900, 5, 15);

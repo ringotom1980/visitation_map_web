@@ -105,21 +105,27 @@ try {
         ->execute([':id' => $otpId]);
 
     // 取得或建立 device_id（cookie）
-    $deviceId = $_COOKIE['device_id'] ?? '';
+    // $deviceId = $_COOKIE['device_id'] ?? '';
+    // if ($deviceId === '') {
+    //     $deviceId = bin2hex(random_bytes(32));
+
+    //     $isHttps = false;
+    //     if (!empty($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off') $isHttps = true;
+    //     if (!empty($_SERVER['HTTP_X_FORWARDED_PROTO']) && strtolower((string)$_SERVER['HTTP_X_FORWARDED_PROTO']) === 'https') $isHttps = true;
+
+    //     setcookie('device_id', $deviceId, [
+    //         'expires'  => time() + 86400 * 365,
+    //         'path'     => '/',
+    //         'secure'   => $isHttps,     // ✅ 不要硬寫 true
+    //         'httponly' => true,
+    //         'samesite' => 'Lax',
+    //     ]);
+    // }
+    $deviceId = (string)($_COOKIE['device_id'] ?? '');
     if ($deviceId === '') {
-        $deviceId = bin2hex(random_bytes(32));
-
-        $isHttps = false;
-        if (!empty($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off') $isHttps = true;
-        if (!empty($_SERVER['HTTP_X_FORWARDED_PROTO']) && strtolower((string)$_SERVER['HTTP_X_FORWARDED_PROTO']) === 'https') $isHttps = true;
-
-        setcookie('device_id', $deviceId, [
-            'expires'  => time() + 86400 * 365,
-            'path'     => '/',
-            'secure'   => $isHttps,     // ✅ 不要硬寫 true
-            'httponly' => true,
-            'samesite' => 'Lax',
-        ]);
+        // ❗ 裝置驗證階段禁止產生新 device_id
+        auth_event('DEVICE_VERIFY_FAIL', (int)$user['id'], $email, 'missing device_id cookie');
+        json_error('裝置識別資訊遺失，請重新登入以完成裝置驗證', 400);
     }
 
     // fingerprint（建議至少納入 UA；你要更嚴謹可加 Accept-Language、平台等）
