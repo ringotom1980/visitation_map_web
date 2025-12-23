@@ -74,21 +74,13 @@ function ensure_device_id_cookie(): string
     if ($deviceId !== '') return $deviceId;
 
     $deviceId = bin2hex(random_bytes(32));
-    setcookie('device_id', $deviceId, [
+        setcookie('device_id', $deviceId, [
         'expires'  => time() + 86400 * 365,
         'path'     => '/',
-        'secure'   => true,
+        'secure'   => is_https_request(),
         'httponly' => true,
         'samesite' => 'Lax',
     ]);
-
-    // setcookie('device_id', $deviceId, [
-    //     'expires'  => time() + 86400 * 365,
-    //     'path'     => '/',
-    //     'secure'   => is_https_request(),
-    //     'httponly' => true,
-    //     'samesite' => 'Lax',
-    // ]);
     // 讓本次 request 也拿得到
     $_COOKIE['device_id'] = $deviceId;
 
