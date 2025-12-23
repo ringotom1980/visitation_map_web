@@ -12,6 +12,8 @@ require_once __DIR__ . '/../config/auth.php';
 
 // A2/A3：主頁必須登入
 require_login_page();
+// A2/A3：主頁必須登入
+require_login_page();
 
 // ================================
 // E2：Trusted Device Gate（防止按上一頁繞過 DEVICE OTP）
@@ -35,7 +37,7 @@ if ($uid <= 0) {
   exit;
 }
 
-// device_verify 入口（漂亮網址一律走 /device_verify）
+// device_verify 入口
 $deviceVerifyUrl = '/device-verify?return=' . rawurlencode('/app');
 
 // 取得 device_id（由 device_otp_verify.php 成功後 setcookie）
