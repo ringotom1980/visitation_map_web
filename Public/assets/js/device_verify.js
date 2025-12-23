@@ -14,6 +14,18 @@
 
 (function () {
   'use strict';
+  function getOrCreateDeviceId() {
+    const key = 'vm_device_id';
+    let did = localStorage.getItem(key) || '';
+
+    if (!/^[a-f0-9]{64}$/.test(did)) {
+      const bytes = new Uint8Array(32);
+      crypto.getRandomValues(bytes);
+      did = Array.from(bytes).map(b => b.toString(16).padStart(2, '0')).join('');
+      localStorage.setItem(key, did);
+    }
+    return did;
+  }
 
   function $(id) { return document.getElementById(id); }
 
@@ -112,7 +124,11 @@
     try {
       setMsg('驗證中…');
 
-      await apiRequest('auth/device_otp_verify', 'POST', { code: code });
+      await apiRequest('auth/device_otp_verify', 'POST', {
+  code: code,
+  device_id: getOrCreateDeviceId()
+});
+
 
       // ✅ 成功：解除鎖定 + 放行離開
       verified = true;

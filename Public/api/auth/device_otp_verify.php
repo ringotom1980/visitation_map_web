@@ -28,6 +28,10 @@ if (empty($input)) {
 }
 
 $code = trim((string)($input['code'] ?? ''));
+$clientDeviceId = trim((string)($input['device_id'] ?? ''));
+if ($clientDeviceId !== '' && !preg_match('/^[a-f0-9]{64}$/', $clientDeviceId)) {
+    $clientDeviceId = '';
+}
 
 if ($code === '') {
     json_error('請輸入驗證碼', 400);
@@ -122,11 +126,37 @@ try {
     //     ]);
     // }
     $deviceId = (string)($_COOKIE['device_id'] ?? '');
-    if ($deviceId === '') {
-        // ❗ 裝置驗證階段禁止產生新 device_id
-        auth_event('DEVICE_VERIFY_FAIL', (int)$user['id'], $email, 'missing device_id cookie');
+
+// cookie 有 → 直接用（最可信）
+if ($deviceId !== '' && preg_match('/^[a-f0-9]{64}$/', $deviceId)) {
+    // ok
+} else {
+    // cookie 沒有/不合法 → 退回使用前端 localStorage 送來的 device_id（方案1核心）
+    if ($clientDeviceId === '') {
+        auth_event('DEVICE_VERIFY_FAIL', (int)$user['id'], $email, 'missing device_id cookie and client');
         json_error('裝置識別資訊遺失，請重新登入以完成裝置驗證', 400);
     }
+
+    $deviceId = $clientDeviceId;
+
+    // 嘗試補回 cookie（能存就存，不能存也不阻斷）
+    try {
+        $isHttps = false;
+        if (!empty($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off') $isHttps = true;
+        if (!empty($_SERVER['HTTP_X_FORWARDED_PROTO']) && strtolower((string)$_SERVER['HTTP_X_FORWARDED_PROTO']) === 'https') $isHttps = true;
+
+        setcookie('device_id', $deviceId, [
+            'expires'  => time() + 86400 * 365,
+            'path'     => '/',
+            'secure'   => $isHttps,
+            'httponly' => true,
+            'samesite' => 'Lax',
+        ]);
+        $_COOKIE['device_id'] = $deviceId;
+    } catch (Throwable $e) {
+        // ignore
+    }
+}
 
     // fingerprint（建議至少納入 UA；你要更嚴謹可加 Accept-Language、平台等）
     $ua = (string)($_SERVER['HTTP_USER_AGENT'] ?? '');
