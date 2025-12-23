@@ -34,6 +34,12 @@ if (empty($input)) {
 
 $email    = trim((string)($input['email'] ?? ''));
 $password = (string)($input['password'] ?? '');
+$clientDeviceId = trim((string)($input['device_id'] ?? ''));
+
+// 只接受 64 hex（前端 localStorage 產生的就是這種）
+if ($clientDeviceId !== '' && !preg_match('/^[a-f0-9]{64}$/', $clientDeviceId)) {
+    $clientDeviceId = '';
+}
 
 if ($email === '' || $password === '') {
     auth_event('LOGIN_FAIL', null, $email ?: null, 'missing credentials');
@@ -84,47 +90,25 @@ function is_https_request(): bool
 /**
  * 共用：確保 device_id cookie 存在
  */
-// function ensure_device_id_cookie(): string
-// {
-//     $deviceId = (string)($_COOKIE['device_id'] ?? '');
-//     if ($deviceId !== '') return $deviceId;
-
-//     $deviceId = bin2hex(random_bytes(32));
-//         setcookie('device_id', $deviceId, [
-//         'expires'  => time() + 86400 * 365,
-//         'path'     => '/',
-//         'secure'   => is_https_request(),
-//         'httponly' => true,
-//         'samesite' => 'Lax',
-//     ]);
-//     // 讓本次 request 也拿得到
-//     $_COOKIE['device_id'] = $deviceId;
-
-//     return $deviceId;
-// }
-function ensure_device_id_cookie(): string
+function ensure_device_id_cookie(?string $preferredDeviceId = null): string
 {
-    $deviceId = (string)($_COOKIE['device_id'] ?? '');
-    if ($deviceId !== '') return $deviceId;
+    $cookieDid = (string)($_COOKIE['device_id'] ?? '');
+    if ($cookieDid !== '') return $cookieDid;
 
-    $deviceId = bin2hex(random_bytes(32));
-    $expires  = time() + 86400 * 365;
-    $secure   = is_https_request();
-    $httpOnly = true;
-
-    // SameSite=Lax：符合你目前同站登入流程
-    // PHP 7.3+ 可以用 options array；7.2 用 path hack
-    if (PHP_VERSION_ID >= 70300) {
-        setcookie('device_id', $deviceId, [
-            'expires'  => $expires,
-            'path'     => '/',
-            'secure'   => $secure,
-            'httponly' => $httpOnly,
-            'samesite' => 'Lax',
-        ]);
+    // cookie 沒有 → 優先用前端帶來的 stable id（localStorage）
+    if ($preferredDeviceId !== null && preg_match('/^[a-f0-9]{64}$/', $preferredDeviceId)) {
+        $deviceId = $preferredDeviceId;
     } else {
-        setcookie('device_id', $deviceId, $expires, '/; samesite=Lax', '', $secure, $httpOnly);
+        $deviceId = bin2hex(random_bytes(32));
     }
+
+    setcookie('device_id', $deviceId, [
+        'expires'  => time() + 86400 * 365,
+        'path'     => '/',
+        'secure'   => is_https_request(),
+        'httponly' => true,
+        'samesite' => 'Lax',
+    ]);
 
     $_COOKIE['device_id'] = $deviceId;
     return $deviceId;
@@ -280,7 +264,8 @@ try {
     $_SESSION['org_id']  = (int)$user['organization_id'];
 
     // ===== E2: 確保 device_id + trusted 判斷 =====
-    $deviceId = ensure_device_id_cookie();
+    $deviceId = ensure_device_id_cookie($clientDeviceId !== '' ? $clientDeviceId : null);
+
 auth_event('DEVICE_COOKIE_IN', (int)$user['id'], $email, 'device_id=' . (string)($_COOKIE['device_id'] ?? ''));
 
     // 查是否已信任
