@@ -1,6 +1,11 @@
 /**
  * Path: Public/assets/css/login.css
  * 說明: 柔和綠灰風格登入頁（手機優先）
+ * 定版重點:
+ * - login/OTP 共用同一套殼（login-body/login-shell/login-wrapper）
+ * - login-message 基底永遠置中；success/info/error 三態一致
+ * - 補齊 btn-link（OTP 重新寄送會用到）
+ * - login-body 同時水平+垂直置中（避免頁面看起來沒置中）
  */
 
 .login-body {
@@ -8,6 +13,8 @@
   background: #f3f4f6; /* 柔霧灰 */
   display: flex;
   justify-content: center;
+  align-items: center;          /* ✅ 垂直置中 */
+  padding: 16px 0;              /* ✅ 避免極小螢幕貼邊 */
 }
 
 .login-shell {
@@ -68,7 +75,7 @@
 }
 
 .login-title {
-  margin-bottom: 16px;
+  margin: 0 0 16px;
   font-size: 18px;
   font-weight: 600;
   color: #374151;
@@ -88,6 +95,8 @@
 }
 
 .form-group input {
+  width: 100%;
+  box-sizing: border-box;
   padding: 10px 12px;
   border: 1px solid #d1d5db;
   background: #f9fafb;
@@ -111,6 +120,7 @@
   font-size: 15px;
   border: none;
   transition: 0.15s ease;
+  cursor: pointer;
 }
 
 .btn-primary:hover {
@@ -125,6 +135,25 @@
   width: 100%;
 }
 
+/* ✅ 補齊 btn-link（OTP 重新寄送 / 其他弱動作用） */
+.btn-link {
+  appearance: none;
+  border: none;
+  background: transparent;
+  padding: 0;
+  margin: 0;
+  cursor: pointer;
+  font-size: 13px;
+  color: #4ca771;
+  font-weight: 600;
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+
+.btn-link:hover {
+  color: #429565;
+}
+
 /* ---------- 其他 ---------- */
 .login-extra {
   margin-top: 12px;
@@ -136,6 +165,12 @@
 .login-extra a {
   color: #4ca771;
   font-weight: 600;
+  text-decoration: none;
+}
+
+.login-extra a:hover {
+  text-decoration: underline;
+  text-underline-offset: 3px;
 }
 
 .login-footer {
@@ -146,7 +181,34 @@
   color: #9ca3af;
 }
 
-/* 申請/登入表單下拉選單樣式 */
+/* ---------- 訊息（共用） ---------- */
+/* ✅ 訊息基底：不論 success / info / error 都先置中 */
+.login-message {
+  text-align: center;
+  padding: 10px 12px;
+  margin-top: 12px;
+  border-radius: 8px;
+  font-size: 13px;
+  line-height: 1.45;
+}
+
+/* ✅ error/info/success 三態 */
+.login-message.error {
+  color: #b91c1c;
+  background: rgba(255, 0, 0, 0.08);
+}
+
+.login-message.info {
+  color: #b91c1c;
+  background: rgba(255, 0, 0, 0.08);
+}
+
+.login-message.success {
+  color: #15803d;
+  background: rgba(21, 128, 61, 0.08);
+}
+
+/* ---------- 下拉選單樣式（申請/登入表單） ---------- */
 .login-form select {
   width: 100%;
   box-sizing: border-box;
@@ -156,40 +218,19 @@
   border: 1px solid #d1d5db;
   background-color: #f9fafb;
   color: #111827;
-  /* 讓 iOS/Android 還是用原生選單，但外觀跟 input 類似 */
+  outline: none;
 }
 
-/* focus 時的邊框與陰影（跟 input 一樣風格） */
+/* focus 時的邊框與陰影（跟 input 同一風格，維持綠色系一致） */
 .login-form select:focus {
-  outline: none;
-  border-color: #2563eb;
-  box-shadow: 0 0 0 2px rgba(37, 99, 235, 0.18);
+  border-color: #4ca771;
+  box-shadow: 0 0 0 1px rgba(76, 167, 113, 0.25);
   background-color: #ffffff;
 }
-
-.login-message.info {
-  text-align: center;
-  color: #b91c1c;
-  background: rgba(255, 0, 0, 0.08);
-  padding: 10px 12px;
-  margin-top: 12px;
-  border-radius: 8px;
-}
-
-/* ✅ 登入成功訊息置中 */
-.login-message.success {
-  text-align: center;
-  color: #15803d;
-  background: rgba(21, 128, 61, 0.08);
-  padding: 10px 12px;
-  margin-top: 12px;
-  border-radius: 8px;
-}
-
 
 /* ---------- 桌機優化 ---------- */
 @media (min-width: 768px) {
   .login-shell {
-    padding-top: 50px;
+    padding-top: 30px; /* ✅ 因為 body 已垂直置中，不需要再推很下面 */
   }
 }

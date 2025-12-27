@@ -1,50 +1,85 @@
-.dv-page{
-  margin:0;
-  font-family: system-ui, -apple-system, "Segoe UI", Roboto, "Noto Sans TC", Arial, sans-serif;
-  background:#f5f6f7;
-  min-height:100vh;
-  display:flex;
-  align-items:center;
-  justify-content:center;
-  padding:16px;
+/**
+ * Path: Public/assets/css/device_verify.css
+ * 說明: 裝置驗證（DEVICE OTP）頁面補充樣式
+ * 原則:
+ * - OTP 頁沿用 login.css 的版型（.login-body/.login-shell/.login-wrapper/.login-message）
+ * - 本檔只做 OTP 細節補強（字距、說明文字、連結按鈕）
+ */
+
+/* === 說明文字（寄送提示） === */
+.login-wrapper .forgot-note {
+  margin: 8px 0 16px;
+  font-size: 13px;
+  color: #4b5563;
+  text-align: center;
+  line-height: 1.55;
 }
-.dv-card{
-  width:100%;
-  max-width:420px;
-  background:#fff;
-  border-radius:12px;
-  padding:20px;
-  box-shadow:0 8px 30px rgba(0,0,0,.08);
+
+/* === OTP 輸入框：置中、加字距、更清楚 === */
+#dv-code {
+  text-align: center;
+  letter-spacing: 6px;
+  font-size: 18px;
+  font-weight: 600;
 }
-.dv-title{ margin:0 0 8px; font-size:20px; }
-.dv-desc{ margin:0 0 16px; color:#555; line-height:1.5; }
-.dv-row{ display:flex; gap:10px; align-items:center; }
-.dv-row--muted{ margin-top:12px; justify-content:space-between; }
-.dv-input{
-  flex:1;
-  height:44px;
-  border:1px solid #d6d9dd;
-  border-radius:10px;
-  padding:0 12px;
-  font-size:16px;
-  outline:none;
+
+/* 手機數字輸入時，避免 iOS 變形（視覺更穩） */
+#dv-code::placeholder {
+  letter-spacing: 0;
+  font-weight: 400;
 }
-.dv-input:focus{ border-color:#1a73e8; }
-.dv-btn{
-  height:44px;
-  border:none;
-  border-radius:10px;
-  padding:0 14px;
-  background:#1a73e8;
-  color:#fff;
-  font-size:15px;
-  cursor:pointer;
+
+/* === 驗證按鈕：沿用 .btn-primary/.btn-block；這裡只補間距 === */
+#dv-verify {
+  margin-top: 6px;
 }
-.dv-link{
-  border:none;
-  background:transparent;
-  color:#1a73e8;
-  padding:0;
-  cursor:pointer;
+
+/* === 「重新寄送」做成弱連結樣式（你原本用 btn-link，但 login.css 沒定義） === */
+.btn-link,
+#dv-resend {
+  appearance: none;
+  border: none;
+  background: transparent;
+  padding: 0;
+  margin: 0;
+  cursor: pointer;
+  font-size: 13px;
+  color: #4ca771;
+  font-weight: 600;
+  text-decoration: underline;
+  text-underline-offset: 3px;
 }
-.dv-msg{ color:#666; font-size:13px; margin-left:auto; }
+
+.btn-link:hover,
+#dv-resend:hover {
+  color: #429565;
+}
+
+/* 讓「重新寄送」那行維持置中一致 */
+.login-wrapper .login-extra {
+  text-align: center;
+}
+
+/* === OTP 訊息：沿用 login.css 的 .login-message 基底與 success/error/info 狀態 === */
+#dv-msg.login-message {
+  margin-top: 12px;
+}
+
+/* （可選）讓 info 狀態的顏色不要太刺眼（如果你覺得需要） */
+/*
+#dv-msg.login-message.info {
+  color: #92400e;
+  background: rgba(251, 191, 36, 0.18);
+}
+*/
+
+/* === 小尺寸裝置：避免卡片太貼邊（login.css 已有 padding，這裡只補極端情況） === */
+@media (max-width: 360px) {
+  .login-shell {
+    padding-left: 14px;
+    padding-right: 14px;
+  }
+  #dv-code {
+    letter-spacing: 4px;
+  }
+}
