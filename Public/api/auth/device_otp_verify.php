@@ -8,6 +8,11 @@
  * - 入口先擋已封鎖：OTP_DEVICE_VERIFY_FAIL（IP + IP_EMAIL）
  * - 只有「失敗」才 hit：15 分鐘 5 次，超過封 15 分鐘
  * - OTP token 自身 fail_count >= 5：要求重發
+ *
+ * ✅ 定版（2025-12-27）：
+ * - trusted_devices 已移除 device_id
+ * - 只使用 device_fingerprint（UA sha256）
+ * - upsert key：UNIQUE (user_id, device_fingerprint) ＝ uq_user_fp
  */
 
 declare(strict_types=1);
@@ -45,6 +50,7 @@ $pdo = db();
 
 /**
  * 共用：計算 device_fingerprint（必須與 login.php 一致）
+ * - 定版：UA sha256（64 hex）
  */
 function compute_device_fingerprint(): string
 {
@@ -67,6 +73,7 @@ try {
     $otp = $stmt->fetch();
 
     if (!$otp) {
+        // fail-only：沒有 token 也算失敗（避免暴力猜測）
         throttle_hit('OTP_DEVICE_VERIFY_FAIL', 'IP_EMAIL', $email, 900, 5, 15);
         throttle_hit('OTP_DEVICE_VERIFY_FAIL', 'IP', null, 900, 5, 15);
 
@@ -113,21 +120,16 @@ try {
     $pdo->prepare("UPDATE otp_tokens SET verified_at=NOW() WHERE id=:id")
         ->execute([':id' => $otpId]);
 
-    // ✅ 定版：以 device_fingerprint 為主（與 login.php 一致）
+    // ✅ 定版：只用 device_fingerprint
     $ua = (string)($_SERVER['HTTP_USER_AGENT'] ?? '');
     $fingerprint = compute_device_fingerprint();
-
-    // ⚠️ 目前 DB 欄位 device_id 仍為 NOT NULL：
-    // - 我們不再「使用」device_id 做判斷或流程
-    // - 但 INSERT 時仍需填值，這裡用 fingerprint 作為純填充
-    $deviceIdFill = $fingerprint;
 
     // upsert trusted_devices（以 uq_user_fp：user_id + device_fingerprint）
     $stmt = $pdo->prepare("
         INSERT INTO trusted_devices
-          (user_id, device_id, device_fingerprint, status, trusted_at, last_seen_at, last_ip, last_ua)
+          (user_id, device_fingerprint, status, trusted_at, last_seen_at, last_ip, last_ua)
         VALUES
-          (:uid, :did, :fp, 'TRUSTED', NOW(), NOW(), :ip_ins, :ua_ins)
+          (:uid, :fp, 'TRUSTED', NOW(), NOW(), :ip_ins, :ua_ins)
         ON DUPLICATE KEY UPDATE
           status='TRUSTED',
           trusted_at=IFNULL(trusted_at, NOW()),
@@ -137,7 +139,6 @@ try {
     ");
     $stmt->execute([
         ':uid'    => (int)$user['id'],
-        ':did'    => $deviceIdFill,
         ':fp'     => $fingerprint,
         ':ip_ins' => $_SERVER['REMOTE_ADDR'] ?? null,
         ':ua_ins' => $ua !== '' ? mb_substr($ua, 0, 255, 'UTF-8') : null,

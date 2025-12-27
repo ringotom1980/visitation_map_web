@@ -3,8 +3,8 @@
  * 說明: 裝置驗證頁前端控制器（E2 DEVICE OTP）- 嚴格模式 B
  *
  * 定版改動：
- * - 不再產生/送出 device_id（已全面改用 device_fingerprint）
- * - 驗證成功後導回 window.__DV_RETURN_TO__（由 device_verify.php 提供，預設 /app）
+ * - 不再依賴 window.__DV_RETURN_TO__（移除 inline script）
+ * - returnTo 改從 DOM data-return-to 取得；拿不到就 fallback /app
  */
 
 (function () {
@@ -22,10 +22,12 @@
   var leaving = false;         // 避免重入
   var lockBack = true;         // 未驗證前鎖住上一頁
 
-  // returnTo（由 PHP 注入，預設 /app）
-  var returnTo = (typeof window.__DV_RETURN_TO__ === 'string' && window.__DV_RETURN_TO__)
-    ? window.__DV_RETURN_TO__
-    : '/app';
+  // returnTo：從 .login-shell[data-return-to] 取得（由 PHP 提供）
+  var shell = document.querySelector('.login-shell');
+  var returnTo = (shell && shell.getAttribute('data-return-to')) ? shell.getAttribute('data-return-to') : '/app';
+  if (!returnTo || returnTo.charAt(0) !== '/' || returnTo.indexOf('//') === 0) {
+    returnTo = '/app';
+  }
 
   function setMsg(t) {
     if (msg) msg.textContent = t || '';
@@ -106,7 +108,6 @@
       // ✅ 不再送 device_id（後端改用 UA fingerprint）
       await apiRequest('auth/device_otp_verify', 'POST', { code: code });
 
-      // ✅ 成功：解除鎖定 + 放行離開
       verified = true;
       lockBack = false;
 

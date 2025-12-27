@@ -14,13 +14,13 @@ declare(strict_types=1);
 
 require_once __DIR__ . '/../common/bootstrap.php';
 
-require_login();
-$user  = current_user();
-$email = trim((string)($user['email'] ?? ''));
-
 if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
     json_error('Method not allowed', 405);
 }
+
+require_login();
+$user  = current_user();
+$email = trim((string)($user['email'] ?? ''));
 
 if ($email === '' || !filter_var($email, FILTER_VALIDATE_EMAIL)) {
     auth_event('DEVICE_OTP_FAIL', (int)($user['id'] ?? 0), $email ?: null, 'invalid session email');
@@ -103,6 +103,7 @@ try {
     if (!$ok) {
         $pdo->rollBack();
 
+        // fail-only：寄信失敗才累計（5 次封 15 分鐘）
         throttle_hit('OTP_DEVICE_REQ_FAIL', 'IP_EMAIL', $email, 900, 5, 15);
         throttle_hit('OTP_DEVICE_REQ_FAIL', 'IP', null, 900, 5, 15);
 
@@ -118,9 +119,13 @@ try {
 } catch (Throwable $e) {
     if ($pdo->inTransaction()) $pdo->rollBack();
 
+    // ✅ fail-only：例外也要累計（規格寫明「寄信失敗/例外」）
+    throttle_hit('OTP_DEVICE_REQ_FAIL', 'IP_EMAIL', $email, 900, 5, 15);
+    throttle_hit('OTP_DEVICE_REQ_FAIL', 'IP', null, 900, 5, 15);
+
     auth_event(
         'DEVICE_OTP_FAIL',
-        (int)$user['id'],
+        (int)($user['id'] ?? 0),
         $email ?: null,
         'exception: ' . $e->getMessage()
     );

@@ -5,7 +5,6 @@
  *
  * E2 正確行為：
  * - 登出只清 Session（PHPSESSID）
- * - 不清 device_id（device_id 是裝置識別，用於 Trusted Device）
  */
 
 declare(strict_types=1);

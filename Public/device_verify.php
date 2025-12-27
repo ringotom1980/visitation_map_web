@@ -35,7 +35,8 @@ if (isset($_GET['return'])) {
 <?php require __DIR__ . '/partials/head.php'; ?>
 <body class="login-body">
 
-  <div class="login-shell">
+  <!-- ✅ 用 data-return-to 提供給外掛 JS（不再 inline script） -->
+  <div class="login-shell" data-return-to="<?= htmlspecialchars($returnTo, ENT_QUOTES, 'UTF-8') ?>">
 
     <header class="login-brand">
       <div class="brand-logo-wrap">
@@ -85,10 +86,6 @@ if (isset($_GET['return'])) {
     </footer>
 
   </div>
-
-  <script>
-    window.__DV_RETURN_TO__ = <?= json_encode($returnTo, JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE) ?>;
-  </script>
 
   <script src="<?= asset_url('assets/js/api.js') ?>"></script>
   <script src="<?= asset_url('assets/js/device_verify.js') ?>"></script>

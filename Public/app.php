@@ -1,5 +1,4 @@
 <?php
-
 /**
  * Path: Public/app.php
  * 說明: 主地圖頁（S1 瀏覽 / S2 路線規劃 / S3 路線完成）
@@ -15,18 +14,16 @@ require_login_page();
 
 // ================================
 // E2：Trusted Device Gate（防止按上一頁繞過 DEVICE OTP）
-// - 任何進入 app.php 都必須檢查：user + device_id 是否 TRUSTED
+// 定版：不再使用 device_id，一律改用 device_fingerprint（UA sha256）
+// - 任何進入 app.php 都必須檢查：user + device_fingerprint 是否 TRUSTED
 // - 同時用 no-store 避免瀏覽器回上一頁用快取直接顯示 app
 // ================================
 header('Cache-Control: no-store, no-cache, must-revalidate, max-age=0');
 header('Pragma: no-cache');
 header('Expires: 0');
 
-// 確保 db() 可用
-// if (!function_exists('db')) {
-//   require_once __DIR__ . '/api/common/bootstrap.php';
-// }
 require_once __DIR__ . '/../config/db.php';
+
 // 取得登入使用者
 $user = current_user();
 $uid  = (int)($user['id'] ?? 0);
@@ -38,26 +35,26 @@ if ($uid <= 0) {
 // device_verify 入口
 $deviceVerifyUrl = '/device-verify?return=' . rawurlencode('/app');
 
-// 取得 device_id（由 device_otp_verify.php 成功後 setcookie）
-$deviceId = $_COOKIE['device_id'] ?? '';
-if ($deviceId === '') {
-  header('Location: ' . $deviceVerifyUrl);
-  exit;
-}
+/**
+ * 定版：計算 device_fingerprint（必須與 login.php、device_otp_verify.php 一致）
+ * - 目前規格：UA sha256
+ */
+$ua = (string)($_SERVER['HTTP_USER_AGENT'] ?? '');
+$fingerprint = hash('sha256', $ua);
 
-// DB 檢查：trusted_devices 必須是 TRUSTED
+// DB 檢查：trusted_devices 必須是 TRUSTED（以 user_id + device_fingerprint）
 $pdo = db();
 $stmt = $pdo->prepare("
   SELECT 1
   FROM trusted_devices
   WHERE user_id = :uid
-    AND device_id = :did
+    AND device_fingerprint = :fp
     AND status = 'TRUSTED'
   LIMIT 1
 ");
 $stmt->execute([
   ':uid' => $uid,
-  ':did' => $deviceId,
+  ':fp'  => $fingerprint,
 ]);
 
 if (!$stmt->fetchColumn()) {
