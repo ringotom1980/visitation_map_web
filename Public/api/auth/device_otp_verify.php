@@ -2,13 +2,20 @@
 /**
  * Path: Public/api/auth/device_otp_verify.php
  * 說明: 驗證 DEVICE OTP（登入前流程，定版）
+ *
+ * 規則：
+ * - OTP 階段禁止 require_login（尚未正式登入）
+ * - 唯一身分來源：$_SESSION['device_otp_email']
+ * - 成功後：
+ *   1) 標記 otp_tokens.verified_at
+ *   2) upsert trusted_devices (user_id + device_fingerprint)
+ *   3) 建立正式登入 session（user_id/role/org_id）
+ *   4) 清掉 device_otp_email
  */
 
 declare(strict_types=1);
 
 require_once __DIR__ . '/../common/bootstrap.php';
-
-// ❌ OTP 階段禁止 require_login
 
 // ===== 讀取輸入 =====
 $input = $_POST;
@@ -29,9 +36,9 @@ if (!preg_match('/^\d{6}$/', $code)) {
     json_error('驗證碼格式不正確（需為 6 位數字）', 400);
 }
 
-// ===== 關鍵：唯一身分來源（不可替代）=====
+// ===== 唯一身分來源 =====
 $email = $_SESSION['device_otp_email'] ?? null;
-if (!$email || !filter_var($email, FILTER_VALIDATE_EMAIL)) {
+if (!$email || !is_string($email) || !filter_var($email, FILTER_VALIDATE_EMAIL)) {
     json_error('驗證狀態已失效，請重新登入', 401);
 }
 
@@ -51,14 +58,16 @@ try {
     throttle_assert_not_blocked('OTP_DEVICE_VERIFY_FAIL', 'IP_EMAIL', $email);
     throttle_assert_not_blocked('OTP_DEVICE_VERIFY_FAIL', 'IP', null);
 
-    // ===== 只找「這個 email」的 OTP =====
+    // ===== 找「這個 email」最新未驗證 DEVICE OTP + 同時取 user 資訊 =====
     $stmt = $pdo->prepare("
         SELECT
-            t.id,
+            t.id         AS otp_id,
             t.code_hash,
             t.expires_at,
             t.fail_count,
-            u.id AS user_id
+            u.id         AS user_id,
+            u.role       AS user_role,
+            u.organization_id AS org_id
         FROM otp_tokens t
         JOIN users u ON u.email = t.email
         WHERE t.purpose = 'DEVICE'
@@ -74,9 +83,15 @@ try {
         json_error('驗證狀態已失效，請重新登入', 401);
     }
 
-    $otpId     = (int)$row['id'];
+    $otpId     = (int)$row['otp_id'];
     $uid       = (int)$row['user_id'];
+    $role      = (string)($row['user_role'] ?? '');
+    $orgId     = (int)($row['org_id'] ?? 0);
     $failCount = (int)$row['fail_count'];
+
+    if ($uid <= 0) {
+        json_error('驗證狀態已失效，請重新登入', 401);
+    }
 
     if ($failCount >= 5) {
         json_error('驗證碼錯誤次數過多，請重新申請驗證碼', 429);
@@ -103,11 +118,14 @@ try {
         json_error('驗證碼錯誤', 400);
     }
 
-    // ===== 標記 OTP 已驗證 =====
+    // ===== 重要：用交易保證「OTP標記 + trusted_devices + 建 session」一致 =====
+    $pdo->beginTransaction();
+
+    // 1) 標記 OTP 已驗證
     $pdo->prepare("UPDATE otp_tokens SET verified_at = NOW() WHERE id = :id")
         ->execute([':id' => $otpId]);
 
-    // ===== 寫入 trusted_devices =====
+    // 2) upsert trusted_devices
     $fingerprint = compute_device_fingerprint();
     $ua = (string)($_SERVER['HTTP_USER_AGENT'] ?? '');
 
@@ -132,13 +150,26 @@ try {
         ':ua2' => $ua !== '' ? mb_substr($ua, 0, 255, 'UTF-8') : null,
     ]);
 
-    // 清掉 OTP session（一次性）
+    $pdo->commit();
+
+    // 3) ✅ 建立正式登入 session（這一步才會終止你現在的 loop）
+    session_regenerate_id(true);
+    $_SESSION['user_id'] = $uid;
+    $_SESSION['role']    = $role;
+    $_SESSION['org_id']  = $orgId;
+
+    // 4) 清掉 OTP pending
     unset($_SESSION['device_otp_email']);
 
     auth_event('OTP_VERIFY_OK', $uid, $email, 'DEVICE');
-    json_success(['trusted' => true]);
+    json_success([
+        'trusted'  => true,
+        'redirect' => (strtoupper($role) === 'ADMIN') ? route_url('admin') : route_url('app'),
+    ]);
 
 } catch (Throwable $e) {
+    if ($pdo->inTransaction()) $pdo->rollBack();
+
     auth_event('OTP_VERIFY_FAIL', null, $email, 'DEVICE exception: ' . $e->getMessage());
     json_error('系統忙碌中，請稍後再試。', 500);
 }

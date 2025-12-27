@@ -101,9 +101,22 @@ function current_user(): ?array
  */
 function require_login_page(): void
 {
+    // ✅ 若還在 OTP pending（未正式登入）→ 一律去 device-verify
+    if (!current_user_id() && !empty($_SESSION['device_otp_email'])) {
+        $return = rawurlencode($_SERVER['REQUEST_URI'] ?? '/app');
+        header('Location: ' . route_url('device-verify') . '?return=' . $return);
+        exit;
+    }
+
+    // 未登入 → 回登入頁
     if (!current_user_id()) {
         header('Location: ' . route_url('login'));
         exit;
+    }
+
+    // ✅ 已登入就順便清掉殘留的 pending（避免被其他舊邏輯誤判）
+    if (isset($_SESSION['device_otp_email'])) {
+        unset($_SESSION['device_otp_email']);
     }
 }
 

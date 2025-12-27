@@ -139,15 +139,20 @@
       setMsg('驗證中…', 'info');
 
       // ✅ 不再送 device_id（後端改用 UA fingerprint）
-      await apiRequest('auth/device_otp_verify', 'POST', { code: code });
+      var j = await apiRequest('auth/device_otp_verify', 'POST', { code: code });
+      var data = (j && j.data) ? j.data : null;
 
       verified = true;
       lockBack = false;
 
       setMsg('驗證成功，正在進入系統…', 'success');
 
+      // ✅ 後端會回 data.redirect（admin/app），沒有才用 returnTo
+      var target = (data && data.redirect) ? data.redirect : returnTo;
+
       // 用 replace 避免返回 device_verify
-      window.location.replace(returnTo);
+      window.location.replace(target);
+
     } catch (err) {
       setMsg(normalizeErr(err, '驗證失敗'), 'error');
       if (inputCode) inputCode.focus();
@@ -163,7 +168,7 @@
 
   if (inputCode) {
     // 自動聚焦
-    setTimeout(function () { try { inputCode.focus(); } catch (e) {} }, 50);
+    setTimeout(function () { try { inputCode.focus(); } catch (e) { } }, 50);
 
     // 只允許數字 + 最多 6 碼
     inputCode.addEventListener('input', sanitizeCodeInput);
