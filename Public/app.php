@@ -9,13 +9,7 @@ declare(strict_types=1);
 require_once __DIR__ . '/../config/app.php';
 require_once __DIR__ . '/../config/auth.php';
 
-// A2/A3：主頁必須登入
 require_login_page();
-if (($_SESSION['auth_stage'] ?? '') !== 'AUTHENTICATED') {
-  header('Location: ' . route_url('device-verify') . '?return=' . rawurlencode('/app'));
-  exit;
-}
-
 // ================================
 // E2：Auth Stage Gate（以 session auth_stage 為準）
 // 定版：不再使用 device_id，一律改用 device_fingerprint（UA sha256）
@@ -45,6 +39,35 @@ $deviceVerifyUrl = '/device-verify?return=' . rawurlencode('/app');
  */
 $ua = (string)($_SERVER['HTTP_USER_AGENT'] ?? '');
 $fingerprint = hash('sha256', $ua);
+// ✅ E2 Gate：user + fingerprint 必須 TRUSTED，否則一律導去 device-verify
+try {
+  $pdo = db();
+
+  $stmt = $pdo->prepare("
+    SELECT 1
+    FROM trusted_devices
+    WHERE user_id = :uid
+      AND device_fingerprint = :fp
+      AND status = 'TRUSTED'
+    LIMIT 1
+  ");
+  $stmt->execute([
+    ':uid' => $uid,
+    ':fp'  => $fingerprint,
+  ]);
+
+  $isTrusted = (bool)$stmt->fetchColumn();
+} catch (Throwable $e) {
+  $isTrusted = false; // DB 失敗保守不放行
+}
+
+if (!$isTrusted) {
+  // 讓 device_otp_request.php 用 session 當唯一身分來源
+  $_SESSION['device_otp_email'] = (string)($user['email'] ?? '');
+
+  header('Location: ' . $deviceVerifyUrl);
+  exit;
+}
 
 $pageTitle = APP_NAME;
 $pageCss = [

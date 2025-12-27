@@ -1,4 +1,5 @@
 <?php
+
 /**
  * Path: Public/api/auth/device_otp_verify.php
  * 說明: 驗證 DEVICE OTP（登入前流程，定版）
@@ -16,6 +17,9 @@
 declare(strict_types=1);
 
 require_once __DIR__ . '/../common/bootstrap.php';
+if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
+    json_error('Method not allowed', 405);
+}
 
 // ===== 讀取輸入 =====
 $input = $_POST;
@@ -166,9 +170,10 @@ try {
         'trusted'  => true,
         'redirect' => (strtoupper($role) === 'ADMIN') ? route_url('admin') : route_url('app'),
     ]);
-
 } catch (Throwable $e) {
     if ($pdo->inTransaction()) $pdo->rollBack();
+    throttle_hit('OTP_DEVICE_VERIFY_FAIL', 'IP_EMAIL', $email, 900, 5, 15);
+    throttle_hit('OTP_DEVICE_VERIFY_FAIL', 'IP', null, 900, 5, 15);
 
     auth_event('OTP_VERIFY_FAIL', null, $email, 'DEVICE exception: ' . $e->getMessage());
     json_error('系統忙碌中，請稍後再試。', 500);

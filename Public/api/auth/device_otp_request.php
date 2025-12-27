@@ -1,12 +1,12 @@
 <?php
-
 /**
  * Path: Public/api/auth/device_otp_request.php
  * 說明: 裝置驗證 - 申請 OTP（寄送 DEVICE）
  * Method: POST /api/auth/device_otp_request
  *
- * 規則（方案A）：
- * - require_login：只能登入後重寄（避免被外部濫用/枚舉）
+ * 定版（登入前重寄）：
+ * - ❌ 不可 require_login（此頁面是 device-verify 的重寄，尚未完成正式登入）
+ * - ✅ 唯一身分來源：$_SESSION['device_otp_email']
  * - request 節流：OTP_DEVICE_REQ（IP_EMAIL + IP）→ 15 分鐘 5 次（超過封 15 分鐘）
  * - fail-only：OTP_DEVICE_REQ_FAIL（只在寄信失敗/例外時 hit；入口先 assert_not_blocked）
  */
@@ -19,13 +19,23 @@ if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
     json_error('Method not allowed', 405);
 }
 
-require_login();
-$user  = current_user();
-$email = trim((string)($user['email'] ?? ''));
+// ✅ OTP 階段：不可 require_login，唯一身分來源用 session
+$email = $_SESSION['device_otp_email'] ?? null;
+if (!$email || !is_string($email) || !filter_var($email, FILTER_VALIDATE_EMAIL)) {
+    auth_event('DEVICE_OTP_FAIL', null, null, 'missing device_otp_email (resend)');
+    json_error('驗證狀態已失效，請重新登入', 401);
+}
 
-if ($email === '' || !filter_var($email, FILTER_VALIDATE_EMAIL)) {
-    auth_event('DEVICE_OTP_FAIL', (int)($user['id'] ?? 0), $email ?: null, 'invalid session email');
-    json_error('尚未登入或使用者資料異常', 401);
+$pdo = db();
+
+// 用 email 反查 user id（for auth_event）
+$stmt = $pdo->prepare("SELECT id FROM users WHERE email = :email LIMIT 1");
+$stmt->execute([':email' => $email]);
+$u = $stmt->fetch();
+$uid = $u ? (int)$u['id'] : 0;
+if ($uid <= 0) {
+    auth_event('DEVICE_OTP_FAIL', null, $email, 'user not found (resend)');
+    json_error('驗證狀態已失效，請重新登入', 401);
 }
 
 // fail-only：入口先擋已封鎖者（不累計）
@@ -68,8 +78,6 @@ function send_device_otp_mail(string $toEmail, string $otp): bool
     return mail($toEmail, $encodedSubject, $body, implode("\r\n", $headers));
 }
 
-$pdo = db();
-
 try {
     $pdo->beginTransaction();
 
@@ -109,13 +117,16 @@ try {
         throttle_hit('OTP_DEVICE_REQ_FAIL', 'IP_EMAIL', $email, 900, 5, 15);
         throttle_hit('OTP_DEVICE_REQ_FAIL', 'IP', null, 900, 5, 15);
 
-        auth_event('DEVICE_OTP_FAIL', (int)$user['id'], $email, 'mail send failed');
+        auth_event('DEVICE_OTP_FAIL', $uid, $email, 'mail send failed');
         json_error('寄送驗證碼失敗，請稍後再試', 500);
     }
 
     $pdo->commit();
+
+    // ✅ 維持 device_otp_email（仍在 OTP 流程中）
     $_SESSION['device_otp_email'] = $email;
-    auth_event('DEVICE_OTP_SENT', (int)$user['id'], $email, 'otp sent');
+
+    auth_event('DEVICE_OTP_SENT', $uid, $email, 'otp resent');
     json_success(['message' => '驗證碼已寄送（10 分鐘內有效）']);
 } catch (Throwable $e) {
     if ($pdo->inTransaction()) $pdo->rollBack();
@@ -124,12 +135,6 @@ try {
     throttle_hit('OTP_DEVICE_REQ_FAIL', 'IP_EMAIL', $email, 900, 5, 15);
     throttle_hit('OTP_DEVICE_REQ_FAIL', 'IP', null, 900, 5, 15);
 
-    auth_event(
-        'DEVICE_OTP_FAIL',
-        (int)($user['id'] ?? 0),
-        $email ?: null,
-        'exception: ' . $e->getMessage()
-    );
-
+    auth_event('DEVICE_OTP_FAIL', $uid > 0 ? $uid : null, $email ?: null, 'exception: ' . $e->getMessage());
     json_error('系統忙碌中，請稍後再試。', 500);
 }

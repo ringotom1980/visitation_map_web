@@ -220,9 +220,11 @@ try {
 
         auth_event('LOGIN_OK_NEED_DEVICE_VERIFY', (int)$user['id'], (string)$user['email'], 'need device verify');
 
+        $return = ((string)$user['role'] === 'ADMIN') ? '/admin' : '/app';
+
         json_success([
             'need_device_verify' => true,
-            'redirect'           => route_url('device-verify') . '?return=%2Fapp',
+            'redirect'           => route_url('device-verify') . '?return=' . rawurlencode($return),
         ]);
     }
 
