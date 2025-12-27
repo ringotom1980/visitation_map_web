@@ -728,12 +728,27 @@ document.addEventListener('DOMContentLoaded', function () {
     });
   }
 
-  if (btnMyLocation) {
   btnMyLocation.addEventListener('click', function () {
-    // ✅ 使用者主動 → panTo = true → strict = false
+
+    if (isDesktop()) {
+      // 🖥️ 桌機：永遠用 fallback
+      if (state.fallbackCenter) {
+        MapModule.showMyLocation(
+          state.fallbackCenter.lat,
+          state.fallbackCenter.lng
+        );
+        MapModule.panToLatLng(
+          state.fallbackCenter.lat,
+          state.fallbackCenter.lng,
+          16
+        );
+      }
+      return;
+    }
+
+    // 📱 手機：主動請求 GPS（失敗會自動 fallback）
     requestMyLocation(true);
   });
-}
 
   if (btnRouteMode) {
     btnRouteMode.addEventListener('click', function () {
