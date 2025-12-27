@@ -145,7 +145,7 @@ try {
         ':ip_upd' => $_SERVER['REMOTE_ADDR'] ?? null,
         ':ua_upd' => $ua !== '' ? mb_substr($ua, 0, 255, 'UTF-8') : null,
     ]);
-    $_SESSION['auth_stage'] = 'AUTHENTICATED';
+
     auth_event('OTP_VERIFY_OK', (int)$user['id'], $email, 'DEVICE');
     json_success(['trusted' => true]);
 } catch (Throwable $e) {
