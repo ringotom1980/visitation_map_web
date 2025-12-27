@@ -211,7 +211,18 @@ try {
         // 不阻斷登入
     }
 
-    // 設定 Session（你原本的策略：先建立 session，讓 device_verify 可以 require_login）
+    if (!$isTrusted) {
+        send_device_otp_for_login($pdo, (int)$user['id'], (string)$user['email']);
+
+        auth_event('LOGIN_OK_NEED_DEVICE_VERIFY', (int)$user['id'], (string)$user['email'], 'need device verify');
+
+        json_success([
+            'need_device_verify' => true,
+            'redirect'           => route_url('device-verify'),
+        ]);
+    }
+
+    // ✅ 只有 TRUSTED 才真正登入
     session_regenerate_id(true);
     $_SESSION['user_id'] = (int)$user['id'];
     $_SESSION['role']    = (string)$user['role'];
