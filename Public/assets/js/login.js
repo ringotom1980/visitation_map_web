@@ -7,10 +7,10 @@
  */
 
 document.addEventListener('DOMContentLoaded', () => {
-  const form = document.getElementById('loginForm');
-  const msgEl = document.getElementById('loginMessage');
-  const emailEl = document.getElementById('email');
-  const rememberEl = document.getElementById('rememberEmail');
+  const form = document.querySelector('form');
+  const msgEl = document.querySelector('#loginMessage, .login-message');
+  const emailEl = document.querySelector('input[name="email"], input[type="email"]');
+  const rememberEl = document.querySelector('input[name="remember"], input[type="checkbox"]');
 
   if (!form) return;
 
@@ -23,16 +23,14 @@ document.addEventListener('DOMContentLoaded', () => {
     if (cls) msgEl.classList.add(cls);
   };
 
-  // ✅ 初始化：若有記住的帳號 → 自動回填 + 勾選
+  // 初始化：回填帳號
   try {
     const remembered = localStorage.getItem(STORAGE_KEY);
     if (remembered && emailEl) {
       emailEl.value = remembered;
       if (rememberEl) rememberEl.checked = true;
     }
-  } catch (e) {
-    // ignore
-  }
+  } catch (e) {}
 
   function persistRememberedEmail(email) {
     try {
@@ -41,9 +39,7 @@ document.addEventListener('DOMContentLoaded', () => {
       } else {
         localStorage.removeItem(STORAGE_KEY);
       }
-    } catch (e) {
-      // ignore
-    }
+    } catch (e) {}
   }
 
   form.addEventListener('submit', async (e) => {
@@ -51,7 +47,7 @@ document.addEventListener('DOMContentLoaded', () => {
     setMsg('', null);
 
     const email = (emailEl?.value || '').trim();
-    const password = (document.getElementById('password')?.value || '');
+    const password = (document.querySelector('input[type="password"]')?.value || '');
 
     if (!email || !password) {
       setMsg('請輸入帳號與密碼', 'error');
@@ -60,32 +56,20 @@ document.addEventListener('DOMContentLoaded', () => {
 
     try {
       const json = await apiRequest('auth/login', 'POST', { email, password });
-      const data = json && json.data ? json.data : null;
+      const data = json?.data || null;
 
-      // ✅ 只要登入成功（含需要裝置驗證）就寫入/清除記住帳號
       persistRememberedEmail(email);
 
-      // ✅ 若需要裝置驗證 → 直接導向 device-verify（不要進 app/admin）
-      if (data && data.need_device_verify) {
-        const target = data.redirect || '/device-verify';
-        setMsg('需要裝置驗證，跳轉中…', 'success');
-        window.location.replace(target);
+      if (data?.need_device_verify) {
+        window.location.replace(data.redirect || '/device-verify');
         return;
       }
 
-      setMsg('登入成功，跳轉中…', 'success');
-
-      let target = (data && data.redirect) ? data.redirect : '';
-      if (!target) {
-        const role = data && data.role ? data.role : '';
-        target = (role === 'ADMIN') ? '/admin' : '/app';
-      }
-
+      let target = data?.redirect || (data?.role === 'ADMIN' ? '/admin' : '/app');
       window.location.replace(target);
 
     } catch (err) {
-      // 登入失敗：不改記住帳號（避免輸錯密碼就把舊記住的覆蓋掉）
-      setMsg((err && err.message) ? err.message : '登入失敗', 'error');
+      setMsg(err?.message || '登入失敗', 'error');
     }
   });
 });
