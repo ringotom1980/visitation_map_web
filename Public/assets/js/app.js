@@ -730,7 +730,9 @@ document.addEventListener('DOMContentLoaded', function () {
 
   btnMyLocation.addEventListener('click', function () {
 
-    if (isDesktop()) {
+    var isDesktopEnv = !('ontouchstart' in window) && !navigator.maxTouchPoints;
+
+    if (isDesktopEnv) {
       // 🖥️ 桌機：永遠用 fallback
       if (state.fallbackCenter) {
         MapModule.showMyLocation(
@@ -746,7 +748,7 @@ document.addEventListener('DOMContentLoaded', function () {
       return;
     }
 
-    // 📱 手機：主動請求 GPS（失敗會自動 fallback）
+    // 📱 手機
     requestMyLocation(true);
   });
 
