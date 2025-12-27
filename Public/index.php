@@ -14,7 +14,11 @@ if (current_user_id()) {
 }
 
 $pageTitle = APP_NAME . ' - 登入';
-$pageCss   = ['assets/css/login.css'];
+$pageCss   = [
+  'assets/css/login.css',
+  'assets/css/remember_login.css', // ✅ 新增：記住帳號樣式（外掛）
+];
+
 $loginInfoMessage = '';
 if (isset($_GET['applied']) && $_GET['applied'] === '1') {
   $loginInfoMessage = '已送出帳號申請，待管理者審核通過後即可登入';
@@ -68,7 +72,16 @@ if (isset($_GET['applied']) && $_GET['applied'] === '1') {
             placeholder="請輸入密碼">
         </label>
 
+        <!-- ✅ 記住帳號（只存 email 字串，不存密碼） -->
+        <div class="remember-row">
+          <label class="remember-check">
+            <input type="checkbox" id="rememberEmail" />
+            <span>記住帳號</span>
+          </label>
+        </div>
+
         <button type="submit" class="btn-primary btn-block">登入</button>
+
         <p class="login-extra">
           還沒有帳號？
           <a href="<?= route_url('register') ?>">申請帳號</a>
@@ -85,6 +98,7 @@ if (isset($_GET['applied']) && $_GET['applied'] === '1') {
         </p>
 
       </form>
+
       <p class="login-extra small">
         帳號有問題無法登入，請聯絡苗栗縣後備指揮部留守科協助
       </p>
@@ -96,6 +110,7 @@ if (isset($_GET['applied']) && $_GET['applied'] === '1') {
     </footer>
 
   </div>
+
   <!-- applied=1 模式B：顯示一次後清掉網址參數 -->
   <script>
     document.addEventListener('DOMContentLoaded', () => {
@@ -113,7 +128,6 @@ if (isset($_GET['applied']) && $_GET['applied'] === '1') {
     });
   </script>
 
-  <!-- 共用 JS + 此頁專屬 JS 都寫在這裡，不再透過 footer.php -->
   <script src="<?= asset_url('assets/js/api.js') ?>"></script>
   <script src="<?= asset_url('assets/js/login.js') ?>"></script>
 
