@@ -4,16 +4,10 @@
  * Path: Public/api/auth/login.php
  * 說明: 使用者登入 API（POST /api/auth/login）
  *
- * 節流策略（方案A / fail-only）：
- * - 入口先擋封鎖（不累計）：throttle_assert_not_blocked(LOGIN_FAIL, IP_EMAIL / IP)
- * - 只在失敗時累計：throttle_hit(LOGIN_FAIL, IP_EMAIL / IP)
- *
- * 裝置驗證（E2 DEVICE OTP / 定版：以 device_fingerprint 判斷環境）：
- * - 登入成功後，計算 device_fingerprint（ua hash）
- * - 若 trusted_devices(user_id + device_fingerprint) 不存在或非 TRUSTED：
- *   1) 送 DEVICE OTP
- *   2) 回傳 need_device_verify=true + redirect=/device-verify
- * - 若已 TRUSTED：直接登入成功
+ * 方案 B（根修）：
+ * - 若需要 DEVICE OTP：不建立正式 session（不寫 user_id）
+ * - 改寫入 preauth（暫存 uid/email/role/org/return_to）
+ * - OTP 驗證成功後才建立正式 session
  */
 
 declare(strict_types=1);
@@ -24,7 +18,6 @@ if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
     json_error('Method not allowed', 405);
 }
 
-// 支援 JSON 或 form-data
 $input = $_POST;
 if (empty($input)) {
     $raw = file_get_contents('php://input');
@@ -47,39 +40,26 @@ if (!filter_var($email, FILTER_VALIDATE_EMAIL)) {
     json_error('Email 格式不正確', 400);
 }
 
-/**
- * 入口先擋封鎖（不累計）
- * - IP_EMAIL：防同一帳號被暴力嘗試
- * - IP：防換 email 洗 requests
- */
 throttle_assert_not_blocked('LOGIN_FAIL', 'IP_EMAIL', $email);
 throttle_assert_not_blocked('LOGIN_FAIL', 'IP', null);
 
 $pdo = db();
 
-/**
- * 共用：計算 device_fingerprint（定版：以 UA 為主）
- * - 回傳 64 hex（sha256）
- */
 function compute_device_fingerprint(): string
 {
     $ua = (string)($_SERVER['HTTP_USER_AGENT'] ?? '');
-    // 這裡刻意保持簡單與穩定：同瀏覽器環境通常一致；換瀏覽器/UA 會改變
     return hash('sha256', $ua);
 }
 
 /**
  * 共用：送 DEVICE OTP（登入流程用）
- * - request 節流：OTP_DEVICE_REQ（IP_EMAIL + IP）→ 15 分鐘 5 次（超過封 15 分鐘）
- * - fail-only：OTP_DEVICE_REQ_FAIL（只在寄信失敗/例外時 hit；入口先 assert_not_blocked）
+ * 這段保留你原本邏輯（只挪到方案 B）
  */
 function send_device_otp_for_login(PDO $pdo, int $uid, string $email): void
 {
-    // fail-only：入口先擋已封鎖者（不累計）
     throttle_assert_not_blocked('OTP_DEVICE_REQ_FAIL', 'IP_EMAIL', $email);
     throttle_assert_not_blocked('OTP_DEVICE_REQ_FAIL', 'IP', null);
 
-    // request 節流：寄信本身要計數（15 分鐘 5 次，超過封 15 分鐘）
     throttle_check('OTP_DEVICE_REQ', 'IP_EMAIL', $email, 900, 5, 15);
     throttle_check('OTP_DEVICE_REQ', 'IP', null, 900, 5, 15);
 
@@ -116,14 +96,12 @@ function send_device_otp_for_login(PDO $pdo, int $uid, string $email): void
     try {
         $pdo->beginTransaction();
 
-        // 清除舊 DEVICE OTP（未驗證）
         $stmt = $pdo->prepare("
             DELETE FROM otp_tokens
             WHERE purpose='DEVICE' AND email=:email AND verified_at IS NULL
         ");
         $stmt->execute([':email' => $email]);
 
-        // 建立新 OTP
         $otp     = $gen_otp_6();
         $otpHash = password_hash($otp, PASSWORD_DEFAULT);
 
@@ -139,7 +117,7 @@ function send_device_otp_for_login(PDO $pdo, int $uid, string $email): void
         $stmt->execute([
             ':email' => $email,
             ':hash'  => $otpHash,
-            ':ttl'   => $otpTtlMin,
+            ':ttl'   => 10,
             ':ip'    => $ip,
             ':ua'    => $ua ? mb_substr($ua, 0, 255, 'UTF-8') : null,
         ]);
@@ -148,7 +126,6 @@ function send_device_otp_for_login(PDO $pdo, int $uid, string $email): void
         if (!$ok) {
             $pdo->rollBack();
 
-            // fail-only：寄信失敗才累計（5 次封 15 分鐘）
             throttle_hit('OTP_DEVICE_REQ_FAIL', 'IP_EMAIL', $email, 900, 5, 15);
             throttle_hit('OTP_DEVICE_REQ_FAIL', 'IP', null, 900, 5, 15);
 
@@ -163,7 +140,6 @@ function send_device_otp_for_login(PDO $pdo, int $uid, string $email): void
     } catch (Throwable $e) {
         if ($pdo->inTransaction()) $pdo->rollBack();
 
-        // fail-only：例外也算異常（5 次封 15 分鐘）
         throttle_hit('OTP_DEVICE_REQ_FAIL', 'IP_EMAIL', $email, 900, 5, 15);
         throttle_hit('OTP_DEVICE_REQ_FAIL', 'IP', null, 900, 5, 15);
 
@@ -203,24 +179,14 @@ try {
         json_error('帳號或密碼錯誤', 400);
     }
 
-    // ✅ 更新最後登入時間（稽核必要）
+    // 更新最後登入時間（稽核必要）
     try {
         $stmt = $pdo->prepare("UPDATE users SET last_login_at = NOW(), updated_at = NOW() WHERE id = :id");
         $stmt->execute([':id' => (int)$user['id']]);
-    } catch (Throwable $e) {
-        // 不阻斷登入
-    }
+    } catch (Throwable $e) {}
 
-    // 設定 Session（你原本的策略：先建立 session，讓 device_verify 可以 require_login）
-    session_regenerate_id(true);
-    $_SESSION['user_id'] = (int)$user['id'];
-    $_SESSION['role']    = (string)$user['role'];
-    $_SESSION['org_id']  = (int)$user['organization_id'];
-
-    // ✅ 定版：以 device_fingerprint 判斷 trusted
     $fingerprint = compute_device_fingerprint();
 
-    // 查是否已信任（以 uq_user_fp：user_id + device_fingerprint）
     $stmt = $pdo->prepare("
         SELECT id
         FROM trusted_devices
@@ -235,28 +201,44 @@ try {
     ]);
     $isTrusted = (bool)$stmt->fetch();
 
+    // 你原本的 redirect 規則（ADMIN → /admin，其它 → /app）
+    $finalRedirect = ((string)$user['role'] === 'ADMIN') ? route_url('admin') : route_url('app');
+
     if (!$isTrusted) {
-        // 未信任：先送 OTP，再導去 /device-verify
+        // ===== 方案 B：不建立正式 session，只建立 preauth =====
+        session_regenerate_id(true);
+
+        // 清掉任何舊的正式登入痕跡（保險）
+        unset($_SESSION['user_id'], $_SESSION['role'], $_SESSION['org_id']);
+
+        $_SESSION['preauth'] = [
+            'uid' => (int)$user['id'],
+            'email' => (string)$user['email'],
+            'role' => (string)$user['role'],
+            'org_id' => (int)$user['organization_id'],
+            'return_to' => $finalRedirect,
+            'created_at' => time(),
+        ];
+
+        // 送 OTP
         send_device_otp_for_login($pdo, (int)$user['id'], (string)$user['email']);
 
-        auth_event('LOGIN_OK_NEED_DEVICE_VERIFY', (int)$user['id'], (string)$user['email'], 'need device verify');
+        auth_event('LOGIN_OK_NEED_DEVICE_VERIFY', (int)$user['id'], (string)$user['email'], 'need device verify (preauth)');
 
         json_success([
-            'id'                 => (int)$user['id'],
-            'name'               => (string)$user['name'],
-            'email'              => (string)$user['email'],
-            'role'               => (string)$user['role'],
-            'organization_id'    => (int)$user['organization_id'],
             'need_device_verify' => true,
-            'redirect'           => route_url('device-verify'),
+            'redirect'           => route_url('device-verify') . '?return=' . rawurlencode($finalRedirect),
         ]);
     }
 
-    auth_event('LOGIN_OK', (int)$user['id'], (string)$user['email'], 'ok');
+    // ===== 已 TRUSTED：才建立正式 session =====
+    session_regenerate_id(true);
+    unset($_SESSION['preauth']); // 重要：避免殘留
+    $_SESSION['user_id'] = (int)$user['id'];
+    $_SESSION['role']    = (string)$user['role'];
+    $_SESSION['org_id']  = (int)$user['organization_id'];
 
-    $redirect = ((string)$user['role'] === 'ADMIN')
-        ? route_url('admin')
-        : route_url('app');
+    auth_event('LOGIN_OK', (int)$user['id'], (string)$user['email'], 'ok');
 
     json_success([
         'id'              => (int)$user['id'],
@@ -264,7 +246,7 @@ try {
         'email'           => (string)$user['email'],
         'role'            => (string)$user['role'],
         'organization_id' => (int)$user['organization_id'],
-        'redirect'        => $redirect,
+        'redirect'        => $finalRedirect,
     ]);
 } catch (Throwable $e) {
     throttle_hit('LOGIN_FAIL', 'IP_EMAIL', $email, 900, 5, 15);

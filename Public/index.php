@@ -110,27 +110,9 @@ if (isset($_GET['applied']) && $_GET['applied'] === '1') {
     </footer>
 
   </div>
-
-  <!-- applied=1 模式B：顯示一次後清掉網址參數 -->
-  <script>
-    document.addEventListener('DOMContentLoaded', () => {
-      // 只有登入頁才執行（避免誤觸其他頁面）
-      if (!document.body.classList.contains('login-body')) return;
-
-      const url = new URL(window.location.href);
-
-      // 有 applied=1 → 顯示一次後把 URL 參數清除
-      if (url.searchParams.has('applied')) {
-        // 不重新整理，只改網址列
-        url.searchParams.delete('applied');
-        window.history.replaceState({}, '', url.pathname);
-      }
-    });
-  </script>
-
   <script src="<?= asset_url('assets/js/api.js') ?>"></script>
+  <script src="<?= asset_url('assets/js/login_page.js') ?>"></script>
   <script src="<?= asset_url('assets/js/login.js') ?>"></script>
-
 </body>
 
 </html>

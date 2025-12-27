@@ -1,91 +1,99 @@
-/**
- * Path: Public/assets/js/login.js
- * 說明: 登入頁表單送出行為（配合 api.js 回傳整包 JSON）
- * 定版：
- * - 不再送 device_id；登入回 need_device_verify 時導向 /device-verify
- * - ✅ 記住帳號：localStorage key = remembered_login（只存 email，不存密碼）
- */
+// Path: Public/assets/js/login.js
+// 說明: 登入頁控制器
+// - 使用 apiRequest()（回傳整包 JSON：{success, data, error}）
+// - 記住帳號：localStorage key=remembered_login（只存 email）
+// - 登入成功：若 need_device_verify=true → 導到 /device-verify
+//            否則導到 data.redirect（/app 或 /admin）
 
-document.addEventListener('DOMContentLoaded', () => {
-  const form = document.getElementById('loginForm');
-  const msgEl = document.getElementById('loginMessage');
-  const emailEl = document.getElementById('email');
-  const rememberEl = document.getElementById('rememberEmail');
+(function () {
+  'use strict';
 
-  if (!form) return;
+  var KEY_REMEMBER = 'remembered_login';
 
-  const STORAGE_KEY = 'remembered_login';
+  function $(id) { return document.getElementById(id); }
 
-  const setMsg = (text, cls) => {
-    if (!msgEl) return;
-    msgEl.textContent = text || '';
-    msgEl.classList.remove('error', 'success');
-    if (cls) msgEl.classList.add(cls);
-  };
+  function setMsg(text, isOk) {
+    var el = $('loginMessage');
+    if (!el) return;
+    el.textContent = text || '';
+    el.classList.remove('ok', 'error', 'info');
+    if (!text) return;
+    el.classList.add(isOk ? 'ok' : 'error');
+  }
 
-  // ✅ 初始化：若有記住的帳號 → 自動回填 + 勾選
-  try {
-    const remembered = localStorage.getItem(STORAGE_KEY);
-    if (remembered && emailEl) {
+  function loadRemembered() {
+    var emailEl = $('email');
+    var ck = $('rememberEmail');
+    if (!emailEl || !ck) return;
+
+    var remembered = '';
+    try { remembered = localStorage.getItem(KEY_REMEMBER) || ''; } catch (e) {}
+
+    if (remembered) {
       emailEl.value = remembered;
-      if (rememberEl) rememberEl.checked = true;
-    }
-  } catch (e) {
-    // ignore
-  }
-
-  function persistRememberedEmail(email) {
-    try {
-      if (rememberEl && rememberEl.checked) {
-        localStorage.setItem(STORAGE_KEY, email || '');
-      } else {
-        localStorage.removeItem(STORAGE_KEY);
-      }
-    } catch (e) {
-      // ignore
+      ck.checked = true;
     }
   }
 
-  form.addEventListener('submit', async (e) => {
+  function saveRemembered(email) {
+    try { localStorage.setItem(KEY_REMEMBER, email); } catch (e) {}
+  }
+
+  function clearRemembered() {
+    try { localStorage.removeItem(KEY_REMEMBER); } catch (e) {}
+  }
+
+  async function onSubmit(e) {
     e.preventDefault();
-    setMsg('', null);
 
-    const email = (emailEl?.value || '').trim();
-    const password = (document.getElementById('password')?.value || '');
+    var emailEl = $('email');
+    var pwEl = $('password');
+    var ck = $('rememberEmail');
+
+    var email = (emailEl ? String(emailEl.value || '').trim() : '');
+    var password = (pwEl ? String(pwEl.value || '') : '');
 
     if (!email || !password) {
-      setMsg('請輸入帳號與密碼', 'error');
+      setMsg('請輸入帳號與密碼', false);
       return;
     }
 
+    setMsg('', true);
+
     try {
-      const json = await apiRequest('auth/login', 'POST', { email, password });
-      const data = json && json.data ? json.data : null;
+      var j = await apiRequest('auth/login', 'POST', { email: email, password: password });
+      var data = (j && j.data) ? j.data : null;
 
-      // ✅ 只要登入成功（含需要裝置驗證）就寫入/清除記住帳號
-      persistRememberedEmail(email);
+      // 記住帳號（只存 email）
+      if (ck && ck.checked) saveRemembered(email);
+      else clearRemembered();
 
-      // ✅ 若需要裝置驗證 → 直接導向 device-verify（不要進 app/admin）
-      if (data && data.need_device_verify) {
-        const target = data.redirect || '/device-verify';
-        setMsg('需要裝置驗證，跳轉中…', 'success');
-        window.location.href = target;
+      if (!data) {
+        setMsg('登入回應異常，請稍後再試', false);
         return;
       }
 
-      setMsg('登入成功，跳轉中…', 'success');
-
-      let target = (data && data.redirect) ? data.redirect : '';
-      if (!target) {
-        const role = data && data.role ? data.role : '';
-        target = (role === 'ADMIN') ? '/admin' : '/app';
+      // 需要裝置驗證
+      if (data.need_device_verify) {
+        var to = data.redirect || '/device-verify';
+        window.location.href = to;
+        return;
       }
 
-      window.location.href = target;
+      // 正常登入成功
+      var redirect = data.redirect || '/app';
+      window.location.href = redirect;
 
     } catch (err) {
-      // 登入失敗：不改記住帳號（避免輸錯密碼就把舊記住的覆蓋掉）
-      setMsg((err && err.message) ? err.message : '登入失敗', 'error');
+      setMsg(err && err.message ? err.message : '系統忙碌中，請稍後再試。', false);
     }
+  }
+
+  document.addEventListener('DOMContentLoaded', function () {
+    var form = $('loginForm');
+    if (form) form.addEventListener('submit', onSubmit);
+
+    loadRemembered();
   });
-});
+
+})();
