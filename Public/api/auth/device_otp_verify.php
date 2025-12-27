@@ -2,7 +2,7 @@
 
 /**
  * Path: Public/api/auth/device_otp_verify.php
- * 說明: 驗證 DEVICE OTP，成功後標記 trusted_devices
+ * 說明: 驗證 DEVICE OTP，成功後標記 trusted_devices（以 device_fingerprint 為準）
  *
  * 規則（S1 / fail-only）：
  * - 入口先擋已封鎖：OTP_DEVICE_VERIFY_FAIL（IP + IP_EMAIL）
@@ -28,10 +28,6 @@ if (empty($input)) {
 }
 
 $code = trim((string)($input['code'] ?? ''));
-$clientDeviceId = trim((string)($input['device_id'] ?? ''));
-if ($clientDeviceId !== '' && !preg_match('/^[a-f0-9]{64}$/', $clientDeviceId)) {
-    $clientDeviceId = '';
-}
 
 if ($code === '') {
     json_error('請輸入驗證碼', 400);
@@ -46,6 +42,15 @@ throttle_assert_not_blocked('OTP_DEVICE_VERIFY_FAIL', 'IP_EMAIL', $email);
 throttle_assert_not_blocked('OTP_DEVICE_VERIFY_FAIL', 'IP', null);
 
 $pdo = db();
+
+/**
+ * 共用：計算 device_fingerprint（必須與 login.php 一致）
+ */
+function compute_device_fingerprint(): string
+{
+    $ua = (string)($_SERVER['HTTP_USER_AGENT'] ?? '');
+    return hash('sha256', $ua);
+}
 
 try {
     // 找最新未驗證 DEVICE OTP（不在 SQL 先過濾 expires，避免看不到 fail_count 的狀態）
@@ -108,87 +113,41 @@ try {
     $pdo->prepare("UPDATE otp_tokens SET verified_at=NOW() WHERE id=:id")
         ->execute([':id' => $otpId]);
 
-    // 取得或建立 device_id（cookie）
-    // $deviceId = $_COOKIE['device_id'] ?? '';
-    // if ($deviceId === '') {
-    //     $deviceId = bin2hex(random_bytes(32));
-
-    //     $isHttps = false;
-    //     if (!empty($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off') $isHttps = true;
-    //     if (!empty($_SERVER['HTTP_X_FORWARDED_PROTO']) && strtolower((string)$_SERVER['HTTP_X_FORWARDED_PROTO']) === 'https') $isHttps = true;
-
-    //     setcookie('device_id', $deviceId, [
-    //         'expires'  => time() + 86400 * 365,
-    //         'path'     => '/',
-    //         'secure'   => $isHttps,     // ✅ 不要硬寫 true
-    //         'httponly' => true,
-    //         'samesite' => 'Lax',
-    //     ]);
-    // }
-    $deviceId = (string)($_COOKIE['device_id'] ?? '');
-
-// cookie 有 → 直接用（最可信）
-if ($deviceId !== '' && preg_match('/^[a-f0-9]{64}$/', $deviceId)) {
-    // ok
-} else {
-    // cookie 沒有/不合法 → 退回使用前端 localStorage 送來的 device_id（方案1核心）
-    if ($clientDeviceId === '') {
-        auth_event('DEVICE_VERIFY_FAIL', (int)$user['id'], $email, 'missing device_id cookie and client');
-        json_error('裝置識別資訊遺失，請重新登入以完成裝置驗證', 400);
-    }
-
-    $deviceId = $clientDeviceId;
-
-    // 嘗試補回 cookie（能存就存，不能存也不阻斷）
-    try {
-        $isHttps = false;
-        if (!empty($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off') $isHttps = true;
-        if (!empty($_SERVER['HTTP_X_FORWARDED_PROTO']) && strtolower((string)$_SERVER['HTTP_X_FORWARDED_PROTO']) === 'https') $isHttps = true;
-
-        setcookie('device_id', $deviceId, [
-            'expires'  => time() + 86400 * 365,
-            'path'     => '/',
-            'secure'   => $isHttps,
-            'httponly' => true,
-            'samesite' => 'Lax',
-        ]);
-        $_COOKIE['device_id'] = $deviceId;
-    } catch (Throwable $e) {
-        // ignore
-    }
-}
-
-    // fingerprint（建議至少納入 UA；你要更嚴謹可加 Accept-Language、平台等）
+    // ✅ 定版：以 device_fingerprint 為主（與 login.php 一致）
     $ua = (string)($_SERVER['HTTP_USER_AGENT'] ?? '');
-    $fingerprint = hash('sha256', $ua);
+    $fingerprint = compute_device_fingerprint();
 
-    // upsert trusted_devices
+    // ⚠️ 目前 DB 欄位 device_id 仍為 NOT NULL：
+    // - 我們不再「使用」device_id 做判斷或流程
+    // - 但 INSERT 時仍需填值，這裡用 fingerprint 作為純填充
+    $deviceIdFill = $fingerprint;
+
+    // upsert trusted_devices（以 uq_user_fp：user_id + device_fingerprint）
     $stmt = $pdo->prepare("
-    INSERT INTO trusted_devices
-      (user_id, device_id, device_fingerprint, status, trusted_at, last_seen_at, last_ip, last_ua)
-    VALUES
-      (:uid, :did, :fp, 'TRUSTED', NOW(), NOW(), :ip_ins, :ua_ins)
-    ON DUPLICATE KEY UPDATE
-      status='TRUSTED',
-      trusted_at=IFNULL(trusted_at, NOW()),
-      last_seen_at=NOW(),
-      last_ip=:ip_upd,
-      last_ua=:ua_upd
-");
+        INSERT INTO trusted_devices
+          (user_id, device_id, device_fingerprint, status, trusted_at, last_seen_at, last_ip, last_ua)
+        VALUES
+          (:uid, :did, :fp, 'TRUSTED', NOW(), NOW(), :ip_ins, :ua_ins)
+        ON DUPLICATE KEY UPDATE
+          status='TRUSTED',
+          trusted_at=IFNULL(trusted_at, NOW()),
+          last_seen_at=NOW(),
+          last_ip=:ip_upd,
+          last_ua=:ua_upd
+    ");
     $stmt->execute([
         ':uid'    => (int)$user['id'],
-        ':did'    => $deviceId,
+        ':did'    => $deviceIdFill,
         ':fp'     => $fingerprint,
         ':ip_ins' => $_SERVER['REMOTE_ADDR'] ?? null,
-        ':ua_ins' => $ua,
+        ':ua_ins' => $ua !== '' ? mb_substr($ua, 0, 255, 'UTF-8') : null,
         ':ip_upd' => $_SERVER['REMOTE_ADDR'] ?? null,
-        ':ua_upd' => $ua,
+        ':ua_upd' => $ua !== '' ? mb_substr($ua, 0, 255, 'UTF-8') : null,
     ]);
 
     auth_event('OTP_VERIFY_OK', (int)$user['id'], $email, 'DEVICE');
     json_success(['trusted' => true]);
 } catch (Throwable $e) {
-
     // ❗ catch 內禁止 throttle_hit / throttle_check
     auth_event(
         'OTP_VERIFY_FAIL',

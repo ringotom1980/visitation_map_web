@@ -8,10 +8,12 @@
  * - 入口先擋封鎖（不累計）：throttle_assert_not_blocked(LOGIN_FAIL, IP_EMAIL / IP)
  * - 只在失敗時累計：throttle_hit(LOGIN_FAIL, IP_EMAIL / IP)
  *
- * 裝置驗證（E2 DEVICE OTP / 方案A）：
- * - 登入成功後，若該 device_id 尚未被 trusted_devices 標記 TRUSTED，則：
- *   1) 送 DEVICE OTP（15 分鐘 5 次，超過封 15 分鐘）
+ * 裝置驗證（E2 DEVICE OTP / 定版：以 device_fingerprint 判斷環境）：
+ * - 登入成功後，計算 device_fingerprint（ua hash）
+ * - 若 trusted_devices(user_id + device_fingerprint) 不存在或非 TRUSTED：
+ *   1) 送 DEVICE OTP
  *   2) 回傳 need_device_verify=true + redirect=/device-verify
+ * - 若已 TRUSTED：直接登入成功
  */
 
 declare(strict_types=1);
@@ -34,12 +36,6 @@ if (empty($input)) {
 
 $email    = trim((string)($input['email'] ?? ''));
 $password = (string)($input['password'] ?? '');
-$clientDeviceId = trim((string)($input['device_id'] ?? ''));
-
-// 只接受 64 hex（前端 localStorage 產生的就是這種）
-if ($clientDeviceId !== '' && !preg_match('/^[a-f0-9]{64}$/', $clientDeviceId)) {
-    $clientDeviceId = '';
-}
 
 if ($email === '' || $password === '') {
     auth_event('LOGIN_FAIL', null, $email ?: null, 'missing credentials');
@@ -62,56 +58,14 @@ throttle_assert_not_blocked('LOGIN_FAIL', 'IP', null);
 $pdo = db();
 
 /**
- * 共用：判斷是否 HTTPS（含反向代理）
+ * 共用：計算 device_fingerprint（定版：以 UA 為主）
+ * - 回傳 64 hex（sha256）
  */
-// function is_https_request(): bool
-// {
-//     if (!empty($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off') return true;
-//     if (!empty($_SERVER['HTTP_X_FORWARDED_PROTO']) && strtolower((string)$_SERVER['HTTP_X_FORWARDED_PROTO']) === 'https') return true;
-//     return false;
-// }
-function is_https_request(): bool
+function compute_device_fingerprint(): string
 {
-    if (!empty($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off') return true;
-    if (!empty($_SERVER['SERVER_PORT']) && (int)$_SERVER['SERVER_PORT'] === 443) return true;
-
-    $xfp = (string)($_SERVER['HTTP_X_FORWARDED_PROTO'] ?? '');
-    if ($xfp !== '' && strtolower($xfp) === 'https') return true;
-
-    $xfs = (string)($_SERVER['HTTP_X_FORWARDED_SSL'] ?? '');
-    if ($xfs !== '' && strtolower($xfs) === 'on') return true;
-
-    $cfv = (string)($_SERVER['HTTP_CF_VISITOR'] ?? '');
-    if ($cfv !== '' && stripos($cfv, '"https"') !== false) return true;
-
-    return false;
-}
-
-/**
- * 共用：確保 device_id cookie 存在
- */
-function ensure_device_id_cookie(?string $preferredDeviceId = null): string
-{
-    $cookieDid = (string)($_COOKIE['device_id'] ?? '');
-    if ($cookieDid !== '') return $cookieDid;
-
-    // cookie 沒有 → 優先用前端帶來的 stable id（localStorage）
-    if ($preferredDeviceId !== null && preg_match('/^[a-f0-9]{64}$/', $preferredDeviceId)) {
-        $deviceId = $preferredDeviceId;
-    } else {
-        $deviceId = bin2hex(random_bytes(32));
-    }
-
-    setcookie('device_id', $deviceId, [
-        'expires'  => time() + 86400 * 365,
-        'path'     => '/',
-        'secure'   => is_https_request(),
-        'httponly' => true,
-        'samesite' => 'Lax',
-    ]);
-
-    $_COOKIE['device_id'] = $deviceId;
-    return $deviceId;
+    $ua = (string)($_SERVER['HTTP_USER_AGENT'] ?? '');
+    // 這裡刻意保持簡單與穩定：同瀏覽器環境通常一致；換瀏覽器/UA 會改變
+    return hash('sha256', $ua);
 }
 
 /**
@@ -257,29 +211,27 @@ try {
         // 不阻斷登入
     }
 
-    // 設定 Session
+    // 設定 Session（你原本的策略：先建立 session，讓 device_verify 可以 require_login）
     session_regenerate_id(true);
     $_SESSION['user_id'] = (int)$user['id'];
     $_SESSION['role']    = (string)$user['role'];
     $_SESSION['org_id']  = (int)$user['organization_id'];
 
-    // ===== E2: 確保 device_id + trusted 判斷 =====
-    $deviceId = ensure_device_id_cookie($clientDeviceId !== '' ? $clientDeviceId : null);
+    // ✅ 定版：以 device_fingerprint 判斷 trusted
+    $fingerprint = compute_device_fingerprint();
 
-auth_event('DEVICE_COOKIE_IN', (int)$user['id'], $email, 'device_id=' . (string)($_COOKIE['device_id'] ?? ''));
-
-    // 查是否已信任
+    // 查是否已信任（以 uq_user_fp：user_id + device_fingerprint）
     $stmt = $pdo->prepare("
         SELECT id
         FROM trusted_devices
         WHERE user_id = :uid
-          AND device_id = :did
+          AND device_fingerprint = :fp
           AND status = 'TRUSTED'
         LIMIT 1
     ");
     $stmt->execute([
         ':uid' => (int)$user['id'],
-        ':did' => $deviceId,
+        ':fp'  => $fingerprint,
     ]);
     $isTrusted = (bool)$stmt->fetch();
 
@@ -287,17 +239,18 @@ auth_event('DEVICE_COOKIE_IN', (int)$user['id'], $email, 'device_id=' . (string)
         // 未信任：先送 OTP，再導去 /device-verify
         send_device_otp_for_login($pdo, (int)$user['id'], (string)$user['email']);
 
+        auth_event('LOGIN_OK_NEED_DEVICE_VERIFY', (int)$user['id'], (string)$user['email'], 'need device verify');
+
         json_success([
-            'id'                => (int)$user['id'],
-            'name'              => (string)$user['name'],
-            'email'             => (string)$user['email'],
-            'role'              => (string)$user['role'],
-            'organization_id'   => (int)$user['organization_id'],
+            'id'                 => (int)$user['id'],
+            'name'               => (string)$user['name'],
+            'email'              => (string)$user['email'],
+            'role'               => (string)$user['role'],
+            'organization_id'    => (int)$user['organization_id'],
             'need_device_verify' => true,
-            'redirect'          => route_url('device-verify'), // 你要在 .htaccess 加路由
+            'redirect'           => route_url('device-verify'),
         ]);
     }
-    // ===== E2 END =====
 
     auth_event('LOGIN_OK', (int)$user['id'], (string)$user['email'], 'ok');
 

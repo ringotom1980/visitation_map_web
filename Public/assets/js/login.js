@@ -1,23 +1,10 @@
 /**
  * Path: Public/assets/js/login.js
  * 說明: 登入頁表單送出行為（配合 api.js 回傳整包 JSON）
+ * 定版：不再送 device_id；登入回 need_device_verify 時導向 /device-verify
  */
 
 document.addEventListener('DOMContentLoaded', () => {
-  // device_id：用 localStorage 固定住（避免 iOS Safari cookie 掉了就被當新裝置）
-  function getOrCreateDeviceId() {
-    const key = 'vm_device_id';
-    let did = localStorage.getItem(key) || '';
-
-    if (!/^[a-f0-9]{64}$/.test(did)) {
-      const bytes = new Uint8Array(32);
-      crypto.getRandomValues(bytes);
-      did = Array.from(bytes).map(b => b.toString(16).padStart(2, '0')).join('');
-      localStorage.setItem(key, did);
-    }
-    return did;
-  }
-
   const form = document.getElementById('loginForm');
   const msgEl = document.getElementById('loginMessage');
   if (!form) return;
@@ -42,14 +29,16 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     try {
-      // ✅ 直接打 API 實體路徑，避免被前端路由 rewrite
-      const json = await apiRequest('auth/login', 'POST', {
-        email,
-        password,
-        device_id: getOrCreateDeviceId()
-      });
-
+      const json = await apiRequest('auth/login', 'POST', { email, password });
       const data = json && json.data ? json.data : null;
+
+      // ✅ 若需要裝置驗證 → 直接導向 device-verify（不要進 app/admin）
+      if (data && data.need_device_verify) {
+        const target = data.redirect || '/device-verify';
+        setMsg('需要裝置驗證，跳轉中…', 'success');
+        window.location.href = target;
+        return;
+      }
 
       setMsg('登入成功，跳轉中…', 'success');
 
