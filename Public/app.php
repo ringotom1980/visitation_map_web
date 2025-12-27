@@ -11,9 +11,13 @@ require_once __DIR__ . '/../config/auth.php';
 
 // A2/A3：主頁必須登入
 require_login_page();
+if (($_SESSION['auth_stage'] ?? '') !== 'AUTHENTICATED') {
+  header('Location: ' . route_url('device-verify') . '?return=' . rawurlencode('/app'));
+  exit;
+}
 
 // ================================
-// E2：Trusted Device Gate（防止按上一頁繞過 DEVICE OTP）
+// E2：Auth Stage Gate（以 session auth_stage 為準）
 // 定版：不再使用 device_id，一律改用 device_fingerprint（UA sha256）
 // - 任何進入 app.php 都必須檢查：user + device_fingerprint 是否 TRUSTED
 // - 同時用 no-store 避免瀏覽器回上一頁用快取直接顯示 app
@@ -41,26 +45,6 @@ $deviceVerifyUrl = '/device-verify?return=' . rawurlencode('/app');
  */
 $ua = (string)($_SERVER['HTTP_USER_AGENT'] ?? '');
 $fingerprint = hash('sha256', $ua);
-
-// DB 檢查：trusted_devices 必須是 TRUSTED（以 user_id + device_fingerprint）
-$pdo = db();
-$stmt = $pdo->prepare("
-  SELECT 1
-  FROM trusted_devices
-  WHERE user_id = :uid
-    AND device_fingerprint = :fp
-    AND status = 'TRUSTED'
-  LIMIT 1
-");
-$stmt->execute([
-  ':uid' => $uid,
-  ':fp'  => $fingerprint,
-]);
-
-if (!$stmt->fetchColumn()) {
-  header('Location: ' . $deviceVerifyUrl);
-  exit;
-}
 
 $pageTitle = APP_NAME;
 $pageCss = [

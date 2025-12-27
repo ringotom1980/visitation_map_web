@@ -234,8 +234,8 @@ try {
         ':fp'  => $fingerprint,
     ]);
     $isTrusted = (bool)$stmt->fetch();
-
     if (!$isTrusted) {
+        $_SESSION['auth_stage'] = 'PENDING_DEVICE';
         // 未信任：先送 OTP，再導去 /device-verify
         send_device_otp_for_login($pdo, (int)$user['id'], (string)$user['email']);
 
@@ -251,7 +251,7 @@ try {
             'redirect'           => route_url('device-verify'),
         ]);
     }
-
+    $_SESSION['auth_stage'] = 'AUTHENTICATED';
     auth_event('LOGIN_OK', (int)$user['id'], (string)$user['email'], 'ok');
 
     $redirect = ((string)$user['role'] === 'ADMIN')

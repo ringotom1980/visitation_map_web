@@ -8,32 +8,10 @@ declare(strict_types=1);
 
 require_once __DIR__ . '/../config/auth.php';
 require_login();
-// 若此環境已是 TRUSTED，則不應再停留在裝置驗證頁（避免返回/手動進入造成困惑）
-try {
-  $pdo = db();
-  $uid = current_user_id();
-  $ua  = (string)($_SERVER['HTTP_USER_AGENT'] ?? '');
-  $fp  = hash('sha256', $ua);
-
-  $stmt = $pdo->prepare("
-    SELECT 1
-    FROM trusted_devices
-    WHERE user_id = :uid
-      AND device_fingerprint = :fp
-      AND status = 'TRUSTED'
-    LIMIT 1
-  ");
-  $stmt->execute([':uid' => (int)$uid, ':fp' => $fp]);
-  $isTrusted = (bool)$stmt->fetchColumn();
-
-  if ($isTrusted) {
-    header('Location: ' . route_url('app'));
-    exit;
-  }
-} catch (Throwable $e) {
-  // guard 失敗不阻斷，維持原流程
+if (($_SESSION['auth_stage'] ?? '') !== 'PENDING_DEVICE') {
+  header('Location: ' . route_url('app'));
+  exit;
 }
-
 // 防止瀏覽器用快取「回上一頁」看到不該看到的內容
 header('Cache-Control: no-store, no-cache, must-revalidate, max-age=0');
 header('Pragma: no-cache');
