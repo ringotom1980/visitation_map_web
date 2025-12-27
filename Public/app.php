@@ -41,7 +41,7 @@ $ua = (string)($_SERVER['HTTP_USER_AGENT'] ?? '');
 $fingerprint = hash('sha256', $ua);
 // ✅ E2 Gate：user + fingerprint 必須 TRUSTED，否則一律導去 device-verify
 try {
-  $pdo = db();
+  $pdo = require __DIR__ . '/../config/db.php';
 
   $stmt = $pdo->prepare("
     SELECT 1
