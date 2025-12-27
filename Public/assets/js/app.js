@@ -729,22 +729,11 @@ document.addEventListener('DOMContentLoaded', function () {
   }
 
   if (btnMyLocation) {
-    btnMyLocation.addEventListener('click', function () {
-
-      // ✅ 直接回到「登入/重整時的位置」
-      if (state.fallbackCenter && MapModule) {
-        MapModule.showMyLocation(
-          state.fallbackCenter.lat,
-          state.fallbackCenter.lng
-        );
-        MapModule.panToLatLng(
-          state.fallbackCenter.lat,
-          state.fallbackCenter.lng,
-          16
-        );
-      }
-    });
-  }
+  btnMyLocation.addEventListener('click', function () {
+    // ✅ 使用者主動 → panTo = true → strict = false
+    requestMyLocation(true);
+  });
+}
 
   if (btnRouteMode) {
     btnRouteMode.addEventListener('click', function () {
