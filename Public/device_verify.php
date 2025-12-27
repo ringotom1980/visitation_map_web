@@ -7,7 +7,7 @@
 declare(strict_types=1);
 
 require_once __DIR__ . '/../config/auth.php';
-require_login_page();
+require_login();
 
 // 防止瀏覽器用快取「回上一頁」看到不該看到的內容
 header('Cache-Control: no-store, no-cache, must-revalidate, max-age=0');
