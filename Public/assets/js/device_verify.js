@@ -73,18 +73,18 @@
   function armBackTrap() {
     try {
       history.replaceState({ dv: 1 }, document.title, location.href);
-      history.pushState({ dv: 2 }, document.title, location.href);
     } catch (e) { /* ignore */ }
 
     window.addEventListener('popstate', function () {
       if (verified) return;
       if (!lockBack) return;
 
-      try { history.pushState({ dv: 2 }, document.title, location.href); } catch (e) { /* ignore */ }
-
       var ok = window.confirm('尚未完成新裝置驗證，將自動登出。是否確定？');
       if (ok) {
         forceLogoutToLogin();
+      } else {
+        // 使用者取消：把自己留在本頁（恢復一筆 state）
+        try { history.replaceState({ dv: 1 }, document.title, location.href); } catch (e) { }
       }
     });
   }
@@ -163,7 +163,7 @@
 
   if (inputCode) {
     // 自動聚焦
-    setTimeout(function () { try { inputCode.focus(); } catch (e) {} }, 50);
+    setTimeout(function () { try { inputCode.focus(); } catch (e) { } }, 50);
 
     // 只允許數字 + 最多 6 碼
     inputCode.addEventListener('input', sanitizeCodeInput);
