@@ -1,4 +1,5 @@
 <?php
+
 /**
  * Path: Public/api/auth/device_otp_request.php
  * 說明: 裝置驗證 - 申請 OTP（寄送 DEVICE）
@@ -37,7 +38,8 @@ throttle_check('OTP_DEVICE_REQ', 'IP', null, 900, 5, 15);
 
 $otpTtlMin = 10;
 
-function gen_otp_6(): string {
+function gen_otp_6(): string
+{
     $n = random_int(0, 999999);
     return str_pad((string)$n, 6, '0', STR_PAD_LEFT);
 }
@@ -49,11 +51,11 @@ function send_device_otp_mail(string $toEmail, string $otp): bool
     $subject   = '裝置驗證碼（10 分鐘內有效）';
 
     $body = "您好，\n\n"
-          . "您正在進行「遺眷親訪地圖系統」裝置驗證。\n\n"
-          . "您的驗證碼（OTP）：{$otp}\n"
-          . "有效時間：10 分鐘\n\n"
-          . "若非本人操作，請忽略此信。\n\n"
-          . "— 遺眷親訪地圖系統\n";
+        . "您正在進行「遺眷親訪地圖系統」裝置驗證。\n\n"
+        . "您的驗證碼（OTP）：{$otp}\n"
+        . "有效時間：10 分鐘\n\n"
+        . "若非本人操作，請忽略此信。\n\n"
+        . "— 遺眷親訪地圖系統\n";
 
     $encodedSubject = '=?UTF-8?B?' . base64_encode($subject) . '?=';
 
@@ -112,10 +114,9 @@ try {
     }
 
     $pdo->commit();
-
+    $_SESSION['device_otp_email'] = $email;
     auth_event('DEVICE_OTP_SENT', (int)$user['id'], $email, 'otp sent');
     json_success(['message' => '驗證碼已寄送（10 分鐘內有效）']);
-
 } catch (Throwable $e) {
     if ($pdo->inTransaction()) $pdo->rollBack();
 

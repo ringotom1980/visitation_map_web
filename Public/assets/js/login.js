@@ -69,7 +69,7 @@ document.addEventListener('DOMContentLoaded', () => {
       if (data && data.need_device_verify) {
         const target = data.redirect || '/device-verify';
         setMsg('需要裝置驗證，跳轉中…', 'success');
-        window.location.href = target;
+        window.location.replace(target);
         return;
       }
 
@@ -81,7 +81,7 @@ document.addEventListener('DOMContentLoaded', () => {
         target = (role === 'ADMIN') ? '/admin' : '/app';
       }
 
-      window.location.href = target;
+      window.location.replace(target);
 
     } catch (err) {
       // 登入失敗：不改記住帳號（避免輸錯密碼就把舊記住的覆蓋掉）
