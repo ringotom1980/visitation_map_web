@@ -854,7 +854,7 @@ var MapModule = (function () {
     return true;
   }
 
-  /* ---------- 聚焦某個地點 ---------- */
+  /* ---------- 聚焦某個地點（避開 bottom-sheet / route-actions 遮擋） ---------- */
   function focusPlace(place) {
     if (!map) return;
     if (!place) return;
@@ -863,8 +863,70 @@ var MapModule = (function () {
     var lng = Number(place.lng);
     if (!isFinite(lat) || !isFinite(lng)) return;
 
-    // 僅做「明確置中」，不做 fitBounds（fitBounds 會改 zoom、也容易覆蓋你後續的 panBy 對齊）
-    map.panTo({ lat: lat, lng: lng });
+    ensureProjectionHelper();
+
+    // Projection 還沒 ready：等地圖 idle 再做一次（避免拿不到 projection）
+    if (!projHelper || !projHelper.getProjection()) {
+      google.maps.event.addListenerOnce(map, 'idle', function () {
+        focusPlace(place);
+      });
+      map.panTo({ lat: lat, lng: lng });
+      return;
+    }
+
+    var target = new google.maps.LatLng(lat, lng);
+
+    // === 精準算遮擋：用「遮擋元件的 top」而不是用高度猜 ===
+    var mapRect = map.getDiv().getBoundingClientRect();
+
+    var sheetInner = document.querySelector('.bottom-sheet.bottom-sheet--open .bottom-sheet__inner');
+    var sheetRect = sheetInner ? sheetInner.getBoundingClientRect() : null;
+
+    // route-actions 你用 aria-hidden 控制的話，這裡用「不隱藏」判斷
+    var routeActions = document.querySelector('.route-actions:not([aria-hidden="true"])');
+    var actionsRect = routeActions ? routeActions.getBoundingClientRect() : null;
+
+    // obstructionTop：遮擋區域的「上緣」(越小越靠上)
+    // 只取「在 map 下方覆蓋 map」的那個 top
+    var obstructionTop = Infinity;
+
+    if (sheetRect && sheetRect.bottom > mapRect.top && sheetRect.top < mapRect.bottom) {
+      obstructionTop = Math.min(obstructionTop, sheetRect.top);
+    }
+    if (actionsRect && actionsRect.bottom > mapRect.top && actionsRect.top < mapRect.bottom) {
+      obstructionTop = Math.min(obstructionTop, actionsRect.top);
+    }
+
+    // 沒遮擋就正常 panTo
+    if (!isFinite(obstructionTop)) {
+      map.panTo(target);
+      return;
+    }
+
+    // 目標：marker 的像素 y 要落在遮擋上緣之上（留 padding）
+    var padding = 24;
+    var desiredY = Math.max(0, (obstructionTop - mapRect.top) - padding);
+
+    // 現在 marker 的像素位置
+    var proj = projHelper.getProjection();
+    var pt = proj.fromLatLngToContainerPixel(target);
+    if (!pt) {
+      map.panTo(target);
+      return;
+    }
+
+    // deltaY > 0 代表 marker 現在太下面，要把它抬上去
+    var deltaY = pt.y - desiredY;
+
+    // 小於 2px 就不動，避免抖動
+    if (Math.abs(deltaY) < 2) {
+      map.panTo(target);
+      return;
+    }
+
+    // panBy：往上抬 marker => 地圖往下移 => panBy(0, +deltaY)
+    map.panBy(0, Math.round(deltaY));
+
   }
 
   function panToLatLng(lat, lng, zoom) {
