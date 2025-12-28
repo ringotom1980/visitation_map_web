@@ -499,17 +499,15 @@ var MapModule = (function () {
       var pos = new google.maps.LatLng(lat, lng);
 
       // marker：預設不帶 label（label 由模式/是否在路線決定）
-      var displayName = (p.serviceman_name || p.soldier_name || '').toString().trim();
-
       var marker = new google.maps.Marker({
         map: map,
         position: pos,
-        title: displayName || '',
+        title: p.soldier_name || '',
         icon: normalIcon()
       });
 
       // name overlay：永遠顯示姓名（可依 mode/策略隱藏）
-      var nameOv = new NameLabelOverlay(pos, displayName);
+      var nameOv = new NameLabelOverlay(pos, p.soldier_name ? String(p.soldier_name) : '');
 
       marker.addListener('click', function () {
         if (mode === 'ROUTE_PLANNING') {

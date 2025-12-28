@@ -486,7 +486,7 @@ document.addEventListener('DOMContentLoaded', function () {
 
       // 3) 關 Google pac
       setGooglePacVisible(false);
-      suppressGooglePacFor(900);
+
       // 4) 收鍵盤 / 解除 focus
       try { input.blur(); } catch (e) { }
       if (document.activeElement && document.activeElement.blur) {
