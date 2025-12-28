@@ -29,10 +29,7 @@
   .app-page {
     min-height: calc(var(--vh, 1vh) * 100);
   }
-  .app-main {
-    min-height: calc(var(--vh, 1vh) * 100);
-    height: calc(var(--vh, 1vh) * 100);
-  }
+ 
 }
 
 /* 上方工具列 */
