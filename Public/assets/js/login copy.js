@@ -14,22 +14,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
   if (!form) return;
 
-  // 依 device_fingerprint 分環境記住帳號（UA + platform -> sha256）
-  // 若瀏覽器不支援 crypto.subtle，退回舊 key（仍可用）
-  let STORAGE_KEY = 'remembered_login';
-
-  async function buildRememberKey() {
-    try {
-      if (!window.crypto || !crypto.subtle) return 'remembered_login';
-      const raw = (navigator.userAgent || '') + '|' + (navigator.platform || '');
-      const buf = new TextEncoder().encode(raw);
-      const digest = await crypto.subtle.digest('SHA-256', buf);
-      const hex = Array.from(new Uint8Array(digest)).map(b => b.toString(16).padStart(2, '0')).join('');
-      return 'remembered_login_' + hex; // 依環境分桶
-    } catch (e) {
-      return 'remembered_login';
-    }
-  }
+  const STORAGE_KEY = 'remembered_login';
 
   const setMsg = (text, cls) => {
     if (!msgEl) return;
@@ -38,17 +23,14 @@ document.addEventListener('DOMContentLoaded', () => {
     if (cls) msgEl.classList.add(cls);
   };
 
-  // 初始化：回填帳號（依環境 key）
-  (async () => {
-    STORAGE_KEY = await buildRememberKey();
-    try {
-      const remembered = localStorage.getItem(STORAGE_KEY);
-      if (remembered && emailEl) {
-        emailEl.value = remembered;
-        if (rememberEl) rememberEl.checked = true;
-      }
-    } catch (e) { }
-  })();
+  // 初始化：回填帳號
+  try {
+    const remembered = localStorage.getItem(STORAGE_KEY);
+    if (remembered && emailEl) {
+      emailEl.value = remembered;
+      if (rememberEl) rememberEl.checked = true;
+    }
+  } catch (e) {}
 
   function persistRememberedEmail(email) {
     try {
@@ -57,7 +39,7 @@ document.addEventListener('DOMContentLoaded', () => {
       } else {
         localStorage.removeItem(STORAGE_KEY);
       }
-    } catch (e) { }
+    } catch (e) {}
   }
 
   form.addEventListener('submit', async (e) => {
@@ -76,7 +58,6 @@ document.addEventListener('DOMContentLoaded', () => {
       const json = await apiRequest('auth/login', 'POST', { email, password });
       const data = json?.data || null;
 
-      if (!STORAGE_KEY || STORAGE_KEY === 'remembered_login') STORAGE_KEY = await buildRememberKey();
       persistRememberedEmail(email);
 
       if (data?.need_device_verify) {
