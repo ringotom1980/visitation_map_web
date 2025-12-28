@@ -19,8 +19,8 @@
 .app-main {
   display: flex;
   flex-direction: column;
-  min-height: 100dvh;
-  height: 100dvh;
+  flex: 1 1 auto;   /* ✅ 吃剩餘高度（扣掉 navbar/flash） */
+  min-height: 0;    /* ✅ 避免子層 overflow 計算失真 */
   overflow: hidden;
 }
 
@@ -143,7 +143,8 @@
   right: 0;
   bottom: 0;
   height: 100%;
-  min-height: 300px;
+  /* min-height: 300px; */
+  min-height: 0;
 }
 
 /* ========== 浮動按鈕（FAB）改為文字 Pill ========== */

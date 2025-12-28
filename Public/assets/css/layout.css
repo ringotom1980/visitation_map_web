@@ -9,6 +9,11 @@ html, body {
   overflow: hidden;
 }
 
+body.app-page {
+  height: 100dvh;   /* ✅ 讓 app-page 本身就是視窗高度 */
+  min-height: 100dvh;
+}
+
 body {
   display: flex;
   flex-direction: column;
