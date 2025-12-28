@@ -1895,6 +1895,18 @@ document.addEventListener('DOMContentLoaded', function () {
     if (id === 'sheet-poi') closeSheet('sheet-place');
 
     el.classList.add('bottom-sheet--open');
+    // 等 bottom-sheet 動畫結束後，再做一次精準對齊（避免偶發遮住）
+    const sheetInner = document.querySelector(
+      '.bottom-sheet.bottom-sheet--open .bottom-sheet__inner'
+    );
+
+    if (sheetInner) {
+      const once = () => {
+        sheetInner.removeEventListener('transitionend', once);
+        MapModule.focusPlace(place);
+      };
+      sheetInner.addEventListener('transitionend', once, { once: true });
+    }
 
     if (id === 'sheet-place') setPlaceSheetBackdrop(true);
   }
