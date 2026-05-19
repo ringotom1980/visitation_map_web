@@ -15,6 +15,9 @@ if (!isset($pageTitle)) {
 if (!isset($pageCss) || !is_array($pageCss)) {
     $pageCss = [];
 }
+if (!isset($pageExternalCss) || !is_array($pageExternalCss)) {
+    $pageExternalCss = [];
+}
 ?>
 <head>
   <meta charset="UTF-8">
@@ -29,6 +32,10 @@ if (!isset($pageCss) || !is_array($pageCss)) {
   <!-- 各頁外掛 CSS -->
   <?php foreach ($pageCss as $cssPath): ?>
     <link rel="stylesheet" href="<?= asset_url($cssPath) ?>">
+  <?php endforeach; ?>
+
+  <?php foreach ($pageExternalCss as $cssUrl): ?>
+    <link rel="stylesheet" href="<?= htmlspecialchars((string)$cssUrl, ENT_QUOTES, 'UTF-8') ?>">
   <?php endforeach; ?>
 
   <!-- 前端 api.js 會讀取此值作為 API_BASE -->

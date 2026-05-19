@@ -3,7 +3,7 @@
 // - 編輯標記 Modal 增加單行 input（可貼上含換行/空白的內容）
 // - 點擊「更新座標」：
 //    1) 解析輸入（優先抓出 lat,lng）
-//    2) 若無法解析 → 使用 Google Geocoder 嘗試（支援 Plus Code/地址文字）
+//    2) 若無法解析 → 使用 MapModule/Geocoder 嘗試（支援 Plus Code/地址文字）
 //    3) 以 PlacesApi.update() 寫入 DB（先成功才關閉）
 //    4) 成功後送出事件 placeCoordUpdate:saved（由 app.js 接手 refreshPlaces + 聚焦）
 
@@ -266,9 +266,18 @@
     },
 
     _geocode: function (query) {
+      if (global.MapModule && typeof global.MapModule.geocodeText === 'function') {
+        return global.MapModule.geocodeText(query).then(function (result) {
+          if (result && isFinite(Number(result.lat)) && isFinite(Number(result.lng))) {
+            return { lat: Number(result.lat), lng: Number(result.lng) };
+          }
+          throw new Error('Geocode failed');
+        });
+      }
+
       return new Promise(function (resolve, reject) {
         if (!global.google || !google.maps || !google.maps.Geocoder) {
-          reject(new Error('Google Maps Geocoder 未載入'));
+          reject(new Error('Geocoder 未載入'));
           return;
         }
         var geocoder = new google.maps.Geocoder();
@@ -380,7 +389,7 @@
 
       } catch (e) {
         console.warn('update coord fail:', e);
-        this._setError('輸入位置錯誤，請直接複製google map座標貼上');
+        this._setError('輸入位置錯誤，請直接複製地圖座標貼上');
       } finally {
         this._applyEnabledState();
       }

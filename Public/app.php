@@ -77,6 +77,18 @@ $pageCss = [
   'assets/css/filters.css',
   'assets/css/place_coord_update.css',
 ];
+
+$mapProvider = map_provider();
+$pageExternalCss = $mapProvider === 'maplibre'
+  ? ['https://unpkg.com/maplibre-gl@5.12.0/dist/maplibre-gl.css']
+  : [];
+$mapConfig = [
+  'provider' => $mapProvider,
+  'maptilerKey' => $mapProvider === 'maplibre' ? maptiler_key() : '',
+  'maptilerStyleUrl' => $mapProvider === 'maplibre' ? maptiler_style_url() : '',
+  'language' => 'zh',
+  'country' => 'tw',
+];
 ?>
 
 <!DOCTYPE html>
@@ -453,10 +465,21 @@ $pageCss = [
     </section>
   </main>
 
-  <script src="https://maps.googleapis.com/maps/api/js?key=<?= htmlspecialchars(google_maps_key(), ENT_QUOTES) ?>&libraries=places"></script>
+  <?php if ($mapProvider === 'maplibre'): ?>
+    <script src="https://unpkg.com/maplibre-gl@5.12.0/dist/maplibre-gl.js"></script>
+  <?php else: ?>
+    <script src="https://maps.googleapis.com/maps/api/js?key=<?= htmlspecialchars(google_maps_key(), ENT_QUOTES) ?>&libraries=places"></script>
+  <?php endif; ?>
+  <script>
+    window.MAP_CONFIG = <?= json_encode($mapConfig, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES) ?>;
+  </script>
   <script src="<?= asset_url('assets/js/api.js') ?>"></script>
   <script src="<?= asset_url('assets/js/places.js') ?>"></script>
-  <script src="<?= asset_url('assets/js/map.js') ?>"></script>
+  <?php if ($mapProvider === 'maplibre'): ?>
+    <script src="<?= asset_url('assets/js/maplibre_map.js') ?>"></script>
+  <?php else: ?>
+    <script src="<?= asset_url('assets/js/map.js') ?>"></script>
+  <?php endif; ?>
   <script src="<?= asset_url('assets/js/place_form.js') ?>"></script>
   <!-- ✅ 篩選模組 -->
   <script src="<?= asset_url('assets/js/filters.js') ?>"></script>

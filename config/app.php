@@ -31,6 +31,11 @@ define('DB_CHARSET', env('DB_CHARSET', 'utf8mb4'));
 // ===== Google Maps API Key =====
 define('GOOGLE_MAPS_API_KEY', env('GOOGLE_MAPS_API_KEY', ''));
 
+// ===== Map provider =====
+define('MAP_PROVIDER', strtolower(env('MAP_PROVIDER', 'google')));
+define('MAPTILER_API_KEY', env('MAPTILER_API_KEY', ''));
+define('MAPTILER_STYLE_URL', env('MAPTILER_STYLE_URL', ''));
+
 // Session name
 session_name('visitation_map_session');
 
@@ -96,5 +101,44 @@ if (!function_exists('google_maps_key')) {
     function google_maps_key(): string
     {
         return GOOGLE_MAPS_API_KEY;
+    }
+}
+
+if (!function_exists('map_provider')) {
+    /**
+     * 取得目前地圖供應商：google / maplibre
+     */
+    function map_provider(): string
+    {
+        return MAP_PROVIDER === 'maplibre' ? 'maplibre' : 'google';
+    }
+}
+
+if (!function_exists('maptiler_key')) {
+    /**
+     * 取得 MapTiler API Key（來自 .env）
+     */
+    function maptiler_key(): string
+    {
+        return MAPTILER_API_KEY;
+    }
+}
+
+if (!function_exists('maptiler_style_url')) {
+    /**
+     * MapLibre 使用的 MapTiler style URL。
+     */
+    function maptiler_style_url(): string
+    {
+        if (MAPTILER_STYLE_URL !== '') {
+            return MAPTILER_STYLE_URL;
+        }
+
+        $key = maptiler_key();
+        if ($key === '') {
+            return '';
+        }
+
+        return 'https://api.maptiler.com/maps/streets-v2/style.json?key=' . rawurlencode($key);
     }
 }
