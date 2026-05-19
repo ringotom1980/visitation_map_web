@@ -888,8 +888,12 @@ var MapModule = (function () {
       }
 
       var mapRect = mapDiv.getBoundingClientRect();
-      var sheetRect = inner.getBoundingClientRect();
-      var targetY = Math.max(80, sheetRect.top - gapPx);
+      var sheetHeight = inner.offsetHeight || (inner.getBoundingClientRect && inner.getBoundingClientRect().height) || 0;
+      sheetHeight = Number(sheetHeight);
+      var sheetTop = isFinite(sheetHeight) && sheetHeight > 0
+        ? (window.innerHeight - sheetHeight)
+        : (inner.getBoundingClientRect().top);
+      var targetY = Math.max(80, (sheetTop - mapRect.top) - gapPx);
       var offsetY = targetY - (mapRect.height / 2);
 
       map.panTo({ lat: lat, lng: lng });

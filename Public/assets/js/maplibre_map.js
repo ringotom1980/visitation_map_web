@@ -489,9 +489,10 @@ var MapModule = (function () {
     var sheet = document.getElementById(sheetId || 'sheet-place');
     if (!sheet) return null;
     var inner = sheet.querySelector('.bottom-sheet__inner') || sheet;
-    var rect = inner.getBoundingClientRect();
-    if (!rect || !isFinite(rect.top)) return null;
-    return rect.top;
+    var h = inner.offsetHeight || (inner.getBoundingClientRect && inner.getBoundingClientRect().height) || 0;
+    h = Number(h);
+    if (!isFinite(h) || h <= 0) return null;
+    return window.innerHeight - h;
   }
 
   function focusToPlaceWithSheetOffset(place, opts) {
@@ -522,7 +523,7 @@ var MapModule = (function () {
         return;
       }
 
-      var targetY = Math.max(80, sheetTop - gapPx);
+      var targetY = Math.max(80, (sheetTop - rect.top) - gapPx);
       var offsetY = targetY - (rect.height / 2);
 
       map.easeTo({
