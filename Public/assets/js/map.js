@@ -867,6 +867,45 @@ var MapModule = (function () {
     // map.setZoom(16);
   }
 
+  function focusToPlaceWithSheetOffset(place, opts) {
+    if (!map || !place) return;
+
+    opts = opts || {};
+    var lat = Number(place.lat);
+    var lng = Number(place.lng);
+    if (!isFinite(lat) || !isFinite(lng)) return;
+
+    var zoom = isFinite(Number(opts.zoom)) ? Number(opts.zoom) : 16;
+    var gapPx = isFinite(Number(opts.gapPx)) ? Number(opts.gapPx) : 32;
+
+    function apply() {
+      var mapDiv = map.getDiv && map.getDiv();
+      var sheet = document.getElementById(opts.sheetId || 'sheet-place');
+      var inner = sheet ? (sheet.querySelector('.bottom-sheet__inner') || sheet) : null;
+      if (!mapDiv || !inner) {
+        panToLatLng(lat, lng, zoom);
+        return;
+      }
+
+      var mapRect = mapDiv.getBoundingClientRect();
+      var sheetRect = inner.getBoundingClientRect();
+      var targetY = Math.max(80, sheetRect.top - gapPx);
+      var offsetY = targetY - (mapRect.height / 2);
+
+      map.panTo({ lat: lat, lng: lng });
+      var curZoom = map.getZoom && Number(map.getZoom());
+      if (!isFinite(curZoom) || curZoom < zoom) map.setZoom(zoom);
+
+      setTimeout(function () {
+        map.panBy(0, -offsetY);
+      }, 80);
+    }
+
+    requestAnimationFrame(function () {
+      requestAnimationFrame(apply);
+    });
+  }
+
   function panToLatLng(lat, lng, zoom) {
     if (!map) return;
     lat = Number(lat);
@@ -965,6 +1004,7 @@ var MapModule = (function () {
     setPlaces: setPlaces,
     setMode: setMode,
     focusPlace: focusPlace,
+    focusToPlaceWithSheetOffset: focusToPlaceWithSheetOffset,
     updatePlacePosition: updatePlacePosition,
     panToLatLng: panToLatLng,
     buildDirectionsUrl: buildDirectionsUrl,

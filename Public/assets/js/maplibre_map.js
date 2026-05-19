@@ -485,6 +485,64 @@ var MapModule = (function () {
     panToLatLng(place.lat, place.lng);
   }
 
+  function getSheetTop(sheetId) {
+    var sheet = document.getElementById(sheetId || 'sheet-place');
+    if (!sheet) return null;
+    var inner = sheet.querySelector('.bottom-sheet__inner') || sheet;
+    var rect = inner.getBoundingClientRect();
+    if (!rect || !isFinite(rect.top)) return null;
+    return rect.top;
+  }
+
+  function focusToPlaceWithSheetOffset(place, opts) {
+    if (!map || !place) return;
+
+    opts = opts || {};
+    var lat = Number(place.lat);
+    var lng = Number(place.lng);
+    if (!isValidLatLng(lat, lng)) return;
+
+    var zoom = isFinite(Number(opts.zoom)) ? Number(opts.zoom) : 16;
+    var gapPx = isFinite(Number(opts.gapPx)) ? Number(opts.gapPx) : 32;
+
+    var currentZoom = Number(map.getZoom());
+    var targetZoom = isFinite(currentZoom) ? Math.max(currentZoom, zoom) : zoom;
+
+    function apply() {
+      var canvas = map.getCanvas();
+      if (!canvas) {
+        panToLatLng(lat, lng, targetZoom);
+        return;
+      }
+
+      var rect = canvas.getBoundingClientRect();
+      var sheetTop = getSheetTop(opts.sheetId || 'sheet-place');
+      if (!isFinite(sheetTop)) {
+        panToLatLng(lat, lng, targetZoom);
+        return;
+      }
+
+      var targetY = Math.max(80, sheetTop - gapPx);
+      var offsetY = targetY - (rect.height / 2);
+
+      map.easeTo({
+        center: [lng, lat],
+        zoom: targetZoom,
+        offset: [0, offsetY],
+        duration: 280
+      });
+    }
+
+    if (!map.isStyleLoaded()) {
+      map.once('load', apply);
+      return;
+    }
+
+    requestAnimationFrame(function () {
+      requestAnimationFrame(apply);
+    });
+  }
+
   function updatePlacePosition(placeId, lat, lng) {
     lat = Number(lat);
     lng = Number(lng);
@@ -585,6 +643,7 @@ var MapModule = (function () {
     setPlaces: setPlaces,
     setMode: setMode,
     focusPlace: focusPlace,
+    focusToPlaceWithSheetOffset: focusToPlaceWithSheetOffset,
     updatePlacePosition: updatePlacePosition,
     panToLatLng: panToLatLng,
     buildDirectionsUrl: buildDirectionsUrl,

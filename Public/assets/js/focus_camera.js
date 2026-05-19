@@ -11,6 +11,7 @@
 
     // config
     _focusZoom: 16,
+    _gapPx: 32,
 
     // state
     _hasPrevView: false,
@@ -23,6 +24,9 @@
       this._MapModule = opts.MapModule || global.MapModule || null;
       if (opts.focusZoom !== undefined && opts.focusZoom !== null && isFinite(Number(opts.focusZoom))) {
         this._focusZoom = Number(opts.focusZoom);
+      }
+      if (opts.gapPx !== undefined && opts.gapPx !== null && isFinite(Number(opts.gapPx))) {
+        this._gapPx = Number(opts.gapPx);
       }
     },
 
@@ -56,6 +60,15 @@
       if (!map) return;
 
       this._capturePrevViewOnce();
+
+      if (this._MapModule && typeof this._MapModule.focusToPlaceWithSheetOffset === 'function') {
+        this._MapModule.focusToPlaceWithSheetOffset(place, {
+          sheetId: 'sheet-place',
+          zoom: this._focusZoom,
+          gapPx: this._gapPx
+        });
+        return;
+      }
 
       // 先置中
       map.panTo({ lat: lat, lng: lng });

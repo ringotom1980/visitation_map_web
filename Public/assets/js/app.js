@@ -111,7 +111,8 @@ document.addEventListener('DOMContentLoaded', function () {
   if (window.FocusCamera && typeof window.FocusCamera.init === 'function') {
     window.FocusCamera.init({
       MapModule: MapModule,
-      focusZoom: 16
+      focusZoom: 16,
+      gapPx: FOCUS_GAP_PX
     });
   }
 
@@ -203,17 +204,9 @@ document.addEventListener('DOMContentLoaded', function () {
       fillPlaceSheet(place);
       collapsePlaceDetails(true);
 
-      // ✅ 聚焦放大統一交給 FocusCamera（抽出去的目的）
-      if (window.FocusCamera && typeof window.FocusCamera.focusToPlace === 'function') {
-        window.FocusCamera.focusToPlace(place);
-      } else if (MapModule && typeof MapModule.panToLatLng === 'function') {
-        var lat = (place.lat !== undefined && place.lat !== null) ? Number(place.lat) : null;
-        var lng = (place.lng !== undefined && place.lng !== null) ? Number(place.lng) : null;
-        if (isFinite(lat) && isFinite(lng)) MapModule.panToLatLng(lat, lng, 16);
-      }
-
-      // 再打開抽屜
+      // 先打開抽屜，再依抽屜高度聚焦，避免 marker 被下抽屜遮住。
       openSheet('sheet-place');
+      focusPlaceAfterSheetOpen(place);
     }
 
     // ===== 我的點下拉候選（顯示在 Google pac-container 之前）=====
@@ -1320,6 +1313,21 @@ document.addEventListener('DOMContentLoaded', function () {
     PlaceForm.openForCreate(latLng, address);
   }
 
+  function focusPlaceAfterSheetOpen(place) {
+    if (!place) return;
+
+    if (window.FocusCamera && typeof window.FocusCamera.focusToPlace === 'function') {
+      window.FocusCamera.focusToPlace(place);
+      return;
+    }
+
+    if (MapModule && typeof MapModule.panToLatLng === 'function') {
+      var lat = (place.lat !== undefined && place.lat !== null) ? Number(place.lat) : null;
+      var lng = (place.lng !== undefined && place.lng !== null) ? Number(place.lng) : null;
+      if (isFinite(lat) && isFinite(lng)) MapModule.panToLatLng(lat, lng, 16);
+    }
+  }
+
   function handleMarkerClickInBrowseMode(place) {
     if (state.mode !== Mode.BROWSE) return;
 
@@ -1329,17 +1337,9 @@ document.addEventListener('DOMContentLoaded', function () {
     fillPlaceSheet(place);
     collapsePlaceDetails(true);
 
-    // 1) 先把地圖置中 + 放大（交給 FocusCamera；它會記住前視角供回復）
-    if (window.FocusCamera && typeof window.FocusCamera.focusToPlace === 'function') {
-      window.FocusCamera.focusToPlace(place);
-    } else if (MapModule && typeof MapModule.panToLatLng === 'function') {
-      var lat = (place.lat !== undefined && place.lat !== null) ? Number(place.lat) : null;
-      var lng = (place.lng !== undefined && place.lng !== null) ? Number(place.lng) : null;
-      if (isFinite(lat) && isFinite(lng)) MapModule.panToLatLng(lat, lng, 16);
-    }
-
-    // 2) 打開抽屜
+    // 先打開抽屜，再依抽屜高度聚焦，避免 marker 被下抽屜遮住。
     openSheet('sheet-place');
+    focusPlaceAfterSheetOpen(place);
   }
 
   function handleMarkerClickInRoutePlanningMode(place) {
