@@ -73,15 +73,16 @@
 /* MapLibre marker layer */
 .ml-marker {
   position: relative;
-  display: flex;
-  align-items: center;
-  gap: 8px;
+  width: 0;
+  height: 0;
   cursor: pointer;
   user-select: none;
-  transform: translateZ(0);
 }
 
 .ml-marker__dot {
+  position: absolute;
+  left: 0;
+  top: 0;
   width: 18px;
   height: 18px;
   border-radius: 50%;
@@ -96,6 +97,7 @@
   font-size: 12px;
   font-weight: 800;
   line-height: 1;
+  transform: translate(-50%, -50%);
 }
 
 .ml-marker__dot--route {
@@ -105,6 +107,10 @@
 }
 
 .ml-marker__name {
+  position: absolute;
+  left: 13px;
+  top: 0;
+  transform: translateY(-50%);
   white-space: nowrap;
   font-family: "Microsoft JhengHei", "Noto Sans TC", sans-serif;
   font-size: 16px;
