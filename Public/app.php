@@ -30,43 +30,45 @@ if ($uid <= 0) {
   exit;
 }
 
-// device_verify 入口
-$deviceVerifyUrl = '/device-verify?return=' . rawurlencode('/app');
+if (auth_device_otp_enabled()) {
+  // device_verify 入口
+  $deviceVerifyUrl = '/device-verify?return=' . rawurlencode('/app');
 
-/**
- * 定版：計算 device_fingerprint（必須與 login.php、device_otp_verify.php 一致）
- * - 目前規格：UA sha256
- */
-$ua = (string)($_SERVER['HTTP_USER_AGENT'] ?? '');
-$fingerprint = hash('sha256', $ua);
-// ✅ E2 Gate：user + fingerprint 必須 TRUSTED，否則一律導去 device-verify
-try {
-  $pdo = db();
+  /**
+   * 定版：計算 device_fingerprint（必須與 login.php、device_otp_verify.php 一致）
+   * - 目前規格：UA sha256
+   */
+  $ua = (string)($_SERVER['HTTP_USER_AGENT'] ?? '');
+  $fingerprint = hash('sha256', $ua);
+  // ✅ E2 Gate：user + fingerprint 必須 TRUSTED，否則一律導去 device-verify
+  try {
+    $pdo = db();
 
-  $stmt = $pdo->prepare("
-    SELECT 1
-    FROM trusted_devices
-    WHERE user_id = :uid
-      AND device_fingerprint = :fp
-      AND status = 'TRUSTED'
-    LIMIT 1
-  ");
-  $stmt->execute([
-    ':uid' => $uid,
-    ':fp'  => $fingerprint,
-  ]);
+    $stmt = $pdo->prepare("
+      SELECT 1
+      FROM trusted_devices
+      WHERE user_id = :uid
+        AND device_fingerprint = :fp
+        AND status = 'TRUSTED'
+      LIMIT 1
+    ");
+    $stmt->execute([
+      ':uid' => $uid,
+      ':fp'  => $fingerprint,
+    ]);
 
-  $isTrusted = (bool)$stmt->fetchColumn();
-} catch (Throwable $e) {
-  $isTrusted = false; // DB 失敗保守不放行
-}
+    $isTrusted = (bool)$stmt->fetchColumn();
+  } catch (Throwable $e) {
+    $isTrusted = false; // DB 失敗保守不放行
+  }
 
-if (!$isTrusted) {
-  // 讓 device_otp_request.php 用 session 當唯一身分來源
-  $_SESSION['device_otp_email'] = (string)($user['email'] ?? '');
+  if (!$isTrusted) {
+    // 讓 device_otp_request.php 用 session 當唯一身分來源
+    $_SESSION['device_otp_email'] = (string)($user['email'] ?? '');
 
-  header('Location: ' . $deviceVerifyUrl);
-  exit;
+    header('Location: ' . $deviceVerifyUrl);
+    exit;
+  }
 }
 
 $pageTitle = APP_NAME;

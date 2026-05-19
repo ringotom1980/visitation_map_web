@@ -194,38 +194,40 @@ try {
         json_error('帳號或密碼錯誤', 400);
     }
 
-    // ===== 先算 fingerprint + 判斷 trusted（只做一次）=====
-    $fingerprint = compute_device_fingerprint();
+    if (auth_device_otp_enabled()) {
+        // ===== 先算 fingerprint + 判斷 trusted（只做一次）=====
+        $fingerprint = compute_device_fingerprint();
 
-    $stmt = $pdo->prepare("
-        SELECT 1
-        FROM trusted_devices
-        WHERE user_id = :uid
-          AND device_fingerprint = :fp
-          AND status = 'TRUSTED'
-        LIMIT 1
-    ");
-    $stmt->execute([
-        ':uid' => (int)$user['id'],
-        ':fp'  => $fingerprint,
-    ]);
-    $isTrusted = (bool)$stmt->fetch();
-
-    // ===== 未 TRUSTED → 送 OTP + 進 device-verify =====
-    if (!$isTrusted) {
-        // 用 session 綁住這次要驗證的 email（給 device_otp_verify.php 用）
-        $_SESSION['device_otp_email'] = (string)$user['email'];
-
-        send_device_otp_for_login($pdo, (int)$user['id'], (string)$user['email']);
-
-        auth_event('LOGIN_OK_NEED_DEVICE_VERIFY', (int)$user['id'], (string)$user['email'], 'need device verify');
-
-        $return = ((string)$user['role'] === 'ADMIN') ? '/admin' : '/app';
-
-        json_success([
-            'need_device_verify' => true,
-            'redirect'           => route_url('device-verify') . '?return=' . rawurlencode($return),
+        $stmt = $pdo->prepare("
+            SELECT 1
+            FROM trusted_devices
+            WHERE user_id = :uid
+              AND device_fingerprint = :fp
+              AND status = 'TRUSTED'
+            LIMIT 1
+        ");
+        $stmt->execute([
+            ':uid' => (int)$user['id'],
+            ':fp'  => $fingerprint,
         ]);
+        $isTrusted = (bool)$stmt->fetch();
+
+        // ===== 未 TRUSTED → 送 OTP + 進 device-verify =====
+        if (!$isTrusted) {
+            // 用 session 綁住這次要驗證的 email（給 device_otp_verify.php 用）
+            $_SESSION['device_otp_email'] = (string)$user['email'];
+
+            send_device_otp_for_login($pdo, (int)$user['id'], (string)$user['email']);
+
+            auth_event('LOGIN_OK_NEED_DEVICE_VERIFY', (int)$user['id'], (string)$user['email'], 'need device verify');
+
+            $return = ((string)$user['role'] === 'ADMIN') ? '/admin' : '/app';
+
+            json_success([
+                'need_device_verify' => true,
+                'redirect'           => route_url('device-verify') . '?return=' . rawurlencode($return),
+            ]);
+        }
     }
 
     // ===== 已 TRUSTED → 才建立正式登入 session =====
@@ -233,6 +235,7 @@ try {
     $_SESSION['user_id'] = (int)$user['id'];
     $_SESSION['role']    = (string)$user['role'];
     $_SESSION['org_id']  = (int)$user['organization_id'];
+    unset($_SESSION['device_otp_email']);
 
     // ✅ 更新最後登入時間（稽核必要）
     try {

@@ -36,6 +36,9 @@ define('MAP_PROVIDER', strtolower(env('MAP_PROVIDER', 'google')));
 define('MAPTILER_API_KEY', env('MAPTILER_API_KEY', ''));
 define('MAPTILER_STYLE_URL', env('MAPTILER_STYLE_URL', ''));
 
+// ===== Auth options =====
+define('AUTH_DEVICE_OTP_ENABLED', in_array(strtolower((string)env('AUTH_DEVICE_OTP_ENABLED', 'false')), ['1', 'true', 'yes', 'on'], true));
+
 // Session name
 session_name('visitation_map_session');
 
@@ -140,5 +143,15 @@ if (!function_exists('maptiler_style_url')) {
         }
 
         return 'https://api.maptiler.com/maps/streets-v2/style.json?key=' . rawurlencode($key);
+    }
+}
+
+if (!function_exists('auth_device_otp_enabled')) {
+    /**
+     * 是否啟用登入後裝置 OTP 驗證。
+     */
+    function auth_device_otp_enabled(): bool
+    {
+        return AUTH_DEVICE_OTP_ENABLED;
     }
 }
