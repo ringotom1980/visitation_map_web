@@ -348,6 +348,10 @@ $mapConfig = [
 
       <!-- S3 底部操作 -->
       <div id="route-actions" class="route-actions" aria-hidden="true">
+        <div class="route-actions__summary" aria-live="polite">
+          <span id="route-ready-distance">距離：—</span>
+          <span id="route-ready-duration">時間：—</span>
+        </div>
         <button id="btn-route-open-gmaps" type="button" class="btn btn-primary">
           用 Google 地圖導航
         </button>

@@ -401,7 +401,20 @@
 .route-actions[aria-hidden="false"] {
   display: flex;
   justify-content: center;
+  align-items: center;
+  flex-wrap: wrap;
   gap: 10px;
+}
+
+.route-actions__summary {
+  display: flex;
+  gap: 10px;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  color: #374151;
+  font-size: 13px;
+  font-weight: 700;
 }
 
 .route-actions .btn {
@@ -688,6 +701,8 @@
 .route-actions[aria-hidden="false"] {
   display: flex;
   justify-content: center;
+  align-items: center;
+  flex-wrap: wrap;
   gap: 10px;
 }
 

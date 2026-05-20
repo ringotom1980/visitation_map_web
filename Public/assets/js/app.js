@@ -1080,6 +1080,7 @@ document.addEventListener('DOMContentLoaded', function () {
 
       renderRouteList();
       updateCommitState();
+      refreshRouteEstimateSummary();
 
     } else if (state.mode === Mode.ROUTE_READY) {
       closeSheet('sheet-route');
@@ -1192,11 +1193,66 @@ document.addEventListener('DOMContentLoaded', function () {
     return h + ' 小時' + (m ? ' ' + m + ' 分鐘' : '');
   }
 
+  function calcRouteEstimate() {
+    ensureStartPoint();
+    var pts = [];
+    (state.routePoints || []).forEach(function (p) {
+      if (!p) return;
+      var lat = (typeof p.lat === 'function') ? Number(p.lat()) : Number(p.lat);
+      var lng = (typeof p.lng === 'function') ? Number(p.lng()) : Number(p.lng);
+      if (isFinite(lat) && isFinite(lng)) pts.push({ lat: lat, lng: lng });
+    });
+    if (pts.length < 2) return null;
+
+    var total = 0;
+    for (var i = 1; i < pts.length; i++) {
+      total += haversineMeters(pts[i - 1], pts[i]);
+    }
+
+    var estimatedDistance = total * 1.25;
+    var estimatedSeconds = estimatedDistance / (40 * 1000 / 3600);
+
+    return {
+      distance_m: estimatedDistance,
+      duration_s: estimatedSeconds,
+      estimated: true
+    };
+  }
+
+  function haversineMeters(a, b) {
+    var R = 6371000;
+    var toRad = Math.PI / 180;
+    var lat1 = a.lat * toRad;
+    var lat2 = b.lat * toRad;
+    var dLat = (b.lat - a.lat) * toRad;
+    var dLng = (b.lng - a.lng) * toRad;
+    var s =
+      Math.sin(dLat / 2) * Math.sin(dLat / 2) +
+      Math.cos(lat1) * Math.cos(lat2) *
+      Math.sin(dLng / 2) * Math.sin(dLng / 2);
+    return R * 2 * Math.atan2(Math.sqrt(s), Math.sqrt(1 - s));
+  }
+
   function updateRouteSummary(route) {
     var distEl = document.getElementById('route-distance');
     var durEl = document.getElementById('route-duration');
-    if (distEl) distEl.textContent = '距離：' + (route ? formatDistance(route.distance_m) : '—');
-    if (durEl) durEl.textContent = '時間：' + (route ? formatDuration(route.duration_s) : '—');
+    var readyDistEl = document.getElementById('route-ready-distance');
+    var readyDurEl = document.getElementById('route-ready-duration');
+    var suffix = route && route.estimated ? '（估）' : '';
+    var distText = '距離：' + (route ? formatDistance(route.distance_m) + suffix : '—');
+    var durText = '時間：' + (route ? formatDuration(route.duration_s) + suffix : '—');
+    if (distEl) distEl.textContent = distText;
+    if (durEl) durEl.textContent = durText;
+    if (readyDistEl) readyDistEl.textContent = distText;
+    if (readyDurEl) readyDurEl.textContent = durText;
+  }
+
+  function refreshRouteEstimateSummary() {
+    if (state.mode === Mode.ROUTE_READY && state.roadRoute) {
+      updateRouteSummary(state.roadRoute);
+      return;
+    }
+    updateRouteSummary(calcRouteEstimate());
   }
 
   function showRoutingQuotaMessage() {
@@ -1214,7 +1270,7 @@ document.addEventListener('DOMContentLoaded', function () {
       return;
     }
 
-    updateRouteSummary(null);
+    refreshRouteEstimateSummary();
 
     try {
       var json = await apiRequest('/routing/route', 'POST', {
@@ -1281,6 +1337,9 @@ document.addEventListener('DOMContentLoaded', function () {
       renderRouteList();
       MapModule.setMode(state.mode, state.routePoints);
       updateCommitState();
+      updateRouteBadge();
+      refreshRouteEstimateSummary();
+      emitRouteChanged();
     }
   }
 
@@ -1447,6 +1506,7 @@ document.addEventListener('DOMContentLoaded', function () {
     MapModule.setMode(state.mode, state.routePoints);
     updateCommitState();
     updateRouteBadge();
+    refreshRouteEstimateSummary();
     emitRouteChanged();
   }
 
@@ -1507,6 +1567,7 @@ document.addEventListener('DOMContentLoaded', function () {
     MapModule.setMode(state.mode, state.routePoints);
     updateCommitState();
     updateRouteBadge();
+    refreshRouteEstimateSummary();
     emitRouteChanged();
   }
 
@@ -1524,9 +1585,7 @@ document.addEventListener('DOMContentLoaded', function () {
     state.currentPlace = null;
     collapsePlaceDetails(true);
 
-    MapModule.setMode(state.mode, state.routePoints);
-    updateCommitState();
-    updateRouteBadge();
+    applyMode(Mode.ROUTE_PLANNING);
     emitRouteChanged();
   }
 
@@ -1548,6 +1607,7 @@ document.addEventListener('DOMContentLoaded', function () {
     MapModule.setMode(state.mode, state.routePoints);
     updateCommitState();
     updateRouteBadge();
+    refreshRouteEstimateSummary();
     emitRouteChanged();
   }
 
@@ -1777,6 +1837,7 @@ document.addEventListener('DOMContentLoaded', function () {
           MapModule.setMode(state.mode, state.routePoints);
           updateCommitState();
           updateRouteBadge();
+          refreshRouteEstimateSummary();
           emitRouteChanged();
         });
       }
@@ -1792,6 +1853,7 @@ document.addEventListener('DOMContentLoaded', function () {
           MapModule.setMode(state.mode, state.routePoints);
           updateCommitState();
           updateRouteBadge();
+          refreshRouteEstimateSummary();
           emitRouteChanged();
         });
       }
@@ -1851,6 +1913,7 @@ document.addEventListener('DOMContentLoaded', function () {
         MapModule.setMode(state.mode, state.routePoints);
         updateCommitState();
         updateRouteBadge();
+        refreshRouteEstimateSummary();
         emitRouteChanged();
       });
     });
