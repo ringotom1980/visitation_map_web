@@ -233,7 +233,9 @@
                 document.dispatchEvent(new CustomEvent('placeForm:saved'));
             } catch (err) {
                 console.error(err);
-                alert((err && err.message) ? err.message : '儲存失敗');
+                var msg = (err && err.message) ? err.message : '儲存失敗';
+                if (global.showAppToast) global.showAppToast(msg, 'error');
+                else alert(msg);
             }
         },
 

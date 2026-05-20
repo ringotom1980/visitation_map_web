@@ -35,7 +35,9 @@ if ($id <= 0) {
 $pdo = db();
 
 try {
-    $sqlOrig = 'SELECT id, organization_id FROM places WHERE id = :id LIMIT 1';
+    ensure_places_soft_delete_columns($pdo);
+
+    $sqlOrig = 'SELECT id, organization_id FROM places WHERE id = :id AND deleted_at IS NULL LIMIT 1';
     $stmtOrig = $pdo->prepare($sqlOrig);
     $stmtOrig->execute([':id' => $id]);
     $orig = $stmtOrig->fetch(PDO::FETCH_ASSOC);
@@ -50,11 +52,23 @@ try {
         json_error('無權限刪除此標記', 403);
     }
 
-    $stmtDel = $pdo->prepare('DELETE FROM places WHERE id = :id');
-    $stmtDel->execute([':id' => $id]);
+    $stmtDel = $pdo->prepare('
+        UPDATE places
+        SET deleted_at = NOW(),
+            deleted_by_user_id = :uid,
+            deleted_note = :note,
+            updated_at = NOW()
+        WHERE id = :id
+          AND deleted_at IS NULL
+    ');
+    $stmtDel->execute([
+        ':uid' => (int)$user['id'],
+        ':note' => 'user deleted from map',
+        ':id' => $id,
+    ]);
 
     json_success(['id' => $id, 'deleted' => true]);
 
 } catch (Throwable $e) {
-    json_error('刪除標記時發生錯誤：' . $e->getMessage(), 500);
+    server_error($e, '刪除標記時發生錯誤，請稍後再試。');
 }

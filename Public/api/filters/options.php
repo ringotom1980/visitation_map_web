@@ -27,8 +27,10 @@ $isAdmin = isset($user['role']) && $user['role'] === 'ADMIN';
 $orgId   = isset($user['organization_id']) ? (int)$user['organization_id'] : 0;
 
 try {
+    ensure_places_soft_delete_columns($pdo);
+
     // ---------- where clause (依權限) ----------
-    $where = "1=1";
+    $where = "p.deleted_at IS NULL";
     $params = [];
     if (!$isAdmin) {
         $where .= " AND p.organization_id = ?";
@@ -130,5 +132,5 @@ try {
         ],
     ]);
 } catch (Throwable $e) {
-    json_error('Server error', 500, ['detail' => $e->getMessage()]);
+    server_error($e, '篩選選項載入失敗，請稍後再試。');
 }

@@ -11,7 +11,39 @@ require_once __DIR__ . '/db.php';
 
 // 啟動 Session（若尚未啟動）
 if (session_status() === PHP_SESSION_NONE) {
+    $secure = (!empty($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off');
+    session_set_cookie_params([
+        'lifetime' => 0,
+        'path' => '/',
+        'secure' => $secure,
+        'httponly' => true,
+        'samesite' => 'Lax',
+    ]);
     session_start();
+}
+
+function csrf_token(): string
+{
+    if (empty($_SESSION['csrf_token']) || !is_string($_SESSION['csrf_token'])) {
+        $_SESSION['csrf_token'] = bin2hex(random_bytes(32));
+    }
+    return $_SESSION['csrf_token'];
+}
+
+function csrf_validate_request(): bool
+{
+    $method = strtoupper((string)($_SERVER['REQUEST_METHOD'] ?? 'GET'));
+    if (!in_array($method, ['POST', 'PUT', 'PATCH', 'DELETE'], true)) {
+        return true;
+    }
+
+    $expected = (string)($_SESSION['csrf_token'] ?? '');
+    if ($expected === '') {
+        return false;
+    }
+
+    $actual = (string)($_SERVER['HTTP_X_CSRF_TOKEN'] ?? '');
+    return $actual !== '' && hash_equals($expected, $actual);
 }
 
 /**

@@ -937,6 +937,164 @@ textarea {
   display: none; /* 由 JS 控制顯示 */
 }
 
+.place-list-panel {
+  position: fixed;
+  top: calc(var(--safe-top) + var(--toolbar-h) + 54px);
+  right: calc(12px + var(--safe-right));
+  bottom: calc(12px + var(--safe-bottom));
+  z-index: 900;
+  width: min(360px, calc(100vw - 24px));
+  display: none;
+  flex-direction: column;
+  overflow: hidden;
+  background: #ffffff;
+  border: 1px solid #e5e7eb;
+  border-radius: 12px;
+  box-shadow: 0 12px 30px rgba(15, 23, 42, 0.18);
+}
+
+.place-list-panel.is-open {
+  display: flex;
+}
+
+.place-list-panel__head {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 10px;
+  padding: 12px;
+  border-bottom: 1px solid #eeeeee;
+}
+
+.place-list-panel__title {
+  font-size: 15px;
+  font-weight: 700;
+}
+
+.place-list-panel__subtitle {
+  margin-top: 2px;
+  font-size: 12px;
+  color: #6b7280;
+}
+
+.place-list-panel__close {
+  border: 0;
+  background: transparent;
+  color: #6b7280;
+  cursor: pointer;
+  font-size: 16px;
+}
+
+.place-list-panel__tools {
+  padding: 10px 12px;
+  border-bottom: 1px solid #eeeeee;
+}
+
+.place-list-panel__tools input {
+  width: 100%;
+  box-sizing: border-box;
+  border: 1px solid #d1d5db;
+  border-radius: 8px;
+  padding: 8px 10px;
+  font-size: 16px;
+}
+
+.quick-filters {
+  display: flex;
+  gap: 6px;
+  margin-top: 8px;
+  overflow-x: auto;
+}
+
+.quick-filter {
+  flex: 0 0 auto;
+  border: 1px solid #d1d5db;
+  background: #ffffff;
+  color: #374151;
+  border-radius: 999px;
+  padding: 5px 10px;
+  font-size: 12px;
+  cursor: pointer;
+}
+
+.quick-filter.is-active {
+  border-color: #4ca771;
+  background: #ecf8f1;
+  color: #256f46;
+  font-weight: 700;
+}
+
+.place-list-items {
+  overflow-y: auto;
+  padding: 6px;
+}
+
+.place-list-item {
+  width: 100%;
+  text-align: left;
+  border: 0;
+  background: transparent;
+  border-radius: 8px;
+  padding: 9px 10px;
+  cursor: pointer;
+}
+
+.place-list-item:hover {
+  background: #f3f7f5;
+}
+
+.place-list-item__title {
+  font-size: 14px;
+  font-weight: 700;
+  color: #111827;
+}
+
+.place-list-item__meta,
+.place-list-item__addr {
+  margin-top: 3px;
+  font-size: 12px;
+  color: #6b7280;
+  line-height: 1.35;
+}
+
+.place-list-empty {
+  padding: 20px 8px;
+  text-align: center;
+  color: #6b7280;
+  font-size: 13px;
+}
+
+.toast-root {
+  position: fixed;
+  right: calc(12px + var(--safe-right));
+  bottom: calc(84px + var(--safe-bottom));
+  z-index: 5000;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  pointer-events: none;
+}
+
+.toast {
+  min-width: 220px;
+  max-width: min(360px, calc(100vw - 24px));
+  padding: 10px 12px;
+  border-radius: 8px;
+  background: #111827;
+  color: #ffffff;
+  box-shadow: 0 10px 25px rgba(15, 23, 42, 0.24);
+  font-size: 13px;
+  line-height: 1.4;
+}
+
+.toast--success {
+  background: #166534;
+}
+
+.toast--error {
+  background: #b91c1c;
+}
+
 /* 小螢幕：不要擠爆 */
 @media (max-width: 420px) {
   .map-top-actions {

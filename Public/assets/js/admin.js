@@ -7,6 +7,7 @@
 
 document.addEventListener('DOMContentLoaded', () => {
   setupLogout();
+  loadStats();
   loadUsers();
 });
 
@@ -122,6 +123,40 @@ async function loadUsers() {
   } catch (err) {
     container.innerHTML =
       '<div class="empty-hint">載入使用者失敗：' + escapeHtml(err.message || '') + '</div>';
+  }
+}
+
+async function loadStats() {
+  const wrap = document.getElementById('adminStats');
+  if (!wrap) return;
+
+  wrap.innerHTML = '<div class="empty-hint">載入中…</div>';
+
+  try {
+    const data = await apiData('/admin/stats', 'GET');
+    const users = data?.users || {};
+    const places = data?.places || {};
+    const routing = data?.routing || {};
+
+    wrap.innerHTML = `
+      <div class="stat-card">
+        <div class="stat-label">使用者</div>
+        <div class="stat-value">${Number(users.active || 0)} / ${Number(users.total || 0)}</div>
+        <div class="stat-sub">停權 ${Number(users.suspended || 0)}，管理者 ${Number(users.admins || 0)}</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-label">地圖點位</div>
+        <div class="stat-value">${Number(places.active || 0)}</div>
+        <div class="stat-sub">已軟刪除 ${Number(places.deleted || 0)}</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-label">今日路線額度</div>
+        <div class="stat-value">${Number(routing.today_used || 0)} / ${Number(routing.daily_limit || 0)}</div>
+        <div class="stat-sub">剩餘 ${Number(routing.today_remaining || 0)}，${escapeHtml(routing.provider || 'none')}</div>
+      </div>
+    `;
+  } catch (err) {
+    wrap.innerHTML = '<div class="empty-hint">統計資料載入失敗：' + escapeHtml(err.message || '') + '</div>';
   }
 }
 

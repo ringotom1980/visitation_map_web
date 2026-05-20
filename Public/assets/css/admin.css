@@ -134,6 +134,39 @@ body.admin-body {
   font-weight: 600;
 }
 
+.admin-stats {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 10px;
+  margin-bottom: 16px;
+}
+
+.stat-card {
+  background: #ffffff;
+  border: 1px solid #e5e7eb;
+  border-radius: 12px;
+  padding: 12px;
+  box-shadow: 0 6px 18px rgba(15, 23, 42, 0.06);
+}
+
+.stat-label {
+  font-size: 12px;
+  color: #6b7280;
+}
+
+.stat-value {
+  margin-top: 4px;
+  font-size: 24px;
+  font-weight: 700;
+  color: #111827;
+}
+
+.stat-sub {
+  margin-top: 4px;
+  font-size: 12px;
+  color: #6b7280;
+}
+
 /* -------- 表格容器（手機：可橫向捲動） -------- */
 .table-wrapper {
   background-color: #ffffff;
@@ -260,6 +293,10 @@ body.admin-body {
 
   .admin-tab-panel h2 {
     font-size: 16px;
+  }
+
+  .admin-stats {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
   }
 
   .table-wrapper {

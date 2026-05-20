@@ -31,6 +31,7 @@ document.addEventListener('DOMContentLoaded', function () {
     document.dispatchEvent(new CustomEvent('route:changed', {
       detail: { routePoints: state.routePoints || [] }
     }));
+    if (typeof renderPlaceList === 'function') renderPlaceList();
   }
 
   function emitModeChanged() {
@@ -63,8 +64,17 @@ document.addEventListener('DOMContentLoaded', function () {
   var routeListEl = document.getElementById('route-list');
   var routeBadgeEl = document.getElementById('route-badge');
   var routeActionsEl = document.getElementById('route-actions');
+  var btnPlaceList = document.getElementById('btn-place-list');
+  var btnPlaceListClose = document.getElementById('btn-place-list-close');
+  var placeListPanel = document.getElementById('place-list-panel');
+  var placeListItemsEl = document.getElementById('place-list-items');
+  var placeListCountEl = document.getElementById('place-list-count');
+  var placeListSearchEl = document.getElementById('place-list-search');
+  var toastRoot = document.getElementById('toast-root');
 
   var navUserNameEl = document.getElementById('nav-user-name');
+  var placeListQuery = '';
+  var placeListQuickFilter = 'all';
 
   // 詳細區 DOM
   var detailsWrap = document.getElementById('sheet-place-details');
@@ -767,11 +777,7 @@ document.addEventListener('DOMContentLoaded', function () {
 
   if (btnLogout) {
     btnLogout.addEventListener('click', function () {
-      var base = (window.API_BASE || '/api').replace(/\/$/, '');
-      fetch(base + '/auth/logout', {
-        method: 'POST',
-        credentials: 'include'
-      })
+      apiRequest('/auth/logout', 'POST', {})
         .catch(function (err) {
           console.error('logout error:', err);
         })
@@ -780,6 +786,44 @@ document.addEventListener('DOMContentLoaded', function () {
         });
     });
   }
+
+  if (btnPlaceList) {
+    btnPlaceList.addEventListener('click', function () {
+      if (!placeListPanel) return;
+      var open = placeListPanel.classList.contains('is-open');
+      setPlaceListOpen(!open);
+    });
+  }
+
+  if (btnPlaceListClose) {
+    btnPlaceListClose.addEventListener('click', function () {
+      setPlaceListOpen(false);
+    });
+  }
+
+  if (placeListSearchEl) {
+    placeListSearchEl.addEventListener('input', function () {
+      placeListQuery = (placeListSearchEl.value || '').trim();
+      renderPlaceList();
+    }, { passive: true });
+  }
+
+  document.querySelectorAll('[data-quick-filter]').forEach(function (btn) {
+    btn.addEventListener('click', function () {
+      placeListQuickFilter = btn.getAttribute('data-quick-filter') || 'all';
+      document.querySelectorAll('[data-quick-filter]').forEach(function (x) {
+        x.classList.toggle('is-active', x === btn);
+      });
+
+      if (placeListQuickFilter === 'over65' && window.FilterCore) {
+        window.FilterCore.setState({ over65: 'Y' });
+      } else if (placeListQuickFilter === 'all' && window.FilterCore) {
+        window.FilterCore.clear();
+      }
+
+      renderPlaceList();
+    });
+  });
   // ===== S1 資訊抽屜：點外面關閉 =====
   var sheetBackdrop = null;
   var escBound = false;
@@ -864,6 +908,7 @@ document.addEventListener('DOMContentLoaded', function () {
     closeSheet('sheet-place');
     state.currentPlace = null;
     collapsePlaceDetails(true);
+    showToast('地點資料已儲存', 'success');
     refreshPlaces();
   });
 
@@ -922,6 +967,7 @@ document.addEventListener('DOMContentLoaded', function () {
 
     // 4) 走既有「點 marker」流程（開抽屜/對齊等）
     handleMarkerClickInBrowseMode(openPlace);
+    showToast('座標已更新', 'success');
 
     // Debug（你要查問題時很有用）
     if (!moved) {
@@ -1030,6 +1076,7 @@ document.addEventListener('DOMContentLoaded', function () {
         );
 
         document.dispatchEvent(new CustomEvent('places:loaded', { detail: { places: places } }));
+        renderPlaceList();
 
         MapModule.setMode(state.mode, state.routePoints);
         updateRouteBadge();
@@ -1038,9 +1085,114 @@ document.addEventListener('DOMContentLoaded', function () {
       })
       .catch(function (err) {
         console.error('refreshPlaces error:', err);
-        alert('載入地點資料失敗');
+        showToast('載入地點資料失敗', 'error');
       });
   }
+
+  function setPlaceListOpen(open) {
+    if (!placeListPanel) return;
+    placeListPanel.classList.toggle('is-open', !!open);
+    placeListPanel.setAttribute('aria-hidden', open ? 'false' : 'true');
+    if (open) renderPlaceList();
+  }
+
+  function renderPlaceList() {
+    if (!placeListItemsEl) return;
+
+    var q = normalizeSearchText(placeListQuery);
+    var routeIds = new Set((state.routePoints || [])
+      .filter(function (p) { return p && p.id !== '__me'; })
+      .map(function (p) { return String(p.id); }));
+
+    var rows = (state.placesCache || []).filter(function (p) {
+      if (!p) return false;
+
+      if (placeListQuickFilter === 'over65' && String(p.beneficiary_over65 || '').toUpperCase() !== 'Y') {
+        return false;
+      }
+      if (placeListQuickFilter === 'route' && !routeIds.has(String(p.id))) {
+        return false;
+      }
+      if (!q) return true;
+
+      return normalizeSearchText([
+        p.serviceman_name,
+        p.soldier_name,
+        p.visit_name,
+        p.visit_target,
+        p.condolence_order_no,
+        p.address_text,
+        p.address,
+        p.managed_district,
+        p.category,
+        p.note
+      ].join(' ')).indexOf(q) >= 0;
+    });
+
+    rows.sort(function (a, b) {
+      return String(a.managed_district || '').localeCompare(String(b.managed_district || ''), 'zh-Hant')
+        || String(a.serviceman_name || a.soldier_name || '').localeCompare(String(b.serviceman_name || b.soldier_name || ''), 'zh-Hant');
+    });
+
+    if (placeListCountEl) placeListCountEl.textContent = rows.length + ' 筆';
+    placeListItemsEl.innerHTML = '';
+
+    if (rows.length === 0) {
+      var empty = document.createElement('div');
+      empty.className = 'place-list-empty';
+      empty.textContent = '沒有符合條件的名單';
+      placeListItemsEl.appendChild(empty);
+      return;
+    }
+
+    rows.forEach(function (p) {
+      var btn = document.createElement('button');
+      btn.type = 'button';
+      btn.className = 'place-list-item';
+
+      var title = pick(p, 'serviceman_name', 'soldier_name') || '未命名';
+      var visit = p.visit_name ? ('受訪者：' + p.visit_name) : '';
+      var managed = p.managed_district ? ('列管：' + p.managed_district) : '';
+      var over65 = String(p.beneficiary_over65 || '').toUpperCase() === 'Y' ? '65歲以上' : '';
+      var meta = [visit, managed, over65].filter(Boolean).join(' · ');
+      var addr = pick(p, 'address_text', 'address') || '';
+
+      btn.innerHTML =
+        '<div class="place-list-item__title">' + escapeHtml(title) + '</div>' +
+        (meta ? '<div class="place-list-item__meta">' + escapeHtml(meta) + '</div>' : '') +
+        (addr ? '<div class="place-list-item__addr">' + escapeHtml(addr) + '</div>' : '');
+
+      btn.addEventListener('click', function () {
+        setPlaceListOpen(false);
+        handleMarkerClickInBrowseMode(p);
+      });
+
+      placeListItemsEl.appendChild(btn);
+    });
+  }
+
+  function normalizeSearchText(s) {
+    return String(s || '').trim().toLowerCase();
+  }
+
+  function showToast(message, type) {
+    if (!toastRoot) {
+      if (type === 'error') alert(message);
+      return;
+    }
+    var el = document.createElement('div');
+    el.className = 'toast' + (type ? ' toast--' + type : '');
+    el.textContent = String(message || '');
+    toastRoot.appendChild(el);
+    setTimeout(function () {
+      el.style.opacity = '0';
+      el.style.transform = 'translateY(6px)';
+      setTimeout(function () {
+        if (el.parentNode) el.parentNode.removeChild(el);
+      }, 220);
+    }, 2600);
+  }
+  window.showAppToast = showToast;
 
   function applyMode(nextMode) {
     state.mode = nextMode;
@@ -1957,16 +2109,17 @@ document.addEventListener('DOMContentLoaded', function () {
 
   async function handlePlaceDelete() {
     if (!state.currentPlace) return;
-    if (!confirm('確定要刪除這個地點嗎？此動作無法復原。')) return;
+    if (!confirm('確定要刪除這個地點嗎？刪除後會移至回收狀態，可由資料庫復原。')) return;
 
     try {
       await PlacesApi.remove(state.currentPlace.id);
       closeSheet('sheet-place');
       state.currentPlace = null;
       await refreshPlaces();
+      showToast('地點已刪除', 'success');
     } catch (err) {
       console.error(err);
-      alert((err && err.message) ? err.message : '刪除失敗');
+      showToast((err && err.message) ? err.message : '刪除失敗', 'error');
     }
   }
 

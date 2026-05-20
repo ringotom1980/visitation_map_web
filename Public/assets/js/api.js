@@ -9,6 +9,8 @@
 (function () {
   var meta = document.querySelector('meta[name="api-base"]');
   window.API_BASE = meta ? (meta.getAttribute('content') || '/api') : '/api';
+  var csrf = document.querySelector('meta[name="csrf-token"]');
+  window.CSRF_TOKEN = csrf ? (csrf.getAttribute('content') || '') : '';
 })();
 
 /**
@@ -29,6 +31,9 @@ async function apiRequest(path, method, data) {
   var headers = {
     'Accept': 'application/json'
   };
+  if (window.CSRF_TOKEN) {
+    headers['X-CSRF-Token'] = window.CSRF_TOKEN;
+  }
 
   var options = {
     method: method,

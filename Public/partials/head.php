@@ -40,4 +40,7 @@ if (!isset($pageExternalCss) || !is_array($pageExternalCss)) {
 
   <!-- 前端 api.js 會讀取此值作為 API_BASE -->
   <meta name="api-base" content="/api">
+  <?php if (function_exists('csrf_token')): ?>
+    <meta name="csrf-token" content="<?= htmlspecialchars(csrf_token(), ENT_QUOTES, 'UTF-8') ?>">
+  <?php endif; ?>
 </head>

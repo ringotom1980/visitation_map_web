@@ -17,6 +17,8 @@ $user = require_api_user();
 $pdo = db();
 
 try {
+    ensure_places_soft_delete_columns($pdo);
+
     $sql = 'SELECT
         p.id,
 
@@ -54,7 +56,7 @@ try {
     FROM places p
     LEFT JOIN organizations o ON o.id = p.organization_id
     LEFT JOIN users u ON u.id = p.updated_by_user_id
-    WHERE 1=1';
+    WHERE p.deleted_at IS NULL';
 
     $params = [];
 
@@ -73,5 +75,5 @@ try {
     json_success($rows);
 
 } catch (Throwable $e) {
-    json_error('載入地點資料時發生錯誤：' . $e->getMessage(), 500);
+    server_error($e, '載入地點資料時發生錯誤，請稍後再試。');
 }

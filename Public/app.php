@@ -119,7 +119,30 @@ $mapConfig = [
         <button id="btn-filter" class="map-action-btn" type="button" title="篩選">
           篩選
         </button>
+
+        <button id="btn-place-list" class="map-action-btn" type="button" title="名單">
+          名單
+        </button>
       </div>
+
+      <aside id="place-list-panel" class="place-list-panel" aria-hidden="true">
+        <div class="place-list-panel__head">
+          <div>
+            <div class="place-list-panel__title">名單</div>
+            <div id="place-list-count" class="place-list-panel__subtitle">0 筆</div>
+          </div>
+          <button type="button" id="btn-place-list-close" class="place-list-panel__close">✕</button>
+        </div>
+        <div class="place-list-panel__tools">
+          <input id="place-list-search" type="search" placeholder="搜尋姓名、受訪者、地址、令號">
+          <div class="quick-filters" aria-label="快速篩選">
+            <button type="button" class="quick-filter is-active" data-quick-filter="all">全部</button>
+            <button type="button" class="quick-filter" data-quick-filter="over65">65歲以上</button>
+            <button type="button" class="quick-filter" data-quick-filter="route">路線清單</button>
+          </div>
+        </div>
+        <div id="place-list-items" class="place-list-items"></div>
+      </aside>
 
       <!-- 篩選面板 -->
       <aside id="filter-panel" class="filter-panel" aria-hidden="true">
@@ -359,6 +382,8 @@ $mapConfig = [
           重新規劃
         </button>
       </div>
+
+      <div id="toast-root" class="toast-root" aria-live="polite" aria-atomic="true"></div>
 
       <!-- 新增/編輯標記 -->
       <div id="modal-place-form" class="modal" aria-hidden="true">

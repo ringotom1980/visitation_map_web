@@ -49,6 +49,58 @@ function json_fail(string $message, int $httpStatus = 400, $code = null): void
     json_error($message, $httpStatus, $code);
 }
 
+if (!csrf_validate_request()) {
+    json_error('安全驗證已過期，請重新整理頁面後再試。', 419, 'CSRF_INVALID');
+}
+
+function is_production_env(): bool
+{
+    return strtolower((string)APP_ENV) === 'production';
+}
+
+function server_error(Throwable $e, string $publicMessage = '系統忙碌中，請稍後再試。'): void
+{
+    error_log($e->getMessage() . ' in ' . $e->getFile() . ':' . $e->getLine());
+    json_error(is_production_env() ? $publicMessage : $publicMessage . ' ' . $e->getMessage(), 500);
+}
+
+function ensure_places_soft_delete_columns(PDO $pdo): void
+{
+    static $done = false;
+    if ($done) return;
+
+    $existing = [];
+    $stmt = $pdo->query("SHOW COLUMNS FROM places");
+    while ($row = $stmt->fetch(PDO::FETCH_ASSOC)) {
+        $existing[(string)$row['Field']] = true;
+    }
+
+    if (!isset($existing['deleted_at'])) {
+        $pdo->exec("ALTER TABLE places ADD COLUMN deleted_at datetime DEFAULT NULL");
+    }
+    if (!isset($existing['deleted_by_user_id'])) {
+        $pdo->exec("ALTER TABLE places ADD COLUMN deleted_by_user_id bigint(20) UNSIGNED DEFAULT NULL");
+    }
+    if (!isset($existing['deleted_note'])) {
+        $pdo->exec("ALTER TABLE places ADD COLUMN deleted_note varchar(255) DEFAULT NULL");
+    }
+
+    $indexes = [];
+    $stmtIdx = $pdo->query("SHOW INDEX FROM places");
+    while ($row = $stmtIdx->fetch(PDO::FETCH_ASSOC)) {
+        $indexes[(string)$row['Key_name']] = (int)$row['Non_unique'];
+    }
+
+    if (array_key_exists('uq_places_org_serv_benef', $indexes) && $indexes['uq_places_org_serv_benef'] === 0) {
+        $pdo->exec("ALTER TABLE places DROP INDEX uq_places_org_serv_benef");
+    }
+    if (!array_key_exists('idx_places_org_serv_benef', $indexes)) {
+        $pdo->exec("ALTER TABLE places ADD INDEX idx_places_org_serv_benef (organization_id, serviceman_name, visit_name)");
+    }
+
+    $done = true;
+}
+
 /**
  * 取得登入者（API 用）＋立刻釋放 session lock，避免多支 API 並發互卡
  * - 重要：只要後面不再需要寫 $_SESSION，就要釋放

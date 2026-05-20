@@ -34,6 +34,13 @@ $pageCss   = ['assets/css/base.css', 'assets/css/admin.css'];
 
 <main class="admin-main">
   <section class="admin-tab-panel active">
+    <h2>系統概況</h2>
+    <div id="adminStats" class="admin-stats">
+      <div class="empty-hint">載入中…</div>
+    </div>
+  </section>
+
+  <section class="admin-tab-panel active">
     <h2>使用者管理</h2>
     <div id="usersContainer" class="table-wrapper">
       <!-- admin.js 會載入列表 -->

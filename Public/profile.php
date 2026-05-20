@@ -1,4 +1,9 @@
 <?php
-// 路徑:Public/profile.php
-// TODO: User profile page
-echo "User Profile Page (TODO)";
+declare(strict_types=1);
+
+require_once __DIR__ . '/../config/auth.php';
+
+require_login_page();
+
+header('Location: ' . route_url('app'));
+exit;

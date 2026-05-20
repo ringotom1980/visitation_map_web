@@ -14,17 +14,7 @@ header('Content-Type: application/json; charset=utf-8');
  * 保證任何錯誤都回 JSON（避免 500 空 body）
  */
 set_exception_handler(function (Throwable $e) {
-    http_response_code(500);
-    echo json_encode([
-        'success' => false,
-        'error' => [
-            'message' => $e->getMessage(),
-            'type'    => get_class($e),
-            'file'    => $e->getFile(),
-            'line'    => $e->getLine(),
-        ],
-    ], JSON_UNESCAPED_UNICODE);
-    exit;
+    server_error($e, '新增標記時發生錯誤，請稍後再試。');
 });
 
 set_error_handler(function ($severity, $message, $file, $line) {
@@ -89,6 +79,7 @@ $note        = ($note === '') ? null : $note;
 
 // ✅ 先拿 PDO（重要：後面會用到）
 $pdo = db();
+ensure_places_soft_delete_columns($pdo);
 
 // 地址解析（戶籍地 town_code）— 不與列管強制一致
 require_once __DIR__ . '/../common/address_parser.php';
@@ -99,6 +90,24 @@ if ($address !== null) {
 $addressTownCode = ($addressTownCode === '' ? null : $addressTownCode);
 
 try {
+    $stmtDup = $pdo->prepare("
+        SELECT id
+        FROM places
+        WHERE organization_id = :org_id
+          AND serviceman_name = :serviceman_name
+          AND COALESCE(visit_name, '') = COALESCE(:visit_name, '')
+          AND deleted_at IS NULL
+        LIMIT 1
+    ");
+    $stmtDup->execute([
+        ':org_id' => (int)$user['organization_id'],
+        ':serviceman_name' => $soldierName,
+        ':visit_name' => $visitName,
+    ]);
+    if ($stmtDup->fetchColumn()) {
+        json_error('同單位下「官兵姓名 + 受益人姓名」已存在，請確認是否重複。', 409);
+    }
+
     // 若有 town_code 但未帶 county_code → 由 admin_towns 推得
     if ($mtownCode && !$mcountyCode) {
         $stmtCC = $pdo->prepare('SELECT county_code FROM admin_towns WHERE town_code = :tc LIMIT 1');
@@ -234,5 +243,5 @@ try {
     if (strpos($msg, 'Duplicate') !== false || strpos($msg, '1062') !== false) {
         json_error('同單位下「官兵姓名 + 受益人姓名」已存在，請確認是否重複。', 409);
     }
-    json_error('新增標記時發生錯誤：' . $e->getMessage(), 500);
+    server_error($e, '新增標記時發生錯誤，請稍後再試。');
 }

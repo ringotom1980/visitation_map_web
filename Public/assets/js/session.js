@@ -1,2 +1,4 @@
-// TODO: session check logic
-console.log("session.js loaded");
+(function () {
+  'use strict';
+  // Reserved for future session status checks.
+})();
