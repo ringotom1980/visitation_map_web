@@ -448,7 +448,10 @@ var MapModule = (function () {
     lng = Number(lng);
     if (!isValidLatLng(lat, lng)) return;
 
-    if (myLocationMarker) myLocationMarker.remove();
+    if (myLocationMarker) {
+      myLocationMarker.setLngLat([lng, lat]);
+      return;
+    }
 
     var el = document.createElement('div');
     el.className = 'my-location-dot';

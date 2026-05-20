@@ -412,16 +412,9 @@ var MapModule = (function () {
 
     var pos = new google.maps.LatLng(lat, lng);
 
-    // 先清掉舊的 marker（如果你之前用 marker）
-    if (myLocationMarker) {
-      myLocationMarker.setMap(null);
-      myLocationMarker = null;
-    }
-
-    // 清掉舊 overlay
-    if (myLocationOverlay) {
-      myLocationOverlay.setMap(null);
-      myLocationOverlay = null;
+    if (myLocationOverlay && typeof myLocationOverlay.setPosition === 'function') {
+      myLocationOverlay.setPosition(pos);
+      return;
     }
 
     // Overlay：Google-like pulsing dot

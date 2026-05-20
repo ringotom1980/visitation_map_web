@@ -21,6 +21,9 @@ document.addEventListener('DOMContentLoaded', function () {
     fallbackCenter: null
   };
   var __initialCentered = false;
+  var myLocationWatchId = null;
+  var latestMyLocation = null;
+  var panToMyLocationOnNextUpdate = false;
 
   // ===== 篩選模組事件：集中在這裡發送（不要散落各處）=====
   function emitRouteChanged() {
@@ -1155,9 +1158,95 @@ document.addEventListener('DOMContentLoaded', function () {
     requestMyLocation(false);
   }
 
+  function isMobileTrackingEnv() {
+    return ('ontouchstart' in window) || !!navigator.maxTouchPoints;
+  }
+
+  function applyMyLocation(lat, lng, panTo, accuracy) {
+    lat = Number(lat);
+    lng = Number(lng);
+    if (!isFinite(lat) || !isFinite(lng)) return;
+
+    latestMyLocation = { lat: lat, lng: lng, accuracy: accuracy };
+
+    myLocationPoint = {
+      id: '__me',
+      serviceman_name: '目前位置',
+      category: 'CURRENT',
+      visit_target: '',
+      address_text: '',
+      note: '',
+      lat: lat,
+      lng: lng,
+      soldier_name: '目前位置',
+      target_name: '',
+      address: ''
+    };
+
+    if (Array.isArray(state.routePoints) && state.routePoints.length > 0 && state.routePoints[0] && state.routePoints[0].id === '__me') {
+      state.routePoints[0] = myLocationPoint;
+    }
+
+    MapModule.showMyLocation(lat, lng);
+
+    if (panTo === true && MapModule && typeof MapModule.panToLatLng === 'function') {
+      MapModule.panToLatLng(lat, lng, 16);
+    }
+
+    if (state.mode === Mode.ROUTE_PLANNING || state.mode === Mode.ROUTE_READY) {
+      ensureStartPoint();
+      renderRouteList();
+      MapModule.setMode(state.mode, state.routePoints);
+      updateCommitState();
+    }
+  }
+
+  function startMyLocationWatch(panTo) {
+    if (!navigator.geolocation || !navigator.geolocation.watchPosition) return false;
+
+    if (panTo === true) {
+      if (latestMyLocation && isFinite(latestMyLocation.lat) && isFinite(latestMyLocation.lng)) {
+        MapModule.panToLatLng(latestMyLocation.lat, latestMyLocation.lng, 16);
+      } else {
+        panToMyLocationOnNextUpdate = true;
+      }
+    }
+
+    if (myLocationWatchId !== null) return true;
+
+    myLocationWatchId = navigator.geolocation.watchPosition(
+      function (pos) {
+        var lat = pos.coords.latitude;
+        var lng = pos.coords.longitude;
+        var acc = pos && pos.coords ? Number(pos.coords.accuracy) : NaN;
+        var shouldPan = panToMyLocationOnNextUpdate === true;
+        panToMyLocationOnNextUpdate = false;
+
+        if (!shouldPan && (!isFinite(acc) || acc > 300)) {
+          console.warn('geolocation accuracy too low (watch), acc(m)=', acc);
+          if (!latestMyLocation) panToFallbackIfNeeded(false);
+          return;
+        }
+
+        applyMyLocation(lat, lng, shouldPan, acc);
+      },
+      function (err) {
+        console.warn('geolocation watch fail:', err && err.message ? err.message : err);
+        if (!latestMyLocation) panToFallbackIfNeeded(panTo === true);
+      },
+      { enableHighAccuracy: true, timeout: 10000, maximumAge: 5000 }
+    );
+
+    return true;
+  }
+
   function requestMyLocation(panTo) {
     if (!navigator.geolocation) {
       panToFallbackIfNeeded();
+      return;
+    }
+
+    if (isMobileTrackingEnv() && startMyLocationWatch(panTo === true)) {
       return;
     }
 
@@ -1177,31 +1266,7 @@ document.addEventListener('DOMContentLoaded', function () {
           return;
         }
 
-        myLocationPoint = {
-          id: '__me',
-          serviceman_name: '目前位置',
-          category: 'CURRENT',
-          visit_target: '',
-          address_text: '',
-          note: '',
-          lat: lat,
-          lng: lng,
-          soldier_name: '目前位置',
-          target_name: '',
-          address: ''
-        };
-
-        MapModule.showMyLocation(lat, lng);
-        // ✅ 鏡頭移動：只有使用者主動（panTo=true）才移動
-        if (panTo === true && MapModule && typeof MapModule.panToLatLng === 'function') {
-          MapModule.panToLatLng(lat, lng, 16);
-        }
-        if (state.mode === Mode.ROUTE_PLANNING || state.mode === Mode.ROUTE_READY) {
-          ensureStartPoint();
-          renderRouteList();
-          MapModule.setMode(state.mode, state.routePoints);
-          updateCommitState();
-        }
+        applyMyLocation(lat, lng, panTo === true, acc);
       }
       ,
       function (err) {
