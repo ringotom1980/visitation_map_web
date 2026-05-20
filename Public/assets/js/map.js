@@ -732,22 +732,9 @@ var MapModule = (function () {
     clearRouteLine();
 
     if (!Array.isArray(routePoints) || routePoints.length < 2) return;
+    if (!Array.isArray(routeGeometryPath) || routeGeometryPath.length < 2) return;
 
-    var path = [];
-    if (Array.isArray(routeGeometryPath) && routeGeometryPath.length >= 2) {
-      path = routeGeometryPath.slice();
-    } else {
-      for (var i = 0; i < routePoints.length; i++) {
-        var p = routePoints[i];
-        if (!p) continue;
-
-        var lat = (typeof p.lat === 'function') ? p.lat() : parseFloat(p.lat);
-        var lng = (typeof p.lng === 'function') ? p.lng() : parseFloat(p.lng);
-
-        if (!isFinite(lat) || !isFinite(lng)) continue;
-        path.push({ lat: lat, lng: lng });
-      }
-    }
+    var path = routeGeometryPath.slice();
 
     if (path.length < 2) return;
 

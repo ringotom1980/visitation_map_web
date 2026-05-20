@@ -307,18 +307,9 @@ var MapModule = (function () {
   function drawRouteLine(routePoints) {
     clearRouteLine();
     if (!map || !map.isStyleLoaded() || !Array.isArray(routePoints) || routePoints.length < 2) return;
+    if (!Array.isArray(routeGeometryCoords) || routeGeometryCoords.length < 2) return;
 
-    var coords = [];
-    if (Array.isArray(routeGeometryCoords) && routeGeometryCoords.length >= 2) {
-      coords = routeGeometryCoords.slice();
-    } else {
-      routePoints.forEach(function (p) {
-        if (!p) return;
-        var lat = (typeof p.lat === 'function') ? Number(p.lat()) : Number(p.lat);
-        var lng = (typeof p.lng === 'function') ? Number(p.lng()) : Number(p.lng);
-        if (isValidLatLng(lat, lng)) coords.push([lng, lat]);
-      });
-    }
+    var coords = routeGeometryCoords.slice();
 
     if (coords.length < 2) return;
 
