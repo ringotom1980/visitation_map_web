@@ -88,6 +88,7 @@ $mapConfig = [
   'provider' => $mapProvider,
   'maptilerKey' => $mapProvider === 'maplibre' ? maptiler_key() : '',
   'maptilerStyleUrl' => $mapProvider === 'maplibre' ? maptiler_style_url() : '',
+  'routingProvider' => routing_provider(),
   'language' => 'zh',
   'country' => 'tw',
 ];

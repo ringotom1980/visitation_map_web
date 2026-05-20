@@ -20,6 +20,7 @@ var MapModule = (function () {
 
   // 路線 polyline（簡版：依 routePoints 順序連線）
   var routeLine = null;
+  var routeGeometryPath = null;
 
   // 狀態（由 app.js 設定）
   var mode = 'BROWSE';
@@ -733,15 +734,19 @@ var MapModule = (function () {
     if (!Array.isArray(routePoints) || routePoints.length < 2) return;
 
     var path = [];
-    for (var i = 0; i < routePoints.length; i++) {
-      var p = routePoints[i];
-      if (!p) continue;
+    if (Array.isArray(routeGeometryPath) && routeGeometryPath.length >= 2) {
+      path = routeGeometryPath.slice();
+    } else {
+      for (var i = 0; i < routePoints.length; i++) {
+        var p = routePoints[i];
+        if (!p) continue;
 
-      var lat = (typeof p.lat === 'function') ? p.lat() : parseFloat(p.lat);
-      var lng = (typeof p.lng === 'function') ? p.lng() : parseFloat(p.lng);
+        var lat = (typeof p.lat === 'function') ? p.lat() : parseFloat(p.lat);
+        var lng = (typeof p.lng === 'function') ? p.lng() : parseFloat(p.lng);
 
-      if (!isFinite(lat) || !isFinite(lng)) continue;
-      path.push({ lat: lat, lng: lng });
+        if (!isFinite(lat) || !isFinite(lng)) continue;
+        path.push({ lat: lat, lng: lng });
+      }
     }
 
     if (path.length < 2) return;
@@ -770,6 +775,16 @@ var MapModule = (function () {
       routeLine.setMap(null);
       routeLine = null;
     }
+  }
+
+  function setRouteGeometry(coords) {
+    routeGeometryPath = Array.isArray(coords) ? coords.filter(function (c) {
+      return Array.isArray(c) && c.length >= 2 && isFinite(Number(c[0])) && isFinite(Number(c[1]));
+    }).map(function (c) {
+      return { lat: Number(c[1]), lng: Number(c[0]) };
+    }) : null;
+
+    if (mode === 'ROUTE_READY') drawRouteLine(currentRoutePoints);
   }
 
   /* ---------- 更新某個地點座標：只移動同一顆 marker + overlay（局部更新） ---------- */
@@ -1000,6 +1015,7 @@ var MapModule = (function () {
     init: init,
     setPlaces: setPlaces,
     setMode: setMode,
+    setRouteGeometry: setRouteGeometry,
     focusPlace: focusPlace,
     focusToPlaceWithSheetOffset: focusToPlaceWithSheetOffset,
     updatePlacePosition: updatePlacePosition,

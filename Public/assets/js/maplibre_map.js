@@ -8,6 +8,7 @@ var MapModule = (function () {
   var placesCache = [];
   var routeLineSourceId = 'route-line-source';
   var routeLineLayerId = 'route-line-layer';
+  var routeGeometryCoords = null;
   var searchPinMarker = null;
   var searchPinLatLng = null;
   var myLocationMarker = null;
@@ -308,12 +309,16 @@ var MapModule = (function () {
     if (!map || !map.isStyleLoaded() || !Array.isArray(routePoints) || routePoints.length < 2) return;
 
     var coords = [];
-    routePoints.forEach(function (p) {
-      if (!p) return;
-      var lat = (typeof p.lat === 'function') ? Number(p.lat()) : Number(p.lat);
-      var lng = (typeof p.lng === 'function') ? Number(p.lng()) : Number(p.lng);
-      if (isValidLatLng(lat, lng)) coords.push([lng, lat]);
-    });
+    if (Array.isArray(routeGeometryCoords) && routeGeometryCoords.length >= 2) {
+      coords = routeGeometryCoords.slice();
+    } else {
+      routePoints.forEach(function (p) {
+        if (!p) return;
+        var lat = (typeof p.lat === 'function') ? Number(p.lat()) : Number(p.lat);
+        var lng = (typeof p.lng === 'function') ? Number(p.lng()) : Number(p.lng);
+        if (isValidLatLng(lat, lng)) coords.push([lng, lat]);
+      });
+    }
 
     if (coords.length < 2) return;
 
@@ -349,6 +354,16 @@ var MapModule = (function () {
     if (!map || !map.isStyleLoaded()) return;
     if (map.getLayer(routeLineLayerId)) map.removeLayer(routeLineLayerId);
     if (map.getSource(routeLineSourceId)) map.removeSource(routeLineSourceId);
+  }
+
+  function setRouteGeometry(coords) {
+    routeGeometryCoords = Array.isArray(coords) ? coords.filter(function (c) {
+      return Array.isArray(c) && c.length >= 2 && isValidLatLng(Number(c[1]), Number(c[0]));
+    }).map(function (c) {
+      return [Number(c[0]), Number(c[1])];
+    }) : null;
+
+    if (mode === 'ROUTE_READY') drawRouteLine(currentRoutePoints);
   }
 
   function showSearchPin(lngLat) {
@@ -646,6 +661,7 @@ var MapModule = (function () {
     init: init,
     setPlaces: setPlaces,
     setMode: setMode,
+    setRouteGeometry: setRouteGeometry,
     focusPlace: focusPlace,
     focusToPlaceWithSheetOffset: focusToPlaceWithSheetOffset,
     updatePlacePosition: updatePlacePosition,

@@ -18,7 +18,8 @@ document.addEventListener('DOMContentLoaded', function () {
     placesCache: [],
     routePoints: [],
     me: null,
-    fallbackCenter: null
+    fallbackCenter: null,
+    roadRoute: null
   };
   var __initialCentered = false;
   var myLocationWatchId = null;
@@ -1043,6 +1044,13 @@ document.addEventListener('DOMContentLoaded', function () {
 
   function applyMode(nextMode) {
     state.mode = nextMode;
+    if (nextMode !== Mode.ROUTE_READY) {
+      state.roadRoute = null;
+      if (MapModule && typeof MapModule.setRouteGeometry === 'function') {
+        MapModule.setRouteGeometry(null);
+      }
+      updateRouteSummary(null);
+    }
     // 保險：離開 BROWSE 時，確保資訊抽屜的 backdrop 關閉
     if (nextMode !== Mode.BROWSE) setPlaceSheetBackdrop(false);
     // ✅ 更新座標功能：僅 S1(BROWSE) 可用
@@ -1080,6 +1088,7 @@ document.addEventListener('DOMContentLoaded', function () {
       ensureStartPoint();
       MapModule.setMode(Mode.ROUTE_READY, state.routePoints);
       showRouteActions();
+      loadRoadRouteForCurrentPlan();
 
       if (btnRouteMode) btnRouteMode.classList.remove('fab--active');
       setCommitEnabled(false);
@@ -1152,6 +1161,80 @@ document.addEventListener('DOMContentLoaded', function () {
     if (!routeActionsEl) return;
     routeActionsEl.setAttribute('aria-hidden', 'true');
     document.body.classList.remove('has-route-actions');
+  }
+
+  function collectRouteCoordinates() {
+    ensureStartPoint();
+    var coords = [];
+    (state.routePoints || []).forEach(function (p) {
+      if (!p) return;
+      var lat = (typeof p.lat === 'function') ? Number(p.lat()) : Number(p.lat);
+      var lng = (typeof p.lng === 'function') ? Number(p.lng()) : Number(p.lng);
+      if (isFinite(lat) && isFinite(lng)) coords.push([lng, lat]);
+    });
+    return coords;
+  }
+
+  function formatDistance(meters) {
+    meters = Number(meters);
+    if (!isFinite(meters)) return '—';
+    if (meters >= 1000) return (meters / 1000).toFixed(meters >= 10000 ? 0 : 1) + ' 公里';
+    return Math.round(meters) + ' 公尺';
+  }
+
+  function formatDuration(seconds) {
+    seconds = Number(seconds);
+    if (!isFinite(seconds)) return '—';
+    var mins = Math.round(seconds / 60);
+    if (mins < 60) return mins + ' 分鐘';
+    var h = Math.floor(mins / 60);
+    var m = mins % 60;
+    return h + ' 小時' + (m ? ' ' + m + ' 分鐘' : '');
+  }
+
+  function updateRouteSummary(route) {
+    var distEl = document.getElementById('route-distance');
+    var durEl = document.getElementById('route-duration');
+    if (distEl) distEl.textContent = '距離：' + (route ? formatDistance(route.distance_m) : '—');
+    if (durEl) durEl.textContent = '時間：' + (route ? formatDuration(route.duration_s) : '—');
+  }
+
+  function showRoutingQuotaMessage() {
+    alert('今日免費額度已用完，建議直接用 Google 導航。');
+  }
+
+  async function loadRoadRouteForCurrentPlan() {
+    if (!window.MAP_CONFIG || window.MAP_CONFIG.routingProvider !== 'openrouteservice') return;
+    if (!MapModule || typeof MapModule.setRouteGeometry !== 'function') return;
+
+    var coords = collectRouteCoordinates();
+    if (coords.length < 2) return;
+    if (coords.length > 50) {
+      alert('路線點超過 50 個，無法使用免費道路路線服務，建議直接用 Google 導航。');
+      return;
+    }
+
+    updateRouteSummary(null);
+
+    try {
+      var json = await apiRequest('/routing/route', 'POST', {
+        profile: 'driving-car',
+        coordinates: coords
+      });
+      var data = json && json.data ? json.data : null;
+      if (!data || !Array.isArray(data.geometry)) throw new Error('道路路線資料格式錯誤');
+
+      state.roadRoute = data;
+      MapModule.setRouteGeometry(data.geometry);
+      updateRouteSummary(data);
+    } catch (err) {
+      var msg = (err && err.message) ? err.message : '';
+      if (msg === '今日免費額度已用完') {
+        showRoutingQuotaMessage();
+        return;
+      }
+      alert((msg || '道路路線服務暫時無法使用') + '，建議直接用 Google 導航。');
+    }
   }
 
   function initMyLocationNonBlocking() {

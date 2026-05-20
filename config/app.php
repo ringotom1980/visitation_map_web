@@ -39,6 +39,11 @@ define('MAPTILER_STYLE_URL', env('MAPTILER_STYLE_URL', ''));
 // ===== Auth options =====
 define('AUTH_DEVICE_OTP_ENABLED', in_array(strtolower((string)env('AUTH_DEVICE_OTP_ENABLED', 'false')), ['1', 'true', 'yes', 'on'], true));
 
+// ===== Routing provider =====
+define('ROUTING_PROVIDER', strtolower(env('ROUTING_PROVIDER', 'none')));
+define('OPENROUTESERVICE_API_KEY', env('OPENROUTESERVICE_API_KEY', ''));
+define('ROUTING_DAILY_LIMIT', max(1, (int)env('ROUTING_DAILY_LIMIT', '1900')));
+
 // Session name
 session_name('visitation_map_session');
 
@@ -153,5 +158,35 @@ if (!function_exists('auth_device_otp_enabled')) {
     function auth_device_otp_enabled(): bool
     {
         return AUTH_DEVICE_OTP_ENABLED;
+    }
+}
+
+if (!function_exists('routing_provider')) {
+    /**
+     * 取得道路路線供應商：none / openrouteservice
+     */
+    function routing_provider(): string
+    {
+        return ROUTING_PROVIDER === 'openrouteservice' ? 'openrouteservice' : 'none';
+    }
+}
+
+if (!function_exists('openrouteservice_key')) {
+    /**
+     * 取得 openrouteservice API Key（來自 .env）
+     */
+    function openrouteservice_key(): string
+    {
+        return OPENROUTESERVICE_API_KEY;
+    }
+}
+
+if (!function_exists('routing_daily_limit')) {
+    /**
+     * 本系統每日道路路線 request 上限。
+     */
+    function routing_daily_limit(): int
+    {
+        return ROUTING_DAILY_LIMIT;
     }
 }
