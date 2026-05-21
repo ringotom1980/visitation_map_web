@@ -101,12 +101,19 @@ var MapModule = (function () {
     map.on('click', function (evt) {
       if (mode === 'ROUTE_PLANNING') {
         document.dispatchEvent(new CustomEvent('map:blankClick'));
+        return;
+      }
+
+      if (mode === 'BROWSE' && !longPressFired && evt && evt.lngLat) {
+        tempNewPlaceLatLng = makeLatLng(evt.lngLat.lat, evt.lngLat.lng);
+        showSearchPin({ lat: evt.lngLat.lat, lng: evt.lngLat.lng });
       }
     });
   }
 
   var LONG_PRESS_MS = 600;
   var longPressTimer = null;
+  var longPressFired = false;
   var downPoint = null;
   var activePointers = new Set();
 
@@ -122,6 +129,7 @@ var MapModule = (function () {
         return;
       }
 
+      longPressFired = false;
       downPoint = { x: e.clientX, y: e.clientY };
       longPressTimer = setTimeout(function () {
         if (activePointers.size !== 1 || !downPoint) return;
@@ -130,6 +138,8 @@ var MapModule = (function () {
         var pt = [e.clientX - rect.left, e.clientY - rect.top];
         var ll = map.unproject(pt);
         tempNewPlaceLatLng = makeLatLng(ll.lat, ll.lng);
+        longPressFired = true;
+        showSearchPin({ lat: ll.lat, lng: ll.lng });
 
         reverseGeocode(ll.lat, ll.lng).then(function (address) {
           if (initOptions && typeof initOptions.onMapLongPressForNewPlace === 'function') {

@@ -215,6 +215,7 @@ var MapModule = (function () {
         }
 
         tempNewPlaceLatLng = latLng;
+        showSearchPin(latLng);
 
         if (geocoder) {
           geocoder.geocode({ location: latLng }, function (results, status) {
@@ -390,10 +391,13 @@ var MapModule = (function () {
         return;
       }
 
-      // 規格確認：
-      // - S1（BROWSE）：點地圖空白「不做任何事」（新增只靠長按）
-      // - S3（ROUTE_READY）：點地圖空白不做事
-      //（是否關閉任何資訊抽屜，交給 app.js 依 UX 規格統一處理）
+      if (mode === 'BROWSE' && evt && evt.latLng && !longPressFired) {
+        tempNewPlaceLatLng = evt.latLng;
+        showSearchPin(evt.latLng);
+      }
+
+      // S3（ROUTE_READY）：點地圖空白不做事
+      // 是否關閉資訊抽屜，交給 app.js 依 UX 規格統一處理
     });
   }
 
