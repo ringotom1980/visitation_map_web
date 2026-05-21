@@ -13,6 +13,7 @@ var MapModule = (function () {
   var markersById = new Map();
   var searchPinMarker = null;
   var searchPinLatLng = null;
+  var searchPinPressTimer = null;
 
   // 目前位置 marker
   var myLocationMarker = null;
@@ -282,6 +283,7 @@ var MapModule = (function () {
         clickable: true,
         zIndex: 9999
       });
+      bindSearchPinLongPress(searchPinMarker);
     } else {
       searchPinMarker.setPosition(latLng);
       searchPinMarker.setMap(map);
@@ -290,8 +292,53 @@ var MapModule = (function () {
 
   function clearSearchPin() {
     searchPinLatLng = null;
+    clearSearchPinLongPress();
     if (searchPinMarker) {
       searchPinMarker.setMap(null);
+    }
+  }
+
+  function bindSearchPinLongPress(marker) {
+    if (!marker || !google || !google.maps || !google.maps.event) return;
+
+    marker.addListener('mousedown', function () {
+      if (mode !== 'BROWSE' || !searchPinLatLng) return;
+      clearSearchPinLongPress();
+      searchPinPressTimer = setTimeout(function () {
+        openCreateFromSearchPin();
+      }, LONG_PRESS_MS);
+    });
+
+    marker.addListener('mouseup', clearSearchPinLongPress);
+    marker.addListener('mouseout', clearSearchPinLongPress);
+    marker.addListener('dragstart', clearSearchPinLongPress);
+  }
+
+  function clearSearchPinLongPress() {
+    clearTimeout(searchPinPressTimer);
+    searchPinPressTimer = null;
+  }
+
+  function openCreateFromSearchPin() {
+    if (mode !== 'BROWSE' || !searchPinLatLng) return;
+
+    tempNewPlaceLatLng = searchPinLatLng;
+
+    if (geocoder) {
+      geocoder.geocode({ location: searchPinLatLng }, function (results, status) {
+        var addr = '';
+        if (status === 'OK' && results && results[0]) {
+          addr = results[0].formatted_address || '';
+        }
+        if (initOptions && typeof initOptions.onMapLongPressForNewPlace === 'function') {
+          initOptions.onMapLongPressForNewPlace(searchPinLatLng, addr);
+        }
+      });
+      return;
+    }
+
+    if (initOptions && typeof initOptions.onMapLongPressForNewPlace === 'function') {
+      initOptions.onMapLongPressForNewPlace(searchPinLatLng, '');
     }
   }
 

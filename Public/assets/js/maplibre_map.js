@@ -11,6 +11,7 @@ var MapModule = (function () {
   var routeGeometryCoords = null;
   var searchPinMarker = null;
   var searchPinLatLng = null;
+  var searchPinPressTimer = null;
   var myLocationMarker = null;
   var tempNewPlaceLatLng = null;
   var mode = 'BROWSE';
@@ -376,6 +377,7 @@ var MapModule = (function () {
     if (!searchPinMarker) {
       var el = document.createElement('div');
       el.className = 'ml-search-pin';
+      bindSearchPinLongPress(el);
       searchPinMarker = new maplibregl.Marker({ element: el, anchor: 'bottom' }).setLngLat([ll.lng, ll.lat]).addTo(map);
     } else {
       searchPinMarker.setLngLat([ll.lng, ll.lat]);
@@ -385,8 +387,52 @@ var MapModule = (function () {
 
   function clearSearchPin() {
     searchPinLatLng = null;
+    clearSearchPinLongPress();
     if (searchPinMarker) searchPinMarker.remove();
     searchPinMarker = null;
+  }
+
+  function bindSearchPinLongPress(el) {
+    if (!el) return;
+
+    el.addEventListener('pointerdown', function (e) {
+      if (mode !== 'BROWSE' || !searchPinLatLng) return;
+      e.stopPropagation();
+      clearSearchPinLongPress();
+      searchPinPressTimer = setTimeout(function () {
+        openCreateFromSearchPin();
+      }, LONG_PRESS_MS);
+    });
+
+    ['pointerup', 'pointercancel', 'pointerleave'].forEach(function (name) {
+      el.addEventListener(name, function (e) {
+        if (e && e.stopPropagation) e.stopPropagation();
+        clearSearchPinLongPress();
+      });
+    });
+  }
+
+  function clearSearchPinLongPress() {
+    clearTimeout(searchPinPressTimer);
+    searchPinPressTimer = null;
+  }
+
+  function openCreateFromSearchPin() {
+    if (mode !== 'BROWSE' || !searchPinLatLng) return;
+    var lat = Number(searchPinLatLng.lat());
+    var lng = Number(searchPinLatLng.lng());
+    if (!isValidLatLng(lat, lng)) return;
+
+    tempNewPlaceLatLng = makeLatLng(lat, lng);
+    reverseGeocode(lat, lng).then(function (address) {
+      if (initOptions && typeof initOptions.onMapLongPressForNewPlace === 'function') {
+        initOptions.onMapLongPressForNewPlace(tempNewPlaceLatLng, address || '');
+      }
+    }).catch(function () {
+      if (initOptions && typeof initOptions.onMapLongPressForNewPlace === 'function') {
+        initOptions.onMapLongPressForNewPlace(tempNewPlaceLatLng, '');
+      }
+    });
   }
 
   function searchByText(query, cb) {
