@@ -410,6 +410,15 @@ var MapModule = (function () {
     tempNewPlaceLatLng = null;
   }
 
+  function setTempNewPlaceLatLng(lat, lng) {
+    lat = Number(lat);
+    lng = Number(lng);
+    if (!isFinite(lat) || !isFinite(lng)) return false;
+    if (lat < -90 || lat > 90 || lng < -180 || lng > 180) return false;
+    tempNewPlaceLatLng = new google.maps.LatLng(lat, lng);
+    return true;
+  }
+
   /* ---------- 目前位置 ---------- */
   function showMyLocation(lat, lng) {
     if (!map) return;
@@ -1014,6 +1023,7 @@ var MapModule = (function () {
     buildDirectionsUrl: buildDirectionsUrl,
     showMyLocation: showMyLocation,
     getTempNewPlaceLatLng: getTempNewPlaceLatLng,
+    setTempNewPlaceLatLng: setTempNewPlaceLatLng,
     clearTempNewPlaceLatLng: clearTempNewPlaceLatLng,
     setFilterVisibility: setFilterVisibility,
     // ★搜尋列用

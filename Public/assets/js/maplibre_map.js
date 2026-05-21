@@ -633,6 +633,14 @@ var MapModule = (function () {
     tempNewPlaceLatLng = null;
   }
 
+  function setTempNewPlaceLatLng(lat, lng) {
+    lat = Number(lat);
+    lng = Number(lng);
+    if (!isValidLatLng(lat, lng)) return false;
+    tempNewPlaceLatLng = makeLatLng(lat, lng);
+    return true;
+  }
+
   function getProjection() {
     return null;
   }
@@ -670,6 +678,7 @@ var MapModule = (function () {
     buildDirectionsUrl: buildDirectionsUrl,
     showMyLocation: showMyLocation,
     getTempNewPlaceLatLng: getTempNewPlaceLatLng,
+    setTempNewPlaceLatLng: setTempNewPlaceLatLng,
     clearTempNewPlaceLatLng: clearTempNewPlaceLatLng,
     setFilterVisibility: setFilterVisibility,
     showSearchPin: showSearchPin,

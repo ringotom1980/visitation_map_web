@@ -503,6 +503,101 @@ document.addEventListener('DOMContentLoaded', function () {
       }, 0);
     }
 
+    function isValidLatLng(lat, lng) {
+      lat = Number(lat);
+      lng = Number(lng);
+      return isFinite(lat) && isFinite(lng) && lat >= -90 && lat <= 90 && lng >= -180 && lng <= 180;
+    }
+
+    function parseSearchLatLng(text) {
+      var s = String(text || '').trim();
+      if (!s) return null;
+
+      var m = s.match(/@(-?\d+(?:\.\d+)?),\s*(-?\d+(?:\.\d+)?)/);
+      if (m && isValidLatLng(m[1], m[2])) return { lat: Number(m[1]), lng: Number(m[2]) };
+
+      m = s.match(/!3d(-?\d+(?:\.\d+)?)!4d(-?\d+(?:\.\d+)?)/);
+      if (m && isValidLatLng(m[1], m[2])) return { lat: Number(m[1]), lng: Number(m[2]) };
+
+      m = s.match(/!4d(-?\d+(?:\.\d+)?)!3d(-?\d+(?:\.\d+)?)/);
+      if (m && isValidLatLng(m[2], m[1])) return { lat: Number(m[2]), lng: Number(m[1]) };
+
+      m = s.match(/[?&](?:q|query|ll|destination|daddr)=\s*(-?\d+(?:\.\d+)?)[,\s]+(-?\d+(?:\.\d+)?)/i);
+      if (m && isValidLatLng(m[1], m[2])) return { lat: Number(m[1]), lng: Number(m[2]) };
+
+      m = s.match(/(-?\d+(?:\.\d+)?)[,\s]+(-?\d+(?:\.\d+)?)/);
+      if (m) {
+        var a = Number(m[1]);
+        var b = Number(m[2]);
+        if (isValidLatLng(a, b)) return { lat: a, lng: b };
+        if (isValidLatLng(b, a)) return { lat: b, lng: a };
+      }
+
+      var dms = parseSearchDms(s);
+      if (dms && isValidLatLng(dms.lat, dms.lng)) return dms;
+
+      return null;
+    }
+
+    function parseSearchDms(text) {
+      var s = String(text || '').toUpperCase()
+        .replace(/[°º]/g, ' ')
+        .replace(/[′’']/g, ' ')
+        .replace(/[″”"]/g, ' ')
+        .replace(/,/g, ' ')
+        .replace(/\s{2,}/g, ' ')
+        .trim();
+
+      var re = /(\d{1,3}(?:\.\d+)?)\s+(\d{1,3}(?:\.\d+)?)\s*(\d{1,3}(?:\.\d+)?)?\s*([NS])\s+(\d{1,3}(?:\.\d+)?)\s+(\d{1,3}(?:\.\d+)?)\s*(\d{1,3}(?:\.\d+)?)?\s*([EW])/;
+      var m = s.match(re);
+      if (m) {
+        return {
+          lat: dmsToDecimal(Number(m[1]), Number(m[2]), Number(m[3] || 0), m[4]),
+          lng: dmsToDecimal(Number(m[5]), Number(m[6]), Number(m[7] || 0), m[8])
+        };
+      }
+
+      m = s.match(/([NS])\s*([-\d.]+)\s*([EW])\s*([-\d.]+)/);
+      if (m) {
+        var lat = Number(m[2]);
+        var lng = Number(m[4]);
+        if (m[1] === 'S') lat = -Math.abs(lat);
+        if (m[3] === 'W') lng = -Math.abs(lng);
+        return { lat: lat, lng: lng };
+      }
+
+      m = s.match(/(-?\d+(?:\.\d+)?)\s*([NS])\s+(-?\d+(?:\.\d+)?)\s*([EW])/);
+      if (m) {
+        var lat2 = Number(m[1]);
+        var lng2 = Number(m[3]);
+        if (m[2] === 'S') lat2 = -Math.abs(lat2);
+        if (m[4] === 'W') lng2 = -Math.abs(lng2);
+        return { lat: lat2, lng: lng2 };
+      }
+
+      return null;
+    }
+
+    function dmsToDecimal(deg, min, sec, hem) {
+      var v = Math.abs(Number(deg)) + (Number(min) / 60) + (Number(sec) / 3600);
+      if (hem === 'S' || hem === 'W') v = -v;
+      return v;
+    }
+
+    function focusSearchCoordinate(pos) {
+      if (!pos || !isValidLatLng(pos.lat, pos.lng)) return false;
+      if (MapModule && typeof MapModule.setTempNewPlaceLatLng === 'function') {
+        MapModule.setTempNewPlaceLatLng(pos.lat, pos.lng);
+      }
+      if (MapModule && typeof MapModule.showSearchPin === 'function') {
+        MapModule.showSearchPin({ lat: pos.lat, lng: pos.lng });
+      }
+      if (MapModule && typeof MapModule.panToLatLng === 'function') {
+        MapModule.panToLatLng(pos.lat, pos.lng, 17);
+      }
+      return true;
+    }
+
     // 任何輸入變更 => 控制 X
     input.addEventListener('input', function () {
       syncClearBtn();
@@ -538,6 +633,13 @@ document.addEventListener('DOMContentLoaded', function () {
       closeSuggest();
       var q = (input.value || '').trim();
       if (!q) return;
+
+      var coord = parseSearchLatLng(q);
+      if (coord && focusSearchCoordinate(coord)) {
+        finalizeAfterMyPlaceChosen();
+        if (window.showAppToast) window.showAppToast('已定位到座標，可長按新增點位。', 'success');
+        return;
+      }
 
       // 1) 先找「我自己的標註點」
       var hit = findBestLocalPlace(q);
