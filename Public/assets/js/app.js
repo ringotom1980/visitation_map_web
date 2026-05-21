@@ -47,6 +47,7 @@ document.addEventListener('DOMContentLoaded', function () {
 
   var btnMyLocation = document.getElementById('btn-my-location');
   var btnRouteMode = document.getElementById('btn-route-mode');
+  var btnFilter = document.getElementById('btn-filter');
   var btnRouteExit = document.getElementById('btn-route-exit');
   var btnRouteCommit = document.getElementById('btn-route-commit');
 
@@ -78,6 +79,15 @@ document.addEventListener('DOMContentLoaded', function () {
 
   // 詳細區 DOM
   var detailsWrap = document.getElementById('sheet-place-details');
+
+  function clearTemporaryMapPin() {
+    if (MapModule && typeof MapModule.clearSearchPin === 'function') {
+      MapModule.clearSearchPin();
+    }
+    if (MapModule && typeof MapModule.clearTempNewPlaceLatLng === 'function') {
+      MapModule.clearTempNewPlaceLatLng();
+    }
+  }
 
   // ===== 可調的焦聚安全距離（marker 與抽屜上緣的距離）=====
   // 單位：px，你之後只要改這個數字
@@ -209,9 +219,10 @@ document.addEventListener('DOMContentLoaded', function () {
       return best;
     }
 
-    function focusAndOpenMyPlace(place) {
+  function focusAndOpenMyPlace(place) {
       if (!place) return;
 
+      clearTemporaryMapPin();
       closeSheet('sheet-poi');
 
       state.currentPlace = place;
@@ -728,6 +739,7 @@ document.addEventListener('DOMContentLoaded', function () {
   }
 
   btnMyLocation.addEventListener('click', function () {
+    clearTemporaryMapPin();
 
     var isDesktopEnv = !('ontouchstart' in window) && !navigator.maxTouchPoints;
 
@@ -753,7 +765,14 @@ document.addEventListener('DOMContentLoaded', function () {
 
   if (btnRouteMode) {
     btnRouteMode.addEventListener('click', function () {
+      clearTemporaryMapPin();
       applyMode(Mode.ROUTE_PLANNING);
+    });
+  }
+
+  if (btnFilter) {
+    btnFilter.addEventListener('click', function () {
+      clearTemporaryMapPin();
     });
   }
 
@@ -891,6 +910,7 @@ document.addEventListener('DOMContentLoaded', function () {
 
   if (btnPlaceList) {
     btnPlaceList.addEventListener('click', function () {
+      clearTemporaryMapPin();
       if (!placeListPanel) return;
       var open = placeListPanel.classList.contains('is-open');
       setPlaceListOpen(!open);
@@ -912,6 +932,7 @@ document.addEventListener('DOMContentLoaded', function () {
 
   document.querySelectorAll('[data-quick-filter]').forEach(function (btn) {
     btn.addEventListener('click', function () {
+      clearTemporaryMapPin();
       placeListQuickFilter = btn.getAttribute('data-quick-filter') || 'all';
       document.querySelectorAll('[data-quick-filter]').forEach(function (x) {
         x.classList.toggle('is-active', x === btn);
@@ -993,7 +1014,7 @@ document.addEventListener('DOMContentLoaded', function () {
         }
       }
 
-      if (MapModule && MapModule.clearTempNewPlaceLatLng) MapModule.clearTempNewPlaceLatLng();
+      clearTemporaryMapPin();
     }
 
     // Bottom sheet close（保留原本行為）
@@ -1298,6 +1319,9 @@ document.addEventListener('DOMContentLoaded', function () {
 
   function applyMode(nextMode) {
     state.mode = nextMode;
+    if (nextMode !== Mode.BROWSE) {
+      clearTemporaryMapPin();
+    }
     if (nextMode !== Mode.ROUTE_READY) {
       state.roadRoute = null;
       if (MapModule && typeof MapModule.setRouteGeometry === 'function') {
@@ -1793,6 +1817,7 @@ document.addEventListener('DOMContentLoaded', function () {
   function handleMarkerClickInBrowseMode(place) {
     if (state.mode !== Mode.BROWSE) return;
 
+    clearTemporaryMapPin();
     closeSheet('sheet-poi');
     state.currentPlace = place;
 
@@ -1941,6 +1966,7 @@ document.addEventListener('DOMContentLoaded', function () {
     if (state.mode !== Mode.BROWSE) return;
     if (!googlePlace) return;
 
+    clearTemporaryMapPin();
     // 避免兩個抽屜疊在一起：POI 打開時，先把 places 抽屜收掉（不改動 route/sheet-route）
     closeSheet('sheet-place');
     state.currentPlace = null;

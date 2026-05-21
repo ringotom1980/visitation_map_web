@@ -54,6 +54,9 @@
                     if (PlaceForm._MapModule && PlaceForm._MapModule.clearTempNewPlaceLatLng) {
                         PlaceForm._MapModule.clearTempNewPlaceLatLng();
                     }
+                    if (PlaceForm._MapModule && PlaceForm._MapModule.clearSearchPin) {
+                        PlaceForm._MapModule.clearSearchPin();
+                    }
                 }
             });
         },
@@ -227,6 +230,9 @@
                 this.closeModal('modal-place-form');
                 if (this._MapModule && this._MapModule.clearTempNewPlaceLatLng) {
                     this._MapModule.clearTempNewPlaceLatLng();
+                }
+                if (this._MapModule && this._MapModule.clearSearchPin) {
+                    this._MapModule.clearSearchPin();
                 }
 
                 // 交由 app.js 決定要不要 refreshPlaces（比較乾淨）
