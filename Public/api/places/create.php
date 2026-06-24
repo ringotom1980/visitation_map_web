@@ -98,20 +98,27 @@ if ($address !== null) {
 $addressTownCode = ($addressTownCode === '' ? null : $addressTownCode);
 
 try {
-    $stmtDup = $pdo->prepare("
+    $dupSql = "
         SELECT id
         FROM places
         WHERE organization_id = :org_id
           AND serviceman_name = :serviceman_name
-          AND COALESCE(visit_name, '') = COALESCE(:visit_name, '')
           AND deleted_at IS NULL
-        LIMIT 1
-    ");
-    $stmtDup->execute([
-        ':org_id' => (int)$user['organization_id'],
-        ':serviceman_name' => $soldierName,
-        ':visit_name' => $visitName,
-    ]);
+    ";
+    $dupParams = [
+        'org_id' => (int)$user['organization_id'],
+        'serviceman_name' => $soldierName,
+    ];
+    if ($visitName === null) {
+        $dupSql .= " AND (visit_name IS NULL OR visit_name = '')";
+    } else {
+        $dupSql .= " AND visit_name = :visit_name";
+        $dupParams['visit_name'] = $visitName;
+    }
+    $dupSql .= " LIMIT 1";
+
+    $stmtDup = $pdo->prepare($dupSql);
+    $stmtDup->execute($dupParams);
     if ($stmtDup->fetchColumn()) {
         json_error('同單位下「官兵姓名 + 受益人姓名」已存在，請確認是否重複。', 409);
     }
@@ -122,6 +129,9 @@ try {
         // ✅ execute key 一律不帶冒號
         $stmtCC->execute(['tc' => $mtownCode]);
         $mcountyCode = $stmtCC->fetchColumn() ?: null;
+    }
+    if ($mtownCode && !$mcountyCode) {
+        json_error('列管鄉鎮市區資料不一致，請重新選擇列管鄉鎮市區後再儲存。', 400, 'INVALID_MANAGED_TOWN');
     }
 
     $sql = 'INSERT INTO places (
@@ -248,6 +258,9 @@ try {
 
 } catch (Throwable $e) {
     $msg = $e->getMessage();
+    if (strpos($msg, 'Duplicate') !== false || strpos($msg, '1062') !== false) {
+        json_error('同單位下「官兵姓名 + 受益人姓名」已存在，請確認是否重複。', 409);
+    }
     if (is_database_schema_or_permission_error($e)) {
         server_error($e, '資料庫欄位或權限異常，請確認 places 軟刪除欄位已建立，且資料庫帳號可新增標記。');
     }

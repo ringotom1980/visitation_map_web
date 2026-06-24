@@ -80,13 +80,13 @@ function is_database_schema_or_permission_error(Throwable $e): bool
     $msg = $e->getMessage();
     $code = (string)$e->getCode();
 
-    foreach (['1054', '1142', '1146', '1091', '1060', '42S02', '42S22', '42000'] as $needle) {
+    foreach (['1054', '1142', '1146', '1091', '1060', '1452', '23000', 'HY093', '42S02', '42S22', '42000'] as $needle) {
         if ($code === $needle || strpos($msg, $needle) !== false) {
             return true;
         }
     }
 
-    foreach (['Unknown column', 'Table', 'command denied', 'ALTER command denied', 'Duplicate column'] as $needle) {
+    foreach (['Unknown column', 'Table', 'command denied', 'ALTER command denied', 'Duplicate column', 'foreign key constraint fails', 'Invalid parameter number'] as $needle) {
         if (stripos($msg, $needle) !== false) {
             return true;
         }
