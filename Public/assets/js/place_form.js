@@ -24,6 +24,7 @@
         // state
         _me: null,
         _townOptionsLoaded: false,
+        _createLatLng: null,
 
         init: function (deps) {
             deps = deps || {};
@@ -71,6 +72,7 @@
             if (!this._form) return;
 
             if (this._form.reset) this._form.reset();
+            this._createLatLng = this._normalizeLatLng(latLng);
 
             // 預設值
             this._setValue('place-id', '');
@@ -99,6 +101,7 @@
         // 編輯：由 app.js 的「編輯」按鈕呼叫
         openForEdit: function (place) {
             if (!place) return;
+            this._createLatLng = null;
 
             // 回填表單欄位
             this._setValue('place-id', place.id);
@@ -217,6 +220,7 @@
 
                     await this._PlacesApi.update(id, payload);
                 } else {
+                    latLng = latLng || this._createLatLng;
                     if (!latLng) {
                         alert('請在地圖上長按選擇位置後再儲存。');
                         return;
@@ -234,6 +238,7 @@
                 if (this._MapModule && this._MapModule.clearSearchPin) {
                     this._MapModule.clearSearchPin();
                 }
+                this._createLatLng = null;
 
                 // 交由 app.js 決定要不要 refreshPlaces（比較乾淨）
                 document.dispatchEvent(new CustomEvent('placeForm:saved'));
@@ -272,7 +277,30 @@
             if (window.PlaceCoordUpdate && typeof window.PlaceCoordUpdate.onModalClosed === 'function') {
                 window.PlaceCoordUpdate.onModalClosed();
             }
+            this._createLatLng = null;
 
+        },
+
+        _normalizeLatLng: function (latLng) {
+            if (!latLng) return null;
+
+            var lat = null;
+            var lng = null;
+
+            if (typeof latLng.lat === 'function' && typeof latLng.lng === 'function') {
+                lat = Number(latLng.lat());
+                lng = Number(latLng.lng());
+            } else if (latLng.lat !== undefined && latLng.lng !== undefined) {
+                lat = Number(latLng.lat);
+                lng = Number(latLng.lng);
+            }
+
+            if (!isFinite(lat) || !isFinite(lng)) return null;
+
+            return {
+                lat: function () { return lat; },
+                lng: function () { return lng; }
+            };
         },
 
         _lockBodyScroll: function () {
