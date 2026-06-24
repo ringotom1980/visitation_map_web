@@ -547,7 +547,144 @@ document.addEventListener('DOMContentLoaded', function () {
       var dms = parseSearchDms(s);
       if (dms && isValidLatLng(dms.lat, dms.lng)) return dms;
 
+      var plusCode = parseSearchPlusCode(s);
+      if (plusCode && isValidLatLng(plusCode.lat, plusCode.lng)) return plusCode;
+
       return null;
+    }
+
+    function parseSearchPlusCode(text) {
+      var s = String(text || '').toUpperCase().trim();
+      try {
+        s = decodeURIComponent(s);
+      } catch (e) {}
+      if (!s || s.indexOf('+') === -1) return null;
+
+      var m = s.match(/([23456789CFGHJMPQRVWX]{2,8}\+[23456789CFGHJMPQRVWX]{2,3})/i);
+      if (!m) return null;
+
+      var code = m[1].toUpperCase();
+      var ref = getPlusCodeReference();
+      var decoded = decodeOpenLocationCode(code, ref.lat, ref.lng);
+      return decoded ? { lat: decoded.lat, lng: decoded.lng } : null;
+    }
+
+    function getPlusCodeReference() {
+      try {
+        if (MapModule && typeof MapModule.getMap === 'function') {
+          var mapObj = MapModule.getMap();
+          if (mapObj && typeof mapObj.getCenter === 'function') {
+            var c = mapObj.getCenter();
+            var lat = Number(typeof c.lat === 'function' ? c.lat() : c.lat);
+            var lng = Number(typeof c.lng === 'function' ? c.lng() : c.lng);
+            if (isValidLatLng(lat, lng)) return { lat: lat, lng: lng };
+          }
+        }
+      } catch (e) {}
+      return { lat: 23.7, lng: 120.9 };
+    }
+
+    function decodeOpenLocationCode(input, refLat, refLng) {
+      var alphabet = '23456789CFGHJMPQRVWX';
+      var pairRes = [20, 1, 0.05, 0.0025, 0.000125];
+      var code = String(input || '').toUpperCase().replace(/\s+/g, '');
+      var sep = code.indexOf('+');
+      if (sep < 0) return null;
+
+      var before = code.slice(0, sep);
+      var after = code.slice(sep + 1);
+      if (before.length < 8) {
+        code = recoverShortOpenLocationCode(before, after, refLat, refLng);
+        if (!code) return null;
+        sep = code.indexOf('+');
+        before = code.slice(0, sep);
+        after = code.slice(sep + 1);
+      }
+
+      var clean = (before + after).replace(/0/g, '');
+      if (clean.length < 2) return null;
+      var pairLen = Math.min(clean.length, 10);
+      if (pairLen % 2 === 1) pairLen--;
+      if (pairLen < 2) return null;
+
+      var latVal = 0;
+      var lngVal = 0;
+      for (var i = 0; i < pairLen; i += 2) {
+        var latDigit = alphabet.indexOf(clean.charAt(i));
+        var lngDigit = alphabet.indexOf(clean.charAt(i + 1));
+        if (latDigit < 0 || lngDigit < 0) return null;
+        latVal = latVal * 20 + latDigit;
+        lngVal = lngVal * 20 + lngDigit;
+      }
+
+      var pairCount = pairLen / 2;
+      var res = pairRes[pairCount - 1];
+      var latLo = latVal * res - 90;
+      var lngLo = lngVal * res - 180;
+      var latHi = latLo + res;
+      var lngHi = lngLo + res;
+
+      if (clean.length > 10) {
+        var gridLatRes = res;
+        var gridLngRes = res;
+        for (var j = 10; j < clean.length; j++) {
+          var digit = alphabet.indexOf(clean.charAt(j));
+          if (digit < 0) return null;
+          gridLatRes /= 5;
+          gridLngRes /= 4;
+          latLo += Math.floor(digit / 4) * gridLatRes;
+          lngLo += (digit % 4) * gridLngRes;
+          latHi = latLo + gridLatRes;
+          lngHi = lngLo + gridLngRes;
+        }
+      }
+
+      return {
+        lat: (latLo + latHi) / 2,
+        lng: (lngLo + lngHi) / 2,
+        latSpan: latHi - latLo,
+        lngSpan: lngHi - lngLo
+      };
+    }
+
+    function recoverShortOpenLocationCode(before, after, refLat, refLng) {
+      var missing = 8 - before.length;
+      if (missing <= 0 || missing % 2 !== 0) return before + '+' + after;
+
+      var refCode = encodeOpenLocationCode(refLat, refLng);
+      if (!refCode) return null;
+      var full = refCode.slice(0, missing) + before + '+' + after;
+      var area = decodeOpenLocationCode(full, refLat, refLng);
+      if (!area) return full;
+
+      var lat = area.lat;
+      var lng = area.lng;
+      var latSpan = area.latSpan || 0;
+      var lngSpan = area.lngSpan || 0;
+
+      if (refLat + latSpan / 2 < lat && lat - latSpan >= -90) lat -= latSpan;
+      else if (refLat - latSpan / 2 > lat && lat + latSpan <= 90) lat += latSpan;
+
+      if (refLng + lngSpan / 2 < lng) lng -= lngSpan;
+      else if (refLng - lngSpan / 2 > lng) lng += lngSpan;
+
+      return encodeOpenLocationCode(lat, lng);
+    }
+
+    function encodeOpenLocationCode(lat, lng) {
+      if (!isValidLatLng(lat, lng)) return null;
+      var alphabet = '23456789CFGHJMPQRVWX';
+      var pairRes = [20, 1, 0.05, 0.0025, 0.000125];
+      var latNorm = Math.min(180 - 1e-12, Math.max(0, Number(lat) + 90));
+      var lngNorm = Math.min(360 - 1e-12, Math.max(0, Number(lng) + 180));
+      var out = '';
+      for (var i = 0; i < pairRes.length; i++) {
+        var res = pairRes[i];
+        var latDigit = Math.floor(latNorm / res) % 20;
+        var lngDigit = Math.floor(lngNorm / res) % 20;
+        out += alphabet.charAt(latDigit) + alphabet.charAt(lngDigit);
+      }
+      return out.slice(0, 8) + '+' + out.slice(8);
     }
 
     function parseSearchDms(text) {

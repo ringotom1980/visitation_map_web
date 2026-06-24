@@ -81,6 +81,7 @@ var MapModule = (function () {
     this.position = position;
     this.text = text || '';
     this.div = null;
+    this.onClick = null;
     this.setMap(map);
   }
   NameLabelOverlay.prototype = new google.maps.OverlayView();
@@ -88,7 +89,23 @@ var MapModule = (function () {
     var div = document.createElement('div');
     div.className = 'map-name-label';
     div.textContent = this.text;
+    div.setAttribute('role', 'button');
+    div.tabIndex = 0;
     this.div = div;
+
+    var self = this;
+    div.addEventListener('click', function (e) {
+      if (e && e.stopPropagation) e.stopPropagation();
+      if (typeof self.onClick === 'function') self.onClick(e);
+    });
+    div.addEventListener('keydown', function (e) {
+      if (!e || (e.key !== 'Enter' && e.key !== ' ')) return;
+      e.preventDefault();
+      if (typeof self.onClick === 'function') self.onClick(e);
+    });
+    div.addEventListener('pointerdown', function (e) {
+      if (e && e.stopPropagation) e.stopPropagation();
+    });
 
     var panes = this.getPanes();
     // ✅ 一定要用 floatPane，保證在 marker/label 上面
@@ -565,7 +582,7 @@ var MapModule = (function () {
       // name overlay：永遠顯示姓名（可依 mode/策略隱藏）
       var nameOv = new NameLabelOverlay(pos, displayName);
 
-      marker.addListener('click', function () {
+      function handlePlaceMarkerClick() {
         if (mode === 'ROUTE_PLANNING') {
           if (typeof onMarkerRouteSelect === 'function') onMarkerRouteSelect(p);
         } else if (mode === 'BROWSE') {
@@ -574,7 +591,9 @@ var MapModule = (function () {
           if (typeof onMarkerClick === 'function') onMarkerClick(p);
         }
 
-      });
+      }
+      marker.addListener('click', handlePlaceMarkerClick);
+      nameOv.onClick = handlePlaceMarkerClick;
       var pid = Number(p.id);
       if (!isFinite(pid)) return;
 

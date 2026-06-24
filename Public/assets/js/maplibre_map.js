@@ -196,12 +196,26 @@ var MapModule = (function () {
       if (!isValidLatLng(lat, lng)) return;
 
       var el = buildMarkerElement(p, false, '');
+      el.setAttribute('role', 'button');
+      el.tabIndex = 0;
       var marker = new maplibregl.Marker({ element: el, anchor: 'center' })
         .setLngLat([lng, lat])
         .addTo(map);
 
+      el.addEventListener('pointerdown', function (evt) {
+        evt.stopPropagation();
+      });
       el.addEventListener('click', function (evt) {
         evt.stopPropagation();
+        if (mode === 'ROUTE_PLANNING') {
+          if (typeof onMarkerRouteSelect === 'function') onMarkerRouteSelect(p);
+        } else if (mode === 'BROWSE' || mode === 'ROUTE_READY') {
+          if (typeof onMarkerClick === 'function') onMarkerClick(p);
+        }
+      });
+      el.addEventListener('keydown', function (evt) {
+        if (!evt || (evt.key !== 'Enter' && evt.key !== ' ')) return;
+        evt.preventDefault();
         if (mode === 'ROUTE_PLANNING') {
           if (typeof onMarkerRouteSelect === 'function') onMarkerRouteSelect(p);
         } else if (mode === 'BROWSE' || mode === 'ROUTE_READY') {
