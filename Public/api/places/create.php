@@ -79,13 +79,21 @@ $note        = ($note === '') ? null : $note;
 
 // ✅ 先拿 PDO（重要：後面會用到）
 $pdo = db();
-ensure_places_soft_delete_columns($pdo);
+try {
+    ensure_places_soft_delete_columns($pdo);
+} catch (Throwable $e) {
+    server_error($e, '資料庫欄位尚未完成更新，請先確認 places 已有 deleted_at、deleted_by_user_id、deleted_note 欄位。');
+}
 
 // 地址解析（戶籍地 town_code）— 不與列管強制一致
 require_once __DIR__ . '/../common/address_parser.php';
 $addressTownCode = null;
 if ($address !== null) {
-    $addressTownCode = parse_address_to_town_code($pdo, (string)$address);
+    try {
+        $addressTownCode = parse_address_to_town_code($pdo, (string)$address);
+    } catch (Throwable $e) {
+        server_error($e, '地址解析時發生錯誤，請稍後再試。');
+    }
 }
 $addressTownCode = ($addressTownCode === '' ? null : $addressTownCode);
 
@@ -240,6 +248,9 @@ try {
 
 } catch (Throwable $e) {
     $msg = $e->getMessage();
+    if (is_database_schema_or_permission_error($e)) {
+        server_error($e, '資料庫欄位或權限異常，請確認 places 軟刪除欄位已建立，且資料庫帳號可新增標記。');
+    }
     if (strpos($msg, 'Duplicate') !== false || strpos($msg, '1062') !== false) {
         json_error('同單位下「官兵姓名 + 受益人姓名」已存在，請確認是否重複。', 409);
     }

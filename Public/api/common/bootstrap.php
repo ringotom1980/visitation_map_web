@@ -60,8 +60,39 @@ function is_production_env(): bool
 
 function server_error(Throwable $e, string $publicMessage = '系統忙碌中，請稍後再試。'): void
 {
-    error_log($e->getMessage() . ' in ' . $e->getFile() . ':' . $e->getLine());
-    json_error(is_production_env() ? $publicMessage : $publicMessage . ' ' . $e->getMessage(), 500);
+    try {
+        $errorId = date('YmdHis') . '-' . bin2hex(random_bytes(3));
+    } catch (Throwable $ignored) {
+        $errorId = date('YmdHis') . '-' . substr(uniqid('', true), -6);
+    }
+
+    error_log('[api_error ' . $errorId . '] ' . $e->getMessage() . ' in ' . $e->getFile() . ':' . $e->getLine());
+
+    if (is_production_env()) {
+        json_error($publicMessage . '（錯誤代碼：' . $errorId . '）', 500, 'SERVER_ERROR');
+    }
+
+    json_error($publicMessage . ' ' . $e->getMessage(), 500, 'SERVER_ERROR');
+}
+
+function is_database_schema_or_permission_error(Throwable $e): bool
+{
+    $msg = $e->getMessage();
+    $code = (string)$e->getCode();
+
+    foreach (['1054', '1142', '1146', '1091', '1060', '42S02', '42S22', '42000'] as $needle) {
+        if ($code === $needle || strpos($msg, $needle) !== false) {
+            return true;
+        }
+    }
+
+    foreach (['Unknown column', 'Table', 'command denied', 'ALTER command denied', 'Duplicate column'] as $needle) {
+        if (stripos($msg, $needle) !== false) {
+            return true;
+        }
+    }
+
+    return false;
 }
 
 function ensure_places_soft_delete_columns(PDO $pdo): void
@@ -83,19 +114,6 @@ function ensure_places_soft_delete_columns(PDO $pdo): void
     }
     if (!isset($existing['deleted_note'])) {
         $pdo->exec("ALTER TABLE places ADD COLUMN deleted_note varchar(255) DEFAULT NULL");
-    }
-
-    $indexes = [];
-    $stmtIdx = $pdo->query("SHOW INDEX FROM places");
-    while ($row = $stmtIdx->fetch(PDO::FETCH_ASSOC)) {
-        $indexes[(string)$row['Key_name']] = (int)$row['Non_unique'];
-    }
-
-    if (array_key_exists('uq_places_org_serv_benef', $indexes) && $indexes['uq_places_org_serv_benef'] === 0) {
-        $pdo->exec("ALTER TABLE places DROP INDEX uq_places_org_serv_benef");
-    }
-    if (!array_key_exists('idx_places_org_serv_benef', $indexes)) {
-        $pdo->exec("ALTER TABLE places ADD INDEX idx_places_org_serv_benef (organization_id, serviceman_name, visit_name)");
     }
 
     $done = true;
