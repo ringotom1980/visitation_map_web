@@ -27,6 +27,17 @@ set_error_handler(function ($severity, $message, $file, $line) {
     throw new ErrorException($message, 0, $severity, $file, $line);
 });
 
+function handle_place_update_error(Throwable $e): void
+{
+    $msg = $e->getMessage();
+    if (strpos($msg, 'Duplicate') !== false || strpos($msg, '1062') !== false) {
+        json_error('同單位下「官兵姓名 + 受益人姓名」已存在，請確認是否重複。', 409);
+    }
+    if (is_database_schema_or_permission_error($e)) {
+        server_error($e, '資料庫欄位或權限異常，請確認 places 軟刪除欄位已建立，且資料庫帳號可更新標記。');
+    }
+}
+
 if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
     json_error('Method not allowed', 405);
 }
@@ -64,7 +75,11 @@ $pdo = db();
 require_once __DIR__ . '/../common/address_parser.php';
 $addressTownCode = null;
 if ($address !== '') {
-    $addressTownCode = parse_address_to_town_code($pdo, $address);
+    try {
+        $addressTownCode = parse_address_to_town_code($pdo, $address);
+    } catch (Throwable $e) {
+        server_error($e, '地址解析時發生錯誤，請稍後再試。');
+    }
 }
 
 // 列管欄位（可與戶籍不同）
@@ -114,22 +129,29 @@ try {
         throw new RuntimeException('無權限編輯此標記');
     }
 
-    $stmtDup = $pdo->prepare("
+    $dupSql = "
         SELECT id
         FROM places
         WHERE organization_id = :org_id
           AND id <> :id
           AND serviceman_name = :serviceman_name
-          AND COALESCE(visit_name, '') = COALESCE(:visit_name, '')
           AND deleted_at IS NULL
-        LIMIT 1
-    ");
-    $stmtDup->execute([
-        ':org_id' => (int)$orig['organization_id'],
-        ':id' => $id,
-        ':serviceman_name' => $soldierName,
-        ':visit_name' => $visitName,
-    ]);
+    ";
+    $dupParams = [
+        'org_id' => (int)$orig['organization_id'],
+        'id' => $id,
+        'serviceman_name' => $soldierName,
+    ];
+    if ($visitName === null) {
+        $dupSql .= " AND (visit_name IS NULL OR visit_name = '')";
+    } else {
+        $dupSql .= " AND visit_name = :visit_name";
+        $dupParams['visit_name'] = $visitName;
+    }
+    $dupSql .= " LIMIT 1";
+
+    $stmtDup = $pdo->prepare($dupSql);
+    $stmtDup->execute($dupParams);
     if ($stmtDup->fetchColumn()) {
         json_error('同單位下「官兵姓名 + 受益人姓名」已存在，請確認是否重複。', 409);
     }
@@ -147,6 +169,9 @@ try {
         $stmtCC = $pdo->prepare('SELECT county_code FROM admin_towns WHERE town_code = :tc LIMIT 1');
         $stmtCC->execute(['tc' => $mtownCode]);
         $mcountyCode = $stmtCC->fetchColumn() ?: null;
+    }
+    if ($mtownCode && !$mcountyCode) {
+        json_error('列管鄉鎮市區資料不一致，請重新選擇列管鄉鎮市區後再儲存。', 400, 'INVALID_MANAGED_TOWN');
     }
 
     $sql = 'UPDATE places
@@ -260,5 +285,6 @@ try {
     if (isset($pdo) && $pdo instanceof PDO && $pdo->inTransaction()) {
         $pdo->rollBack();
     }
+    handle_place_update_error($e);
     server_error($e, '更新標記時發生錯誤，請稍後再試。');
 }
