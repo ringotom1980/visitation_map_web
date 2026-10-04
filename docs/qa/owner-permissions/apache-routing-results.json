@@ -134,6 +134,22 @@
       "passed": true
     },
     {
+      "check": "query/traversal cannot select arbitrary page /admin/anything.php?file=../../config/db.php",
+      "passed": true
+    },
+    {
+      "check": "query/traversal cannot select arbitrary page /admin/accounts.php/evil",
+      "passed": true
+    },
+    {
+      "check": "query/traversal cannot select arbitrary page /admin/transfers.php/foo",
+      "passed": true
+    },
+    {
+      "check": "query/traversal cannot select arbitrary page /admin/accounts/%2e%2e/%2e%2e/config/db.php",
+      "passed": true
+    },
+    {
       "check": "real Apache login admin@example.invalid",
       "passed": true
     },
@@ -151,6 +167,18 @@
     },
     {
       "check": "OWNER reaches correct canonical/legacy page transfers.php",
+      "passed": true
+    },
+    {
+      "check": "OWNER query/POST remains fixed page ",
+      "passed": true
+    },
+    {
+      "check": "OWNER query/POST remains fixed page .php",
+      "passed": true
+    },
+    {
+      "check": "OWNER page POST cannot change role or unit",
       "passed": true
     },
     {
@@ -178,6 +206,18 @@
       "passed": true
     },
     {
+      "check": "ADMIN query/POST remains fixed page ",
+      "passed": true
+    },
+    {
+      "check": "ADMIN query/POST remains fixed page .php",
+      "passed": true
+    },
+    {
+      "check": "ADMIN page POST cannot change role or unit",
+      "passed": true
+    },
+    {
       "check": "ADMIN dashboard links canonical pages",
       "passed": true
     },
@@ -199,6 +239,18 @@
     },
     {
       "check": "USER reaches correct canonical/legacy page transfers.php",
+      "passed": true
+    },
+    {
+      "check": "USER query/POST remains fixed page ",
+      "passed": true
+    },
+    {
+      "check": "USER query/POST remains fixed page .php",
+      "passed": true
+    },
+    {
+      "check": "USER page POST cannot change role or unit",
       "passed": true
     },
     {

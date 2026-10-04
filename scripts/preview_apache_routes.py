@@ -93,12 +93,20 @@ try:
   code,body,_=req(anonymous,'/'+relative);check('static rewrite byte identity '+relative,code==200 and body==(project/'Public'/relative).read_bytes())
  for path in ['/admin/config.php','/admin/accounts/anything.php','/admin/transfers/anything.php']:
   code,body,_=req(anonymous,path);check('unallowlisted admin route remains fallback '+path,code==200 and b'id="loginForm"' in body)
+ for path in ['/admin/anything.php?file=../../config/db.php','/admin/accounts.php/evil','/admin/transfers.php/foo','/admin/accounts/%2e%2e/%2e%2e/config/db.php']:
+  code,body,_=req(anonymous,path);check('query/traversal cannot select arbitrary page '+path,code in [400,403,404] or (code==200 and b'id="loginForm"' in body))
  for email,role in [('admin@example.invalid','OWNER'),('target@example.invalid','ADMIN'),('user@example.invalid','USER')]:
   c=login(email)
   for route,marker in [('accounts',b'id="usersContainer"'),('transfers',b'data-transfer-mode="admin"')]:
    for suffix in ['', '.php']:
     code,body,headers=req(c,'/admin/'+route+suffix)
     check(role+' reaches correct canonical/legacy page '+route+suffix,code==302 and headers.get('Location')=='/app' if role=='USER' else code==200 and marker in body and b'id="loginForm"' not in body)
+  for suffix in ['', '.php']:
+   path='/admin/accounts'+suffix+'?view=authorization&file=../../config/db.php'
+   code,body,headers=req(c,path,{'user_id':1,'role':'ADMIN','organization_id':2})
+   check(role+' query/POST remains fixed page '+suffix,code==302 and headers.get('Location')=='/app' if role=='USER' else code==200 and b'id="usersContainer"' in body and headers.get('Location') is None)
+  code,body,_=req(c,'/api/auth/me');me=json.loads(body)['data']
+  check(role+' page POST cannot change role or unit',code==200 and me['role']==('USER' if role=='USER' else 'ADMIN') and int(me['organization_id'])==1)
   code,body,_=req(c,'/admin')
   if role!='USER':
    check(role+' dashboard links canonical pages',b'href="/admin/accounts"' in body and b'href="/admin/transfers"' in body)

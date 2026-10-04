@@ -44,7 +44,7 @@ FTP 命名空間的絕對 root 路徑因登入前的憑證錯誤尚未核對，�
 
 使用安裝的 Apache 2.4.58 Win64、`mod_rewrite`、PHP module，
 獨立暫存 document root、loopback 連線與已核對 datadir 的合成 MariaDB。
-`python scripts/preview_apache_routes.py` 共 54 項通過：
+`python scripts/preview_apache_routes.py` 共 67 項通過：
 
 - 原始根規則重現四個新入口落入登入頁。
 - 原始根規則不變，新的固定入口即可使新頁面、`.php` 相容路徑、尾斜線及授權查詢匿名均 302 至登入。
@@ -55,3 +55,21 @@ FTP 命名空間的絕對 root 路徑因登入前的憑證錯誤尚未核對，�
 
 沙箱不支援 Apache 原生路徑查詢時，僅以已授權的隔離測試方式執行；不啟動 XAMPP 原有站台。
 正式發布後另驗證匿名 302／API 阻擋及資源 hash；正式角色登入、OWNER 私有設定及 OTP 未由此測試代替。
+
+## 正式站唯讀驗證（程式提交 4e4353b）
+
+`4e4353bb8a5667452bcfbcbb1f140e12d5f66fdb` 的正常 FTPS 與 PHP 語法檢查成功：
+https://github.com/ringotom1980/visitation_map_web/actions/runs/37179304390。
+兩個 canonical、`.php` 與尾斜線共八個入口，以及授權 query／檔案注入 query，
+匿名全部 302 至 `/login`，回應沒有登入 fallback 的 HTML。
+未知 `/admin/route-does-not-exist` 仍為原有 200 登入 fallback；兩者可明確區分。
+原 `/admin`、`/admin/security`、`/profile` 保持匿名 302，查詢 API 保持 401／403。
+六個 CSS／JS 與提交的完整位元組及 SHA-256 相同。
+證據見 `docs/qa/owner-permissions/live-routing-results.json`。
+
+67 項隔離 Apache 測試另證實 query 不會選取任意 include、非法路徑不會取得管理頁，
+合成 OWNER／ADMIN 的 page POST 仍直接到固定頁面而沒有新增轉址；
+page POST 的 role／organization_id 等欄位不會變更權限或單位，USER 仍被導回地圖。
+
+正式 OWNER 私有設定是否已完成、真實三層角色登入及 OTP 尚未驗證。
+上述 Apache 與前次 235 項多角色／地圖檢查均為合成隔離測試，並非正式帳戶操作。

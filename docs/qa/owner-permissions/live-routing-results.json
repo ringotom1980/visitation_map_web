@@ -1,0 +1,151 @@
+{
+  "site": "https://ml.jinghong.pw",
+  "program_commit": "4e4353bb8a5667452bcfbcbb1f140e12d5f66fdb",
+  "read_only": true,
+  "results": [
+    {
+      "path": "/admin/accounts",
+      "status": 302,
+      "location": "/login",
+      "login_fallback": false
+    },
+    {
+      "path": "/admin/accounts/",
+      "status": 302,
+      "location": "/login",
+      "login_fallback": false
+    },
+    {
+      "path": "/admin/accounts.php",
+      "status": 302,
+      "location": "/login",
+      "login_fallback": false
+    },
+    {
+      "path": "/admin/accounts.php/",
+      "status": 302,
+      "location": "/login",
+      "login_fallback": false
+    },
+    {
+      "path": "/admin/transfers",
+      "status": 302,
+      "location": "/login",
+      "login_fallback": false
+    },
+    {
+      "path": "/admin/transfers/",
+      "status": 302,
+      "location": "/login",
+      "login_fallback": false
+    },
+    {
+      "path": "/admin/transfers.php",
+      "status": 302,
+      "location": "/login",
+      "login_fallback": false
+    },
+    {
+      "path": "/admin/transfers.php/",
+      "status": 302,
+      "location": "/login",
+      "login_fallback": false
+    },
+    {
+      "path": "/admin/accounts?view=authorization",
+      "status": 302,
+      "location": "/login",
+      "login_fallback": false
+    },
+    {
+      "path": "/admin/accounts?file=../../config/db.php",
+      "status": 302,
+      "location": "/login",
+      "login_fallback": false
+    },
+    {
+      "path": "/admin",
+      "status": 302,
+      "location": "/login",
+      "login_fallback": false
+    },
+    {
+      "path": "/admin/security",
+      "status": 302,
+      "location": "/login",
+      "login_fallback": false
+    },
+    {
+      "path": "/profile",
+      "status": 302,
+      "location": "/login",
+      "login_fallback": false
+    },
+    {
+      "path": "/api/auth/me",
+      "status": 401,
+      "location": null,
+      "login_fallback": false
+    },
+    {
+      "path": "/api/admin/users/list",
+      "status": 403,
+      "location": null,
+      "login_fallback": false
+    },
+    {
+      "path": "/api/places/list",
+      "status": 401,
+      "location": null,
+      "login_fallback": false
+    },
+    {
+      "path": "/api/organization-transfers.php",
+      "status": 401,
+      "location": null,
+      "login_fallback": false
+    },
+    {
+      "path": "/admin/route-does-not-exist",
+      "status": 200,
+      "location": null,
+      "login_fallback": true
+    },
+    {
+      "path": "/login",
+      "status": 200,
+      "location": null,
+      "login_fallback": true
+    },
+    {
+      "path": "assets/css/admin.css",
+      "matches_commit": true,
+      "sha256": "1e7772f87127e7347d77a7311204479276bdb3b234eb2233f34407bd41931780"
+    },
+    {
+      "path": "assets/js/admin.js",
+      "matches_commit": true,
+      "sha256": "651c6b626f2b985c43fd11be53012cd1745b93f99f88d3873d5fd0894075a919"
+    },
+    {
+      "path": "assets/js/personal.js",
+      "matches_commit": true,
+      "sha256": "f7a69aaf8da71dc7143e3c6f1f07ec2923e6ed1bf40adbcb144097553ec0c696"
+    },
+    {
+      "path": "assets/css/service.css",
+      "matches_commit": true,
+      "sha256": "5e0b1863351bf98674a44011cf1147e13314ca98cdb31ee7d072bf917e9b9ad8"
+    },
+    {
+      "path": "assets/js/app.js",
+      "matches_commit": true,
+      "sha256": "f896d451c94c17a0173318f3aef095a0ab2aea11b01aea7b983065fb41243ced"
+    },
+    {
+      "path": "assets/js/transfers.js",
+      "matches_commit": true,
+      "sha256": "058bccb23826bdabda02a17e0ee3f7f494ee51511d212c3eb9774745e821f51d"
+    }
+  ]
+}
