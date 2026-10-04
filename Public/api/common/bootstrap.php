@@ -138,6 +138,17 @@ function require_api_user(): array
     return $user;
 }
 
+/** Serialize sensitive place writes with account suspension/role/unit changes. */
+function lock_api_user(PDO $pdo, array $known): array
+{
+    if (!$pdo->inTransaction()) throw new LogicException('Account lock requires a transaction');
+    $stmt = $pdo->prepare('SELECT id,role,status,organization_id FROM users WHERE id=? FOR UPDATE');
+    $stmt->execute([(int)$known['id']]);
+    $fresh = $stmt->fetch(PDO::FETCH_ASSOC);
+    if (!$fresh || $fresh['status'] !== 'ACTIVE') throw new DomainException('登入狀態已失效',401);
+    return array_merge($known,$fresh);
+}
+
 /**
  * 記錄稽核事件（Auth/Security）
  */

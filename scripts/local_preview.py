@@ -69,10 +69,13 @@ def main():
     for folder in ['Public', 'config']:
         shutil.copytree(SOURCE / folder, app / folder, dirs_exist_ok=True)
     mobile = '--mobile' in sys.argv or '--mobile-before' in sys.argv or '--mobile-preview' in sys.argv
+    transfers = '--transfers' in sys.argv or '--transfers-preview' in sys.argv
     if '--mobile-before' in sys.argv:
         for relative in ['Public/app.php','Public/partials/navbar.php','Public/assets/css/service.css','Public/assets/js/app.js','Public/assets/js/filters_ui.js']:
             (app/relative).write_bytes(subprocess.check_output(['git','show','61b8593:'+relative],cwd=SOURCE))
     (app / '.env').write_text('APP_NAME=遺眷親訪地圖・本機示範\nAPP_ENV=local\nAPP_BASE_URL=/\nDB_HOST="127.0.0.1;port=43416"\nDB_NAME=visitation_preview_synthetic\nDB_USER=root\nDB_PASS=preview-synthetic-only\nAUTH_DEVICE_OTP_ENABLED=false\nROUTING_PROVIDER=none\nMAP_PROVIDER=google\n', encoding='utf-8')
+    if transfers:
+        with (app/'.env').open('a',encoding='utf-8') as f:f.write('ORGANIZATION_TRANSFERS_ENABLED=true\n')
     if mobile:
         # Same renderer/version as the app, cached locally. No keys, remote tiles or real data.
         for extension in ['js','css']:
@@ -129,6 +132,19 @@ $stmt=$pdo->prepare('INSERT INTO places(id,serviceman_name,category,visit_target
 $stmt->execute([$i,'合成測試地點'.str_pad((string)$i,2,'0',STR_PAD_LEFT).($i===20?'・長姓名與長地址呈現測試':''),'示範類別','親屬','示範受訪者'.$i,$i%2?'Y':'N','基隆市中正區合成測試街道'.($i*10).'巷測試社區第'.($i*3).'號（非真實地址，僅供本機測試）','10017010','中正區','10017010','10017','本機合成資料',25.135+($i%5)*.002,121.75+floor(($i-3)/5)*.003,1,1]);
 }
 echo json_encode(""")
+    seed=seed.replace('county_code VARCHAR(20))','county_code VARCHAR(20),is_active INT NOT NULL DEFAULT 1)').replace('INSERT INTO organizations VALUES','INSERT INTO organizations(id,name,county_code) VALUES')
+    if transfers:
+        migration=(SOURCE/'docs/database_migration_organization_transfers.sql').read_text(encoding='utf-8')
+        (ROOT/'transfer-migration.sql').write_text(migration,encoding='utf-8')
+        extra='''$pdo->exec('DROP TABLE IF EXISTS organization_change_audit');
+$pdo->exec('DROP TABLE IF EXISTS organization_transfer_requests');
+$pdo->exec(file_get_contents(MIGRATION_FILE));
+$pdo->exec("INSERT INTO organizations(id,name,county_code,is_active) VALUES(3,'示範停用中心','10017',0),(4,'示範第三中心','10017',1)");
+$stmt=$pdo->prepare('INSERT INTO users(id,name,email,phone,title,organization_id,role,status,password_hash) VALUES(?,?,?,?,?,?,?,?,?)');
+$stmt->execute([5,'示範第二單位人員','other@example.invalid','','承辦人',2,'USER','ACTIVE',password_hash('Preview-only-2026!',PASSWORD_BCRYPT)]);
+$pdo->exec("INSERT INTO places(serviceman_name,organization_id,updated_by_user_id,lat,lng,address_text) VALUES('示範第二單位親訪點',2,5,25.13,121.75,'合成地址')");
+'''.replace('MIGRATION_FILE',json.dumps(str(ROOT/'transfer-migration.sql')))
+        seed=seed.replace('echo json_encode(',extra+'echo json_encode(')
     (ROOT / 'seed.php').write_text(seed, encoding='utf-8')
     router = '''<?php
 $path=rawurldecode(parse_url($_SERVER['REQUEST_URI'],PHP_URL_PATH));
@@ -151,7 +167,9 @@ return false;
         print('ISOLATED PREVIEW http://127.0.0.1:43417/login',flush=True)
         print('admin@example.invalid / Preview-only-2026! (synthetic fixture only)',flush=True)
         print('Ctrl+C stops only these preview processes. Root: '+str(ROOT),flush=True)
-        if '--before' in sys.argv or '--verify' in sys.argv or '--mobile' in sys.argv or '--mobile-before' in sys.argv:
+        if '--before' in sys.argv or '--verify' in sys.argv or '--mobile' in sys.argv or '--mobile-before' in sys.argv or '--transfers' in sys.argv:
+            if '--transfers' in sys.argv:
+                subprocess.run([sys.executable,str(SOURCE/'scripts/preview_transfers_checks.py')],check=True,timeout=90)
             if '--verify' in sys.argv:
                 subprocess.run([sys.executable,str(SOURCE/'scripts/preview_http_checks.py')],check=True,timeout=60)
             chrome_log=open(ROOT/'chrome.log','w')
@@ -160,7 +178,7 @@ return false;
             chrome=subprocess.Popen(['C:/Program Files/Google/Chrome/Application/chrome.exe','--headless=new','--no-sandbox','--enable-unsafe-swiftshader','--disable-extensions','--no-first-run','--remote-debugging-port='+str(debug_port),'--remote-debugging-address=127.0.0.1','--user-data-dir='+str(ROOT/('chrome-'+str(time.time_ns()))),'about:blank'],stdout=chrome_log,stderr=chrome_log,creationflags=subprocess.CREATE_NO_WINDOW)
             processes.append(chrome);wait(debug_port,chrome)
             node_env=os.environ.copy();node_env['VISITATION_CDP_PORT']=str(debug_port)
-            script='preview_mobile.mjs' if mobile else 'preview_browser.mjs'
+            script='preview_transfers.mjs' if transfers else ('preview_mobile.mjs' if mobile else 'preview_browser.mjs')
             action='before' if '--before' in sys.argv or '--mobile-before' in sys.argv else 'verify'
             subprocess.run(['node',str(SOURCE/'scripts'/script),action],check=True,timeout=180,env=node_env)
         else:

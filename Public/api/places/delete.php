@@ -36,6 +36,8 @@ $pdo = db();
 
 try {
     ensure_places_soft_delete_columns($pdo);
+    $pdo->beginTransaction();
+    $user = lock_api_user($pdo, $user);
 
     $sqlOrig = 'SELECT id, organization_id FROM places WHERE id = :id AND deleted_at IS NULL LIMIT 1';
     $stmtOrig = $pdo->prepare($sqlOrig);
@@ -67,8 +69,11 @@ try {
         ':id' => $id,
     ]);
 
+    $pdo->commit();
     json_success(['id' => $id, 'deleted' => true]);
 
 } catch (Throwable $e) {
+    if ($pdo->inTransaction()) $pdo->rollBack();
+    if ($e instanceof DomainException) json_error($e->getMessage(),$e->getCode() ?: 400);
     server_error($e, '刪除標記時發生錯誤，請稍後再試。');
 }

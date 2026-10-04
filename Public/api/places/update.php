@@ -29,6 +29,9 @@ set_error_handler(function ($severity, $message, $file, $line) {
 
 function handle_place_update_error(Throwable $e): void
 {
+    if ($e instanceof DomainException) {
+        json_error($e->getMessage(), $e->getCode() ?: 400);
+    }
     $msg = $e->getMessage();
     if (strpos($msg, 'Duplicate') !== false || strpos($msg, '1062') !== false) {
         json_error('同單位下「官兵姓名 + 受益人姓名」已存在，請確認是否重複。', 409);
@@ -114,6 +117,7 @@ try {
     ensure_places_soft_delete_columns($pdo);
 
     $pdo->beginTransaction();
+    $user = lock_api_user($pdo, $user);
     // 先抓原始資料：權限 + 既有座標
     $stmtOrig = $pdo->prepare('SELECT id, organization_id, lat, lng FROM places WHERE id = :id AND deleted_at IS NULL LIMIT 1');
     $stmtOrig->execute(['id' => $id]);
@@ -126,7 +130,7 @@ try {
     if (($user['role'] ?? '') !== 'ADMIN'
         && (int)$orig['organization_id'] !== (int)($user['organization_id'] ?? 0)
     ) {
-        throw new RuntimeException('無權限編輯此標記');
+        throw new DomainException('無權限編輯此標記', 403);
     }
 
     $dupSql = "

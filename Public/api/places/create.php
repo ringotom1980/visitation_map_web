@@ -98,6 +98,8 @@ if ($address !== null) {
 $addressTownCode = ($addressTownCode === '' ? null : $addressTownCode);
 
 try {
+    $pdo->beginTransaction();
+    $user = lock_api_user($pdo, $user);
     $dupSql = "
         SELECT id
         FROM places
@@ -254,10 +256,13 @@ try {
     $stmtGet->execute(['id' => $newId]);
     $row = $stmtGet->fetch(PDO::FETCH_ASSOC);
 
+    $pdo->commit();
     json_success($row);
 
 } catch (Throwable $e) {
     $msg = $e->getMessage();
+    if ($pdo->inTransaction()) $pdo->rollBack();
+    if ($e instanceof DomainException) json_error($msg,$e->getCode() ?: 400);
     if (strpos($msg, 'Duplicate') !== false || strpos($msg, '1062') !== false) {
         json_error('同單位下「官兵姓名 + 受益人姓名」已存在，請確認是否重複。', 409);
     }

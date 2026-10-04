@@ -72,6 +72,10 @@ document.addEventListener('DOMContentLoaded', function () {
   var placeListCountEl = document.getElementById('place-list-count');
   var placeListSearchEl = document.getElementById('place-list-search');
   var toastRoot = document.getElementById('toast-root');
+  if (sessionStorage.getItem('accessScopeChangedNotice')) {
+    sessionStorage.removeItem('accessScopeChangedNotice');
+    showToast('您的單位或角色已更新，地圖已重新載入目前可用資料。', 'info');
+  }
 
   var navUserNameEl = document.getElementById('nav-user-name');
   var placeListQuery = '';
@@ -1347,12 +1351,27 @@ document.addEventListener('DOMContentLoaded', function () {
   })();
 
   function loadMeNonBlocking() {
-    apiRequest('/auth/me', 'GET')
+    return apiRequest('/auth/me', 'GET')
       .then(function (payload) {
         // ✅ apiRequest 回的是 {success, data}
         var me = (payload && payload.data) ? payload.data : null;
 
+        var changedScope = state.me && me && (Number(state.me.organization_id) !== Number(me.organization_id) || state.me.role !== me.role);
         state.me = me;
+        if (changedScope) {
+          state.placesCache = [];
+          state.routePoints = [];
+          state.currentPlace = null;
+          MapModule.setPlaces([], handleMarkerClickInBrowseMode, handleMarkerClickInRoutePlanningMode);
+          closeSheet('sheet-place');
+          closeSheet('sheet-poi');
+          if (window.PlaceForm) PlaceForm.closeModal('modal-place-form', true);
+          applyMode(Mode.BROWSE);
+          renderPlaceList();
+          sessionStorage.setItem('accessScopeChangedNotice','1');
+          location.reload();
+          return;
+        }
 
         if (window.PlaceForm) PlaceForm.setMe(state.me);
 
@@ -1383,6 +1402,17 @@ document.addEventListener('DOMContentLoaded', function () {
         if (navUserNameEl) navUserNameEl.textContent = '—';
       });
   }
+
+  // Revalidate the account when returning to a tab; visible tabs also refresh once a minute.
+  var scopeCheckPending = false;
+  function recheckAccessScope() {
+    if (scopeCheckPending || document.hidden || !state.me) return;
+    scopeCheckPending = true;
+    loadMeNonBlocking().finally(function () { scopeCheckPending = false; });
+  }
+  window.addEventListener('focus', recheckAccessScope);
+  document.addEventListener('visibilitychange', recheckAccessScope);
+  setInterval(recheckAccessScope, 60000);
 
   function refreshPlaces() {
     if (placeListItemsEl) placeListItemsEl.setAttribute('aria-busy', 'true');

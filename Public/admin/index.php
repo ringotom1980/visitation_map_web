@@ -30,6 +30,7 @@ $pageCss   = ['assets/css/base.css', 'assets/css/admin.css'];
   </div>
   <nav class="admin-nav">
     <a href="<?= route_url('app') ?>" class="btn-link">回主地圖</a>
+    <a href="<?= route_url('admin') ?>/transfers.php" class="btn-link">單位異動</a>
     <a href="<?= route_url('admin') ?>/security" class="btn-link">安全中心</a>
     <button id="btnLogout" class="btn-outline" type="button">登出</button>
   </nav>

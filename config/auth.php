@@ -128,6 +128,7 @@ function current_user(): ?array
         return null;
     }
     $_SESSION['role'] = $user['role'];
+    $_SESSION['organization_id'] = (int)($user['organization_id'] ?? 0);
     $cache = $user;
     return $user;
 }
