@@ -36,7 +36,7 @@ users、organizations、places 需 InnoDB；若不是，停止並另案評估引
 
 DDL 精確範圍為兩個 CREATE TABLE。申請表：PK(id)、unique(pending_user_id)、(user_id,id)、(status,id)；稽核表：PK(id)、(user_id,id)、(request_id)。沒有外鍵或 ALTER 舊表，避免臆測舊 ID 型別；參照在 API 鎖定交易中驗證。執行 migration 帳戶需 CREATE 權限，索引隨 CREATE 建立；網站執行帳戶需申請表 SELECT/INSERT/UPDATE、稽核表 SELECT/INSERT、既有 users SELECT/UPDATE、organizations SELECT 與 places 原有 CRUD，不需要稽核 UPDATE/DELETE 或新表 DROP/ALTER。
 
-備份選取 DB 的**全部結構及資料**，含 users、organizations、places、auth 與既有關聯物件。以既有 phpMyAdmin 自訂匯出 SQL，下載至操作者私人離線位置、網站根目錄以外。建議 `%LOCALAPPDATA%\visitation_map_web\backups\organization-transfer\<UTC時間>\before.sql`；這是建議位置，尚未建立或取得正式備份。不得放 repo、Public、Library 或上傳第三方。備份帳戶須可 SELECT 全 DB 資料；若有 view／trigger／event／routine，也須具備各物件匯出所需 SHOW VIEW、TRIGGER、EVENT 或版本相應的 routine metadata 權限。缺少任何物件不得視為完整備份。先核對匯出完整性並在另一私有 DB 演練還原，再以現有 phpMyAdmin 執行本機 `docs/database_migration_organization_transfers.sql`。兩表 DDL 不具整批原子 rollback；若第二表失敗，保留開關 false，先檢查已建部分，不盲目重跑。
+備份選取 DB 的**全部結構及資料**，含 users、organizations、places、auth 與既有關聯物件。以既有 phpMyAdmin 自訂匯出 SQL，下載至操作者私人離線位置、網站根目錄以外。建議 `%LOCALAPPDATA%\visitation_map_web\backups\organization-transfer\<UTC時間>\before.sql`；這是建議位置，尚未建立或取得正式備份。不得放 repo、Public、Library 或上傳第三方。備份帳戶須可 SELECT 全 DB 資料；若有 view／trigger／event／routine，也須具備各物件匯出所需 SHOW VIEW、TRIGGER、EVENT 或版本相應的 routine metadata 權限。缺少任何物件不得視為完整備份。先核對匯出完整性（此輪由使用者私人保留備份，不要求另建 DB），再以現有 phpMyAdmin 執行本機 `docs/database_migration_organization_transfers.sql`。兩表 DDL 不具整批原子 rollback；若第二表失敗，保留開關 false，先檢查已建部分，不盲目重跑。
 
 兩表及索引確認後，原網站環境設定維護者才在既有私有設定加入 `ORGANIZATION_TRANSFERS_ENABLED=true`，不提交實際 .env。正式帳戶異動驗收需另行授權。
 
@@ -71,3 +71,43 @@ config/bootstrap.php 的 load_env() 每次讀取與 config 同級的專案根目
 50 項隔離 HTTP（含並行審核、舊 session 撤權、稽核失敗回滾）及 39 項實際 Chrome UI 通過；UI 涵蓋 1440/390/320px、取消/Escape、連點、申請退回核准直接調整、讀取失敗重試、登入中單位改變後地圖舊資料與路線清除。既有 32 項 HTTP、30 項管理／表單 UI、91 項地圖回歸及 3 項 auth 快取查詢檢查全部通過。52 個 PHP、24 個 JavaScript 語法檢查通過。Chrome 響應尺寸與 VisualViewport 模擬已測，沒有宣稱新流程已在實體 iPhone Safari 驗證。
 
 重現：`python scripts/local_preview.py --transfers --reset`；預覽：`python scripts/local_preview.py --transfers-preview --reset`。僅 loopback 43417、合成資料 DB 43416，每次寫入前核對實際 datadir。示範管理者 `admin@example.invalid`、一般使用者 `user@example.invalid`，密碼均為 `Preview-only-2026!`。
+
+
+## 正式結構截圖後的補正：既有 user_applications
+
+使用者提供截圖，主對話已確認選取 DB 為 `u327657097_visitation_map`、server 為 `127.0.0.1:3306`，14 張表均顯示 InnoDB，包含 user_applications 與 pending_registrations。此為主對話的畫面證據，本委派未查詢正式表內容。
+
+目前 HEAD 的 Public/config/scripts/docs 不引用 user_applications，repository 沒有其 CREATE schema。Git 歷史證明 `bb53b2c`（修正管理後台）移除舊 `Public/api/applications/create.php`、`Public/api/admin/applications/{pending,approve,reject}.php` 及轉接入口。其父版 create.php 明確標註「新使用者帳號申請」，接受 name/phone/email/org_id/title/password/password_confirm，寫入 user_applications 的 name/phone/email/organization_id/title/password_hash/status/created_at；approve.php 檢查 email 尚無帳戶後 INSERT users，接著更新申請審核者與時間。沒有原／新單位欄位、既有 user_id 或單位變更分支；用途是舊式註冊審核，不是已登入使用者換單位。
+
+現行 `Public/api/auth/register_request.php` 將註冊資料 upsert pending_registrations 並寄 REGISTER OTP；`register_verify.php` 驗證後 INSERT users、DELETE 對應 pending_registrations。現行 admin 並無舊帳號申請審核入口。這些是程式語義／歷史證據，**不能斷言正式 user_applications 未被站外流程使用，或現在實際欄位完全等於歷史版**。
+
+先前「沒有既有單位異動申請流程」在現行 repo 層面成立，但應補充正式 DB 留有舊註冊申請表。新增兩表不讀寫、刪除、改名或再利用 user_applications/pending_registrations；它們與其他表同列私人備份範圍。正式 DDL 前先核對以下 metadata；若 user_applications 存在異動類型、原／新單位或已登入 user_id 等未知欄位，暫停 DDL 並查明外部／舊版實際用途。
+
+### 下一段最小唯讀 SQL（phpMyAdmin SQL 頁）
+
+```sql
+SELECT DATABASE() AS selected_database, VERSION() AS server_version;
+
+SELECT TABLE_NAME, ENGINE
+FROM information_schema.TABLES
+WHERE TABLE_SCHEMA = DATABASE()
+  AND DATABASE() = 'u327657097_visitation_map'
+  AND TABLE_NAME IN ('users','organizations','places','user_applications',
+                    'pending_registrations','organization_transfer_requests',
+                    'organization_change_audit')
+ORDER BY TABLE_NAME;
+
+SELECT TABLE_NAME, COLUMN_NAME, COLUMN_TYPE, IS_NULLABLE, EXTRA
+FROM information_schema.COLUMNS
+WHERE TABLE_SCHEMA = DATABASE()
+  AND DATABASE() = 'u327657097_visitation_map'
+  AND (
+    TABLE_NAME = 'user_applications'
+    OR (TABLE_NAME = 'organizations' AND COLUMN_NAME IN ('id','name','is_active'))
+    OR (TABLE_NAME = 'users' AND COLUMN_NAME IN
+        ('id','name','role','status','organization_id','updated_at'))
+  )
+ORDER BY TABLE_NAME, ORDINAL_POSITION;
+```
+
+僅查 server/schema metadata；不查使用者或申請資料列、不回傳帳密、token 或 SHOW GRANTS。第一行應為已確認 DB，若不符則停止；後兩段另設選取 DB guard。不根據截圖的「14 表 InnoDB」猜測版本或 CREATE 權限。主對話已指示使用者自行匯出 SQL 備份、留本機不傳回；此輪沒有要求另建 DB／執行還原演練，早先該段為可選的備份驗證建議，並非目前必做步驟。
