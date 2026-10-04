@@ -1,0 +1,122 @@
+[
+  {
+    "check": "login mobile no horizontal overflow",
+    "passed": true
+  },
+  {
+    "check": "admin desktop no horizontal overflow",
+    "passed": true
+  },
+  {
+    "check": "search empty state",
+    "passed": true
+  },
+  {
+    "check": "role filter",
+    "passed": true
+  },
+  {
+    "check": "combined filter empty",
+    "passed": true
+  },
+  {
+    "check": "self actions disabled",
+    "passed": true
+  },
+  {
+    "check": "named confirmation",
+    "passed": true
+  },
+  {
+    "check": "Escape cancels without write",
+    "passed": true
+  },
+  {
+    "check": "double confirmation writes once",
+    "passed": true
+  },
+  {
+    "check": "successful feedback",
+    "passed": true
+  },
+  {
+    "check": "restore account through UI",
+    "passed": true
+  },
+  {
+    "check": "admin mobile no horizontal overflow",
+    "passed": true
+  },
+  {
+    "check": "mobile account actions 44px",
+    "passed": true
+  },
+  {
+    "check": "error state includes retry",
+    "passed": true
+  },
+  {
+    "check": "retry restores list",
+    "passed": true
+  },
+  {
+    "check": "security center inactive panel hidden",
+    "passed": true
+  },
+  {
+    "check": "security center tab switch works",
+    "passed": true
+  },
+  {
+    "check": "security mobile no document overflow",
+    "passed": true
+  },
+  {
+    "check": "provider outage has visible explanation",
+    "passed": true
+  },
+  {
+    "check": "app mobile no horizontal overflow",
+    "passed": true
+  },
+  {
+    "check": "place search filters",
+    "passed": true
+  },
+  {
+    "check": "cancel closes form",
+    "passed": true
+  },
+  {
+    "check": "cancel restores body scroll",
+    "passed": true
+  },
+  {
+    "check": "required field keeps form open",
+    "passed": true
+  },
+  {
+    "check": "place double save single request",
+    "passed": true
+  },
+  {
+    "check": "successful save closes modal",
+    "passed": true
+  },
+  {
+    "check": "enter route planning with compact map controls",
+    "passed": true
+  },
+  {
+    "check": "exit route planning returns browse",
+    "passed": true
+  },
+  {
+    "check": "logout returns login",
+    "passed": true
+  },
+  {
+    "check": "logout then login works",
+    "passed": true
+  }
+]

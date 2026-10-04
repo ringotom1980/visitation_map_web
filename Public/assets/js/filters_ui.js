@@ -131,16 +131,24 @@
 
     function openPanel() {
       if (!panel) return;
+      document.dispatchEvent(new CustomEvent('mapPanel:open', { detail: { panel: 'filter' } }));
+      document.body.classList.add('has-filter-panel');
       panel.classList.add('is-open');
       panel.setAttribute('aria-hidden', 'false');
+      panel.querySelector('.filter-panel__close').focus();
     }
     function closePanel() {
       if (!panel) return;
+      var wasOpen = panel.classList.contains('is-open');
       panel.classList.remove('is-open');
       panel.setAttribute('aria-hidden', 'true');
+      document.body.classList.remove('has-filter-panel');
+      if (wasOpen && btnOpen) btnOpen.focus();
     }
 
     if (btnOpen) btnOpen.addEventListener('click', openPanel);
+    document.addEventListener('mapPanel:open', function (e) { if (e.detail.panel !== 'filter') closePanel(); });
+    document.addEventListener('keydown', function (e) { if (e.key === 'Escape' && panel.classList.contains('is-open')) { closePanel(); btnOpen.focus(); } });
     if (btnClose) btnClose.addEventListener('click', closePanel);
 
     if (panel) {

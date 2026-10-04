@@ -1,0 +1,53 @@
+{
+  "results": [],
+  "metrics": [
+    {
+      "label": "before-browse",
+      "viewport": [
+        390,
+        844
+      ],
+      "headerHeight": 145,
+      "mapHeight": 699,
+      "usableMapHeight": 645,
+      "usableMapPercent": 76,
+      "overflow": false
+    },
+    {
+      "label": "before-selected-4",
+      "viewport": [
+        390,
+        844
+      ],
+      "headerHeight": 145,
+      "mapHeight": 699,
+      "usableMapHeight": 270,
+      "usableMapPercent": 32,
+      "overflow": false
+    },
+    {
+      "label": "before-selected-5",
+      "viewport": [
+        390,
+        844
+      ],
+      "headerHeight": 145,
+      "mapHeight": 699,
+      "usableMapHeight": 270,
+      "usableMapPercent": 32,
+      "overflow": false
+    },
+    {
+      "label": "before-selected-20",
+      "viewport": [
+        390,
+        844
+      ],
+      "headerHeight": 145,
+      "mapHeight": 699,
+      "usableMapHeight": 270,
+      "usableMapPercent": 32,
+      "overflow": false
+    }
+  ]
+}

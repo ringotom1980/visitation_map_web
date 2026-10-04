@@ -108,12 +108,12 @@ $mapConfig = [
       <div id="map-service-status" class="map-service-status" role="status" hidden></div>
       <!-- ✅ 導覽列下方浮動操作列（Google 風格） -->
       <div class="map-top-actions" aria-label="地圖操作">
-        <button id="btn-my-location" class="map-action-btn" type="button" title="移到我現在的位置">
-          目前位置
+        <button id="btn-my-location" class="map-action-btn" type="button" title="移到我現在的位置" aria-label="移到目前位置">
+          <span class="map-action-full">目前位置</span><span class="map-action-short" aria-hidden="true">定位</span>
         </button>
 
-        <button id="btn-route-mode" class="map-action-btn" type="button" title="路線規劃（加入拜訪點後再進入排序）">
-          路線規劃
+        <button id="btn-route-mode" class="map-action-btn" type="button" title="路線規劃" aria-label="路線規劃" aria-controls="sheet-route" aria-expanded="false">
+          <span class="map-action-full">路線規劃</span><span class="map-action-short" aria-hidden="true">規劃</span>
           <span id="route-badge" class="map-action-badge" aria-hidden="true">0</span>
         </button>
 
@@ -328,17 +328,24 @@ $mapConfig = [
       </div>
 
       <!-- S2 路線規劃抽屜 -->
-      <div id="sheet-route" class="bottom-sheet bottom-sheet--route">
+      <div id="route-compact" class="route-compact" hidden>
+        <button id="btn-route-expand" type="button" class="route-compact__expand" aria-controls="sheet-route" aria-expanded="false">
+          <strong id="route-compact-count" aria-live="polite">已選 0 個地點</strong>
+          <span>繼續選點 · 展開清單 ▴</span>
+        </button>
+        <button id="btn-route-compact-commit" type="button" class="btn btn-primary" disabled>完成</button>
+      </div>
+      <div id="sheet-route" class="bottom-sheet bottom-sheet--route" aria-hidden="true">
         <div class="bottom-sheet__inner">
           <header class="bottom-sheet__header">
             <div>
-              <div class="bottom-sheet__title">路線規劃</div>
+              <div class="bottom-sheet__title">路線清單 <span id="route-list-count"></span></div>
               <div class="bottom-sheet__subtitle" id="route-mode-hint">
-                已進入路線規劃模式，請依順序點選要拜訪的地點（可拖曳變更順序，再點一次可移除）。
+                點姓名查看位置；用箭頭排序，或拖曳調整。
               </div>
             </div>
-            <button id="btn-route-close" type="button" class="bottom-sheet__close">
-              ✕
+            <button id="btn-route-close" type="button" class="bottom-sheet__close" aria-label="收合路線清單，繼續在地圖選點">
+              收合 ▾
             </button>
 
           </header>
@@ -351,11 +358,12 @@ $mapConfig = [
               <span id="route-duration">時間：—</span>
             </div>
             <div class="bottom-sheet__footer-actions">
+              <button id="btn-route-clear" type="button" class="btn btn-danger">清空</button>
               <button
                 id="btn-route-exit"
                 type="button"
                 class="btn btn-danger">
-                退出規劃
+                退出
               </button>
 
               <button

@@ -3,7 +3,7 @@ Usage: python scripts/local_preview.py [--reset]
 """
 from pathlib import Path
 import subprocess, shutil, socket, time, json, sys, os
-import http.server, threading, urllib.parse, mimetypes
+import http.server, threading, urllib.parse, urllib.request, mimetypes, gzip
 
 SOURCE = Path(__file__).resolve().parents[1]
 ROOT = Path(os.environ['TEMP']) / 'visitation-professional-preview'
@@ -27,6 +27,8 @@ class PreviewProxy(http.server.BaseHTTPRequestHandler):
         if not file.is_relative_to(public.resolve()) or not file.is_file():self.send_error(404);return
         if file.suffix!='.php':
             payload=file.read_bytes();self.send_response(200);self.send_header('Content-Type',mimetypes.guess_type(file)[0] or 'application/octet-stream')
+            if 'gzip' in self.headers.get('Accept-Encoding','') and file.suffix in ['.js','.css','.json']:
+                payload=gzip.compress(payload);self.send_header('Content-Encoding','gzip')
         else:
             body=self.rfile.read(int(self.headers.get('Content-Length','0')))
             env=os.environ.copy();env.update({'REDIRECT_STATUS':'1','SCRIPT_FILENAME':str(file),'SCRIPT_NAME':path,'REQUEST_METHOD':self.command,'REQUEST_URI':self.path,'QUERY_STRING':url.query,'CONTENT_TYPE':self.headers.get('Content-Type',''),'CONTENT_LENGTH':str(len(body)),'SERVER_NAME':'127.0.0.1','SERVER_PORT':'43417','SERVER_PROTOCOL':'HTTP/1.1','REMOTE_ADDR':'127.0.0.1'})
@@ -41,7 +43,9 @@ class PreviewProxy(http.server.BaseHTTPRequestHandler):
             for key,value in fields:
                 if key.lower() not in ['status','connection','content-length']:self.send_header(key,value.strip())
         self.send_header('Content-Length',str(len(payload)));self.end_headers()
-        if self.command!='HEAD':self.wfile.write(payload)
+        if self.command!='HEAD':
+            for offset in range(0,len(payload),16384):
+                self.wfile.write(payload[offset:offset+16384]);self.wfile.flush()
     do_GET=do_POST=do_HEAD=forward
     def log_message(self,*args):pass
 
@@ -55,12 +59,39 @@ def wait(port, process):
     raise RuntimeError('Readiness timeout')
 
 def main():
+    stop_file=ROOT/'stop-preview'
+    if '--stop' in sys.argv:
+        stop_file.touch();print('Requested stop of the isolated preview.');return
     for port in [DBPORT, WEBPORT]:
         with socket.socket() as sock: sock.bind(('127.0.0.1', port))
+    stop_file.unlink(missing_ok=True)
     app = ROOT / 'app'
     for folder in ['Public', 'config']:
         shutil.copytree(SOURCE / folder, app / folder, dirs_exist_ok=True)
+    mobile = '--mobile' in sys.argv or '--mobile-before' in sys.argv or '--mobile-preview' in sys.argv
+    if '--mobile-before' in sys.argv:
+        for relative in ['Public/app.php','Public/partials/navbar.php','Public/assets/css/service.css','Public/assets/js/app.js','Public/assets/js/filters_ui.js']:
+            (app/relative).write_bytes(subprocess.check_output(['git','show','61b8593:'+relative],cwd=SOURCE))
     (app / '.env').write_text('APP_NAME=遺眷親訪地圖・本機示範\nAPP_ENV=local\nAPP_BASE_URL=/\nDB_HOST="127.0.0.1;port=43416"\nDB_NAME=visitation_preview_synthetic\nDB_USER=root\nDB_PASS=preview-synthetic-only\nAUTH_DEVICE_OTP_ENABLED=false\nROUTING_PROVIDER=none\nMAP_PROVIDER=google\n', encoding='utf-8')
+    if mobile:
+        # Same renderer/version as the app, cached locally. No keys, remote tiles or real data.
+        for extension in ['js','css']:
+            cache=ROOT/('maplibre-gl-5.12.0.'+extension)
+            if not cache.exists():
+                with urllib.request.urlopen('https://unpkg.com/maplibre-gl@5.12.0/dist/maplibre-gl.'+extension,timeout=30) as response:
+                    cache.write_bytes(response.read())
+            shutil.copyfile(cache,app/'Public'/('qa-maplibre.'+extension))
+        env=app/'.env';env.write_text(env.read_text(encoding='utf-8').replace('MAP_PROVIDER=google','MAP_PROVIDER=maplibre\nMAPTILER_STYLE_URL=/qa-map-style.json'),encoding='utf-8')
+        for relative in ['Public/app.php','Public/partials/head.php']:
+            file=app/relative
+            file.write_text(file.read_text(encoding='utf-8').replace('https://unpkg.com/maplibre-gl@5.12.0/dist/maplibre-gl.js','/qa-maplibre.js').replace('https://unpkg.com/maplibre-gl@5.12.0/dist/maplibre-gl.css','/qa-maplibre.css'),encoding='utf-8')
+        # PHP builds the external CSS URL in app.php.
+        page=app/'Public/app.php';page.write_text(page.read_text(encoding='utf-8').replace('https://unpkg.com/maplibre-gl@5.12.0/dist/maplibre-gl.css','/qa-maplibre.css').replace('<div id="map" class="app-map"></div>','<div id="map" class="app-map"></div><div style="position:absolute;bottom:100px;left:12px;z-index:2;color:#435d6d;font-size:12px;background:#ffffffdd;padding:4px">本機合成底圖・非實際地址</div>'),encoding='utf-8')
+        roads=[]
+        for i in range(-12,13):
+            roads += [{'type':'Feature','geometry':{'type':'LineString','coordinates':[[121.70+i*.004,25.06],[121.70+i*.004,25.22]]}}, {'type':'Feature','geometry':{'type':'LineString','coordinates':[[121.66,25.14+i*.003],[121.85,25.14+i*.003]]}}]
+        style={'version':8,'sources':{'streets':{'type':'geojson','data':{'type':'FeatureCollection','features':roads}}},'layers':[{'id':'background','type':'background','paint':{'background-color':'#edf0e7'}},{'id':'road-border','type':'line','source':'streets','paint':{'line-color':'#ccd5d0','line-width':8}},{'id':'roads','type':'line','source':'streets','paint':{'line-color':'#fff','line-width':5}}]}
+        (app/'Public/qa-map-style.json').write_text(json.dumps(style),encoding='utf-8')
     sessions = ROOT / 'sessions'; sessions.mkdir(exist_ok=True)
     datadir = ROOT / 'mariadb-data'
     if not (datadir / 'mysql').exists():
@@ -91,6 +122,13 @@ foreach([["示範官兵甲","示範眷屬甲",25.14,121.76,'Y'],["示範官兵�
 }
 echo json_encode(['isolated_datadir_verified'=>true,'synthetic_only'=>true]);
 '''.replace('EXPECTED_DATA_DIR', json.dumps(str(datadir))).replace('RESET_FIXTURE', 'true' if '--reset' in sys.argv else 'false')
+    if mobile:
+        seed=seed.replace("echo json_encode(","""$pdo->exec('DELETE FROM places WHERE id>2');
+for($i=3;$i<=24;$i++){
+$stmt=$pdo->prepare('INSERT INTO places(id,serviceman_name,category,visit_target,visit_name,beneficiary_over65,address_text,address_town_code,managed_district,managed_town_code,managed_county_code,note,lat,lng,organization_id,updated_by_user_id) VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)');
+$stmt->execute([$i,'合成測試地點'.str_pad((string)$i,2,'0',STR_PAD_LEFT).($i===20?'・長姓名與長地址呈現測試':''),'示範類別','親屬','示範受訪者'.$i,$i%2?'Y':'N','基隆市中正區合成測試街道'.($i*10).'巷測試社區第'.($i*3).'號（非真實地址，僅供本機測試）','10017010','中正區','10017010','10017','本機合成資料',25.135+($i%5)*.002,121.75+floor(($i-3)/5)*.003,1,1]);
+}
+echo json_encode(""")
     (ROOT / 'seed.php').write_text(seed, encoding='utf-8')
     router = '''<?php
 $path=rawurldecode(parse_url($_SERVER['REQUEST_URI'],PHP_URL_PATH));
@@ -113,18 +151,20 @@ return false;
         print('ISOLATED PREVIEW http://127.0.0.1:43417/login',flush=True)
         print('admin@example.invalid / Preview-only-2026! (synthetic fixture only)',flush=True)
         print('Ctrl+C stops only these preview processes. Root: '+str(ROOT),flush=True)
-        if '--before' in sys.argv or '--verify' in sys.argv:
+        if '--before' in sys.argv or '--verify' in sys.argv or '--mobile' in sys.argv or '--mobile-before' in sys.argv:
             if '--verify' in sys.argv:
                 subprocess.run([sys.executable,str(SOURCE/'scripts/preview_http_checks.py')],check=True,timeout=60)
             chrome_log=open(ROOT/'chrome.log','w')
             with socket.socket() as sock:
                 sock.bind(('127.0.0.1',0));debug_port=sock.getsockname()[1]
-            chrome=subprocess.Popen(['C:/Program Files/Google/Chrome/Application/chrome.exe','--headless=new','--no-sandbox','--disable-gpu','--disable-extensions','--no-first-run','--remote-debugging-port='+str(debug_port),'--remote-debugging-address=127.0.0.1','--user-data-dir='+str(ROOT/('chrome-'+str(time.time_ns()))),'about:blank'],stdout=chrome_log,stderr=chrome_log,creationflags=subprocess.CREATE_NO_WINDOW)
+            chrome=subprocess.Popen(['C:/Program Files/Google/Chrome/Application/chrome.exe','--headless=new','--no-sandbox','--enable-unsafe-swiftshader','--disable-extensions','--no-first-run','--remote-debugging-port='+str(debug_port),'--remote-debugging-address=127.0.0.1','--user-data-dir='+str(ROOT/('chrome-'+str(time.time_ns()))),'about:blank'],stdout=chrome_log,stderr=chrome_log,creationflags=subprocess.CREATE_NO_WINDOW)
             processes.append(chrome);wait(debug_port,chrome)
             node_env=os.environ.copy();node_env['VISITATION_CDP_PORT']=str(debug_port)
-            subprocess.run(['node',str(SOURCE/'scripts/preview_browser.mjs'),'before' if '--before' in sys.argv else 'verify'],check=True,timeout=80,env=node_env)
+            script='preview_mobile.mjs' if mobile else 'preview_browser.mjs'
+            action='before' if '--before' in sys.argv or '--mobile-before' in sys.argv else 'verify'
+            subprocess.run(['node',str(SOURCE/'scripts'/script),action],check=True,timeout=180,env=node_env)
         else:
-            while all(p.poll() is None for p in processes):time.sleep(1)
+            while not stop_file.exists() and all(p.poll() is None for p in processes):time.sleep(1)
     finally:
         if 'proxy' in locals():proxy.shutdown();proxy.server_close()
         for process in reversed(processes):

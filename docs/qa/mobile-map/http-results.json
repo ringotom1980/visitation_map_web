@@ -1,0 +1,162 @@
+[
+  {
+    "check": "login page",
+    "passed": true,
+    "actual": 200
+  },
+  {
+    "check": "real login admin@example.invalid",
+    "passed": true,
+    "actual": 200
+  },
+  {
+    "check": "login page",
+    "passed": true,
+    "actual": 200
+  },
+  {
+    "check": "real login target@example.invalid",
+    "passed": true,
+    "actual": 200
+  },
+  {
+    "check": "login page",
+    "passed": true,
+    "actual": 200
+  },
+  {
+    "check": "real login user@example.invalid",
+    "passed": true,
+    "actual": 200
+  },
+  {
+    "check": "missing CSRF rejected",
+    "passed": true,
+    "actual": 419
+  },
+  {
+    "check": "self suspension rejected",
+    "passed": true,
+    "actual": 400
+  },
+  {
+    "check": "self demotion rejected",
+    "passed": true,
+    "actual": 400
+  },
+  {
+    "check": "suspend user",
+    "passed": true,
+    "actual": 200
+  },
+  {
+    "check": "old suspended session me rejected",
+    "passed": true,
+    "actual": 401
+  },
+  {
+    "check": "old suspended session places rejected",
+    "passed": true,
+    "actual": 401
+  },
+  {
+    "check": "new suspended login rejected",
+    "passed": true,
+    "actual": 403
+  },
+  {
+    "check": "demote administrator",
+    "passed": true,
+    "actual": 200
+  },
+  {
+    "check": "old demoted admin list rejected",
+    "passed": true,
+    "actual": 403
+  },
+  {
+    "check": "old demoted stats rejected",
+    "passed": true,
+    "actual": 403
+  },
+  {
+    "check": "legacy endpoint remains disabled",
+    "passed": true,
+    "actual": 410
+  },
+  {
+    "check": "demoted session role refreshed",
+    "passed": true,
+    "actual": "USER"
+  },
+  {
+    "check": "demoted session ordinary places permitted",
+    "passed": true,
+    "actual": 200
+  },
+  {
+    "check": "demoted admin page redirects",
+    "passed": true,
+    "actual": "/app"
+  },
+  {
+    "check": "restore user",
+    "passed": true,
+    "actual": 200
+  },
+  {
+    "check": "restoring account does not revive cleared session",
+    "passed": true,
+    "actual": 401
+  },
+  {
+    "check": "login page",
+    "passed": true,
+    "actual": 200
+  },
+  {
+    "check": "real login user@example.invalid",
+    "passed": true,
+    "actual": 200
+  },
+  {
+    "check": "logout succeeds",
+    "passed": true,
+    "actual": 200
+  },
+  {
+    "check": "logged out session denied",
+    "passed": true,
+    "actual": 401
+  },
+  {
+    "check": "login page",
+    "passed": true,
+    "actual": 200
+  },
+  {
+    "check": "real login user@example.invalid",
+    "passed": true,
+    "actual": 200
+  },
+  {
+    "check": "re-login succeeds",
+    "passed": true,
+    "actual": 200
+  },
+  {
+    "check": "restore target admin",
+    "passed": true,
+    "actual": 200
+  },
+  {
+    "check": "security throttles endpoint",
+    "passed": true,
+    "actual": 200
+  },
+  {
+    "check": "security events endpoint",
+    "passed": true,
+    "actual": 200
+  }
+]

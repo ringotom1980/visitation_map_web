@@ -41,6 +41,7 @@ if(process.argv[2]==='before'){
   ws.close();
 }
 export function close(){ws.close();}
+export function getBrowserErrors(){return browserErrors;}
 if(process.argv[2]==='verify'){
  const results=[];
  const check=(name,value)=>{if(!value)throw new Error('UI check failed: '+name);results.push({check:name,passed:true});console.log('PASS',name);};
@@ -96,7 +97,7 @@ if(process.argv[2]==='verify'){
   await evaluate(`window.placeRequests=0;window.placeFetch=fetch;window.fetch=async(...args)=>{if(String(args[0]).includes('/places/update')){placeRequests++;}return placeFetch(...args)};document.querySelector('#btn-place-save').click();document.querySelector('#btn-place-save').click();`);
   await until(`!PlaceForm._submitting`);check('place double save single request',await evaluate('placeRequests===1'));check('successful save closes modal',await evaluate(`!document.querySelector('#modal-place-form').classList.contains('modal--open')`));
   await evaluate('window.confirm=()=>false');
-  await click('#btn-route-mode');check('enter route planning',await evaluate(`document.querySelector('#sheet-route').className.includes('open')`));await click('#btn-route-exit');check('exit route planning returns browse',await evaluate(`!document.querySelector('#sheet-route').className.includes('open')`));
+  await click('#btn-route-mode');check('enter route planning with compact map controls',await evaluate(`!document.querySelector('#route-compact').hidden`));await click('#btn-route-expand');await click('#btn-route-exit');check('exit route planning returns browse',await evaluate(`!document.querySelector('#sheet-route').className.includes('open') && document.querySelector('#route-compact').hidden`));
   await evaluate('window.confirm=()=>true');await click('#btn-logout');await until(`location.pathname==='/login' && document.readyState==='complete' && document.querySelector('button[type="submit"]') && !document.querySelector('button[type="submit"]').disabled`);
   check('logout returns login',true);
   await input('#email','admin@example.invalid');await input('#password','Preview-only-2026!');await click('button[type="submit"]');await until(`location.pathname==='/admin'`);check('logout then login works',true);

@@ -34,6 +34,9 @@
   </div>
 
   <div class="app-toolbar__right">
+    <details class="account-menu">
+      <summary aria-label="帳戶與管理功能">帳戶 ▾</summary>
+      <div class="account-menu__items">
     <?php if (is_admin()): ?><a class="service-nav-link" href="<?= route_url('admin') ?>">管理後台</a><?php endif; ?>
     <div id="nav-user" style="font-size:13px;color:#374151;white-space:nowrap;">
       目前登入：<span id="nav-user-name">—</span>
@@ -41,5 +44,7 @@
     <button id="btn-logout" type="button" class="btn btn-outline">
       登出
     </button>
+      </div>
+    </details>
   </div>
 </header>

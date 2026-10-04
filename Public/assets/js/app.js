@@ -77,6 +77,22 @@ document.addEventListener('DOMContentLoaded', function () {
   var placeListQuery = '';
   var placeListQuickFilter = 'all';
 
+  var accountMenu = document.querySelector('.account-menu');
+  if (accountMenu) {
+    var accountMobile = window.matchMedia('(max-width: 900px)');
+    accountMenu.open = !accountMobile.matches;
+    accountMobile.addEventListener('change', function (e) { accountMenu.open = !e.matches; });
+    document.addEventListener('click', function (e) {
+      if (accountMobile.matches && !accountMenu.contains(e.target)) accountMenu.open = false;
+    });
+    document.addEventListener('keydown', function (e) {
+      if (e.key === 'Escape' && accountMobile.matches && accountMenu.open) {
+        accountMenu.open = false;
+        accountMenu.querySelector('summary').focus();
+      }
+    });
+  }
+
   // 詳細區 DOM
   var detailsWrap = document.getElementById('sheet-place-details');
 
@@ -114,10 +130,24 @@ document.addEventListener('DOMContentLoaded', function () {
     function apply() {
       var vh = window.innerHeight * 0.01;
       document.documentElement.style.setProperty('--vh', vh + 'px');
+      var viewport = window.visualViewport;
+      var focusedField = document.activeElement && document.activeElement.closest('input,textarea');
+      var keyboardVisible = viewport && viewport.scale <= 1.05 && focusedField && window.innerHeight - viewport.height > 100;
+      var visibleHeight = keyboardVisible ? viewport.height : window.innerHeight;
+      var keyboardOffset = keyboardVisible ? Math.max(0, window.innerHeight - viewport.height - viewport.offsetTop) : 0;
+      document.documentElement.style.setProperty('--visual-height', Math.round(visibleHeight) + 'px');
+      document.documentElement.style.setProperty('--keyboard-offset', Math.round(keyboardOffset) + 'px');
+      document.body.classList.toggle('is-keyboard-open', keyboardOffset > 100);
     }
     apply();
     window.addEventListener('resize', apply, { passive: true });
     window.addEventListener('orientationchange', apply, { passive: true });
+    if (window.visualViewport) {
+      window.visualViewport.addEventListener('resize', apply, { passive: true });
+      window.visualViewport.addEventListener('scroll', apply, { passive: true });
+    }
+    document.addEventListener('focusin', apply);
+    document.addEventListener('focusout', apply);
   })();
 
   if (typeof MapModule === 'undefined') {
@@ -243,6 +273,13 @@ document.addEventListener('DOMContentLoaded', function () {
 
   function focusAndOpenMyPlace(place) {
       if (!place) return;
+
+      if (state.mode === Mode.ROUTE_PLANNING) {
+        if (indexOfRoutePoint(place.id) < 0) handleMarkerClickInRoutePlanningMode(place);
+        setRouteSheetOpen(false);
+        MapModule.panToLatLng(Number(place.lat), Number(place.lng), 16);
+        return;
+      }
 
       clearTemporaryMapPin();
       closeSheet('sheet-poi');
@@ -925,6 +962,10 @@ document.addEventListener('DOMContentLoaded', function () {
   if (btnRouteMode) {
     btnRouteMode.addEventListener('click', function () {
       clearTemporaryMapPin();
+      if (state.mode === Mode.ROUTE_PLANNING) {
+        setRouteSheetOpen(!document.getElementById('sheet-route').classList.contains('bottom-sheet--open'));
+        return;
+      }
       applyMode(Mode.ROUTE_PLANNING);
     });
   }
@@ -939,11 +980,8 @@ document.addEventListener('DOMContentLoaded', function () {
     btnRouteExit.addEventListener('click', function () {
       if (state.mode !== Mode.ROUTE_PLANNING) return;
 
-      var keep = confirm('是否保留已加入的路線清單？\n\n按「確定」保留，按「取消」清空（保留起點）。');
-      if (!keep) {
-        resetRouteKeepStart();
-      }
       applyMode(Mode.BROWSE);
+      showToast('已退出規劃，保留已選地點');
     });
   }
 
@@ -1268,9 +1306,9 @@ document.addEventListener('DOMContentLoaded', function () {
   // ===== map:blankClick 統一入口（唯一監聽） =====
   document.addEventListener('map:blankClick', function () {
 
-    // S2：路線規劃 → 點地圖空白 = 離開規劃
+    // 規劃時點地圖空白只收合清單，持續選點。
     if (state.mode === Mode.ROUTE_PLANNING) {
-      exitPlanningSilent();
+      setRouteSheetOpen(false);
       return;
     }
 
@@ -1390,10 +1428,16 @@ document.addEventListener('DOMContentLoaded', function () {
 
   function setPlaceListOpen(open) {
     if (!placeListPanel) return;
+    var wasOpen = placeListPanel.classList.contains('is-open');
+    if (open) {
+      setRouteSheetOpen(false);
+      document.dispatchEvent(new CustomEvent('mapPanel:open', { detail: { panel: 'list' } }));
+    }
+    document.body.classList.toggle('has-place-list', !!open);
     placeListPanel.classList.toggle('is-open', !!open);
     placeListPanel.setAttribute('aria-hidden', open ? 'false' : 'true');
-    if (open) { renderPlaceList(); if (placeListSearchEl) placeListSearchEl.focus(); }
-    else if (btnPlaceList) btnPlaceList.focus();
+    if (open) { renderPlaceList(); }
+    else if (wasOpen && btnPlaceList) btnPlaceList.focus();
   }
 
   function renderPlaceList() {
@@ -1449,6 +1493,8 @@ document.addEventListener('DOMContentLoaded', function () {
       var btn = document.createElement('button');
       btn.type = 'button';
       btn.className = 'place-list-item';
+      btn.dataset.placeId = String(p.id);
+      if (state.mode === Mode.ROUTE_PLANNING) btn.setAttribute('aria-pressed', String(routeIds.has(String(p.id))));
 
       var title = pick(p, 'serviceman_name', 'soldier_name') || '未命名';
       var visit = p.visit_name ? ('受訪者：' + p.visit_name) : '';
@@ -1458,11 +1504,17 @@ document.addEventListener('DOMContentLoaded', function () {
       var addr = pick(p, 'address_text', 'address') || '';
 
       btn.innerHTML =
-        '<div class="place-list-item__title">' + escapeHtml(title) + '</div>' +
+        '<div class="place-list-item__title">' + escapeHtml(title) + (state.mode === Mode.ROUTE_PLANNING ? '<span class="place-list-selection">' + (routeIds.has(String(p.id)) ? '✓ 已選' : '＋ 加入') + '</span>' : '') + '</div>' +
         (meta ? '<div class="place-list-item__meta">' + escapeHtml(meta) + '</div>' : '') +
         (addr ? '<div class="place-list-item__addr">' + escapeHtml(addr) + '</div>' : '');
 
       btn.addEventListener('click', function () {
+        if (state.mode === Mode.ROUTE_PLANNING) {
+          var scrollTop = placeListItemsEl.scrollTop;
+          handleMarkerClickInRoutePlanningMode(p);
+          placeListItemsEl.scrollTop = scrollTop;
+          return;
+        }
         setPlaceListOpen(false);
         handleMarkerClickInBrowseMode(p);
       });
@@ -1525,7 +1577,8 @@ document.addEventListener('DOMContentLoaded', function () {
 
     } else if (state.mode === Mode.ROUTE_PLANNING) {
       closeSheet('sheet-place');
-      openSheet('sheet-route');
+      setPlaceListOpen(false);
+      setRouteSheetOpen(!window.matchMedia('(max-width: 900px)').matches);
       hideRouteActions();
 
       ensureStartPoint();
@@ -1550,31 +1603,46 @@ document.addEventListener('DOMContentLoaded', function () {
       setCommitEnabled(false);
     }
 
+    document.getElementById('route-compact').hidden = state.mode !== Mode.ROUTE_PLANNING || document.getElementById('sheet-route').classList.contains('bottom-sheet--open');
     updateRouteBadge();
     emitModeChanged();
   }
 
-  // 離開路線規劃模式（不詢問、保留已加入點）
-  function exitPlanningSilent() {
-    if (state.mode !== Mode.ROUTE_PLANNING) return;
-
-    // 關抽屜（如果是開著）
-    // 注意：你原本 closeSheet('sheet-route') 在規劃模式會被擋，所以這裡先不要靠 closeSheet
-    // 直接移除 class 才能真的收起來
-    var el = document.getElementById('sheet-route');
-    if (el) el.classList.remove('bottom-sheet--open');
-
-    applyMode(Mode.BROWSE); // 回到 S1，保留 state.routePoints 不動
+  // 收合不退出選點模式，也不清除已選地點。
+  function setRouteSheetOpen(open) {
+    var sheet = document.getElementById('sheet-route');
+    open = !!open && state.mode === Mode.ROUTE_PLANNING;
+    if (open) {
+      setPlaceListOpen(false);
+      document.dispatchEvent(new CustomEvent('mapPanel:open', { detail: { panel: 'route' } }));
+    }
+    sheet.classList.toggle('bottom-sheet--open', open);
+    sheet.setAttribute('aria-hidden', open ? 'false' : 'true');
+    sheet.inert = !open;
+    document.getElementById('btn-route-expand').setAttribute('aria-expanded', String(open));
+    if (btnRouteMode) btnRouteMode.setAttribute('aria-expanded', String(open));
+    document.getElementById('route-compact').hidden = state.mode !== Mode.ROUTE_PLANNING || open;
+    if (open) document.getElementById('btn-route-close').focus({ preventScroll: true });
   }
-
-  const btnRouteClose = document.getElementById('btn-route-close');
-
-  if (btnRouteClose) {
-    btnRouteClose.addEventListener('click', function () {
-      exitPlanningSilent();
-    });
-  }
-
+  document.getElementById('btn-route-close').addEventListener('click', function () {
+    setRouteSheetOpen(false);
+    document.getElementById('btn-route-expand').focus();
+  });
+  document.getElementById('btn-route-expand').addEventListener('click', function () { setRouteSheetOpen(true); });
+  document.getElementById('btn-route-compact-commit').addEventListener('click', function () {
+    if (state.mode === Mode.ROUTE_PLANNING && canCommitRoute()) applyMode(Mode.ROUTE_READY);
+  });
+  document.getElementById('btn-route-clear').addEventListener('click', function () {
+    if (!canCommitRoute() || !confirm('清空所有已選拜訪地點？目前位置會保留為起點。')) return;
+    resetRouteKeepStart();
+    showToast('已清空拜訪地點');
+  });
+  document.addEventListener('mapPanel:open', function (e) {
+    if (e.detail.panel === 'filter') { setRouteSheetOpen(false); setPlaceListOpen(false); }
+  });
+  document.addEventListener('keydown', function (e) {
+    if (e.key === 'Escape' && state.mode === Mode.ROUTE_PLANNING) setRouteSheetOpen(false);
+  });
 
   function applyModeGuards() {
     var isBrowse = (state.mode === Mode.BROWSE);
@@ -1605,6 +1673,7 @@ document.addEventListener('DOMContentLoaded', function () {
   function setCommitEnabled(enabled) {
     if (!btnRouteCommit) return;
     btnRouteCommit.disabled = !enabled;
+    document.getElementById('btn-route-compact-commit').disabled = !enabled;
   }
 
   function showRouteActions() {
@@ -2249,6 +2318,10 @@ document.addEventListener('DOMContentLoaded', function () {
     if (!routeListEl) return;
 
     ensureStartPoint();
+    var count = state.routePoints.length - 1;
+    document.getElementById('route-compact-count').textContent = '已選 ' + count + ' 個地點';
+    document.getElementById('route-list-count').textContent = '（' + count + '）';
+    document.getElementById('btn-route-clear').disabled = count === 0;
     routeListEl.innerHTML = '';
     var visitNo = 0; // 只對拜訪點編號（排除 __me 起點）
 
@@ -2276,26 +2349,31 @@ document.addEventListener('DOMContentLoaded', function () {
 
       el.innerHTML =
         indexHtml +
-        '<div class="route-item__content">' +
+        '<button type="button" class="route-item__content" title="查看地圖位置">' +
         '  <div class="route-item__title">' + escapeHtml(title) + '</div>' +
         '  <div class="route-item__sub">' + escapeHtml(sub) + '</div>' +
-        '</div>' +
-        (index === 0 ? '' : '<button type="button" class="route-item__remove" title="移除">✕</button>');
+        '</button>' +
+        (index === 0 ? '' : '<div class="route-item__tools"><button type="button" class="route-item__up" aria-label="上移 ' + escapeHtml(title) + '"' + (index === 1 ? ' disabled' : '') + '>↑</button><button type="button" class="route-item__down" aria-label="下移 ' + escapeHtml(title) + '"' + (index === state.routePoints.length - 1 ? ' disabled' : '') + '>↓</button><button type="button" class="route-item__remove" aria-label="移除 ' + escapeHtml(title) + '">✕</button></div>');
 
+      el.querySelector('.route-item__content').addEventListener('click', function () {
+          setRouteSheetOpen(false);
+          MapModule.panToLatLng(Number(p.lat), Number(p.lng), 16);
+          showToast('查看位置：' + title);
+        });
       if (index !== 0) {
-        el.addEventListener('click', function (e) {
-          if (e && e.target && e.target.classList && e.target.classList.contains('route-item__remove')) return;
-
-          state.routePoints = state.routePoints.filter(function (x) {
-            return x && x.id !== p.id;
+        ['up', 'down'].forEach(function (direction) {
+          el.querySelector('.route-item__' + direction).addEventListener('click', function () {
+            var from = indexOfRoutePoint(p.id);
+            var to = from + (direction === 'up' ? -1 : 1);
+            if (to < 1 || to >= state.routePoints.length) return;
+            state.routePoints.splice(to, 0, state.routePoints.splice(from, 1)[0]);
+            renderRouteList();
+            MapModule.setMode(state.mode, state.routePoints);
+            refreshRouteEstimateSummary();
+            emitRouteChanged();
+            var moved = routeListEl.querySelector('[data-id="' + p.id + '"] .route-item__' + direction);
+            if (moved && !moved.disabled) moved.focus();
           });
-          ensureStartPoint();
-          renderRouteList();
-          MapModule.setMode(state.mode, state.routePoints);
-          updateCommitState();
-          updateRouteBadge();
-          refreshRouteEstimateSummary();
-          emitRouteChanged();
         });
       }
 
@@ -2317,6 +2395,13 @@ document.addEventListener('DOMContentLoaded', function () {
 
       routeListEl.appendChild(el);
     });
+
+    if (count === 0) {
+      var emptyRoute = document.createElement('div');
+      emptyRoute.className = 'route-empty';
+      emptyRoute.textContent = '尚未選擇地點。收合清單後，從地圖或名單加入。';
+      routeListEl.appendChild(emptyRoute);
+    }
 
     bindDragAndDrop();
   }
@@ -2443,6 +2528,8 @@ document.addEventListener('DOMContentLoaded', function () {
     if (id === 'sheet-poi') closeSheet('sheet-place');
 
     el.classList.add('bottom-sheet--open');
+    el.setAttribute('aria-hidden', 'false');
+    el.inert = false;
     if (id === 'sheet-place') setPlaceSheetBackdrop(true);
   }
 
@@ -2452,6 +2539,12 @@ document.addEventListener('DOMContentLoaded', function () {
     if (!el) return;
 
     el.classList.remove('bottom-sheet--open');
+    el.setAttribute('aria-hidden', 'true');
+    el.inert = true;
+    if (id === 'sheet-route') {
+      document.getElementById('btn-route-expand').setAttribute('aria-expanded', 'false');
+      if (btnRouteMode) btnRouteMode.setAttribute('aria-expanded', 'false');
+    }
 
     if (id === 'sheet-place') {
       setPlaceSheetBackdrop(false);
