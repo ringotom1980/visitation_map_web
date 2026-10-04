@@ -73,7 +73,7 @@ def main():
     if '--mobile-before' in sys.argv:
         for relative in ['Public/app.php','Public/partials/navbar.php','Public/assets/css/service.css','Public/assets/js/app.js','Public/assets/js/filters_ui.js']:
             (app/relative).write_bytes(subprocess.check_output(['git','show','61b8593:'+relative],cwd=SOURCE))
-    (app / '.env').write_text('APP_NAME=遺眷親訪地圖・本機示範\nAPP_ENV=local\nAPP_BASE_URL=/\nDB_HOST="127.0.0.1;port=43416"\nDB_NAME=visitation_preview_synthetic\nDB_USER=root\nDB_PASS=preview-synthetic-only\nAUTH_DEVICE_OTP_ENABLED=false\nROUTING_PROVIDER=none\nMAP_PROVIDER=google\n', encoding='utf-8')
+    (app / '.env').write_text('APP_NAME=遺眷親訪地圖・本機示範\nAPP_ENV=local\nOWNER_USER_ID=1\nAPP_BASE_URL=/\nDB_HOST="127.0.0.1;port=43416"\nDB_NAME=visitation_preview_synthetic\nDB_USER=root\nDB_PASS=preview-synthetic-only\nAUTH_DEVICE_OTP_ENABLED=false\nROUTING_PROVIDER=none\nMAP_PROVIDER=google\n', encoding='utf-8')
     if transfers:
         with (app/'.env').open('a',encoding='utf-8') as f:f.write('ORGANIZATION_TRANSFERS_ENABLED=true\n')
     if mobile:
@@ -146,15 +146,6 @@ $pdo->exec("INSERT INTO places(serviceman_name,organization_id,updated_by_user_i
 '''.replace('MIGRATION_FILE',json.dumps(str(ROOT/'transfer-migration.sql')))
         seed=seed.replace('echo json_encode(',extra+'echo json_encode(')
     (ROOT / 'seed.php').write_text(seed, encoding='utf-8')
-    router = '''<?php
-$path=rawurldecode(parse_url($_SERVER['REQUEST_URI'],PHP_URL_PATH));
-error_log('preview route: '.$path);
-$pages=['/login'=>'index.php','/app'=>'app.php','/admin'=>'admin/index.php','/admin/security'=>'admin/auth_security.php','/profile'=>'profile.php','/forgot'=>'forgot.php','/register'=>'register.php','/reset'=>'reset.php','/device-verify'=>'device_verify.php'];
-if(isset($pages[$path])){require __DIR__.'/Public/'.$pages[$path];return true;}
-if(str_starts_with($path,'/api/')){ $file=__DIR__.'/Public'.$path.'.php'; if(is_file($file)){require $file;return true;} }
-return false;
-'''
-    (app / 'router.php').write_text(router, encoding='utf-8')
     processes=[]
     try:
         log=open(ROOT/'db.log','w')
@@ -167,9 +158,9 @@ return false;
         print('ISOLATED PREVIEW http://127.0.0.1:43417/login',flush=True)
         print('admin@example.invalid / Preview-only-2026! (synthetic fixture only)',flush=True)
         print('Ctrl+C stops only these preview processes. Root: '+str(ROOT),flush=True)
-        if '--before' in sys.argv or '--verify' in sys.argv or '--mobile' in sys.argv or '--mobile-before' in sys.argv or '--transfers' in sys.argv:
+        if '--before' in sys.argv or '--verify' in sys.argv or '--mobile' in sys.argv or '--mobile-before' in sys.argv or '--transfers' in sys.argv or '--permissions-ui' in sys.argv:
             if '--transfers' in sys.argv:
-                subprocess.run([sys.executable,str(SOURCE/'scripts/preview_transfers_checks.py')],check=True,timeout=90)
+                subprocess.run([sys.executable,str(SOURCE/'scripts/preview_permissions_checks.py')],check=True,timeout=90)
             if '--verify' in sys.argv:
                 subprocess.run([sys.executable,str(SOURCE/'scripts/preview_http_checks.py')],check=True,timeout=60)
             chrome_log=open(ROOT/'chrome.log','w')
@@ -178,7 +169,7 @@ return false;
             chrome=subprocess.Popen(['C:/Program Files/Google/Chrome/Application/chrome.exe','--headless=new','--no-sandbox','--enable-unsafe-swiftshader','--disable-extensions','--no-first-run','--remote-debugging-port='+str(debug_port),'--remote-debugging-address=127.0.0.1','--user-data-dir='+str(ROOT/('chrome-'+str(time.time_ns()))),'about:blank'],stdout=chrome_log,stderr=chrome_log,creationflags=subprocess.CREATE_NO_WINDOW)
             processes.append(chrome);wait(debug_port,chrome)
             node_env=os.environ.copy();node_env['VISITATION_CDP_PORT']=str(debug_port)
-            script='preview_transfers.mjs' if transfers else ('preview_mobile.mjs' if mobile else 'preview_browser.mjs')
+            script='preview_permissions.mjs' if '--permissions-ui' in sys.argv else 'preview_transfers.mjs' if transfers else ('preview_mobile.mjs' if mobile else 'preview_browser.mjs')
             action='before' if '--before' in sys.argv or '--mobile-before' in sys.argv else 'verify'
             subprocess.run(['node',str(SOURCE/'scripts'/script),action],check=True,timeout=180,env=node_env)
         else:

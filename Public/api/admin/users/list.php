@@ -31,4 +31,11 @@ $sql = "SELECT u.id,
 $stmt = $pdo->query($sql);
 $rows = $stmt->fetchAll() ?: [];
 
+$actor=current_user();
+foreach ($rows as &$row) {
+    $row['is_owner']=user_is_owner($row);
+    $row['can_role']=account_action_allowed($actor,$row,'role');
+    $row['can_status']=account_action_allowed($actor,$row,'status');
+}
+unset($row);
 json_success($rows);

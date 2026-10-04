@@ -40,7 +40,7 @@ try {
         if ($view==='options') {
             json_success(['organizations'=>$pdo->query('SELECT id,name FROM organizations WHERE is_active=1 ORDER BY name,id')->fetchAll(PDO::FETCH_ASSOC),'user'=>$actor]);
         }
-        $admin=$actor['role']==='ADMIN';
+        $admin=user_is_admin($actor);
         if ($view==='queue' && !$admin) transfer_fail('沒有審核權限。',403);
         if (!in_array($view,['history','queue','audit'],true)) transfer_fail('查詢類型不正確。');
         $offset=max(0,(int)($_GET['offset']??0));$limit=50;
@@ -70,7 +70,7 @@ try {
     if (!in_array($action,['request','withdraw','review','adjust'],true)) transfer_fail('操作不正確。');
     $targetId=(int)$actor['id'];$requestId=null;
     if ($action==='review' || $action==='adjust') {
-        if ($actor['role']!=='ADMIN') transfer_fail('沒有管理權限。',403);
+        if (!user_is_admin($actor)) transfer_fail('沒有管理權限。',403);
         if ($action==='review') {
             $requestId=transfer_id($input['request_id']??null);
             $stmt=$pdo->prepare('SELECT user_id FROM organization_transfer_requests WHERE id=?');$stmt->execute([$requestId]);
@@ -85,9 +85,10 @@ try {
     $fresh=$locked[(int)$actor['id']]??null;$target=$locked[$targetId]??null;
     if (!$fresh || $fresh['status']!=='ACTIVE') transfer_fail('登入狀態已失效。',401);
     if (!$target) transfer_fail('找不到帳戶。',404);
-    if (in_array($action,['review','adjust'],true) && $fresh['role']!=='ADMIN') transfer_fail('管理權限已失效。',403);
+    if (in_array($action,['review','adjust'],true) && !user_is_admin($fresh)) transfer_fail('管理權限已失效。',403);
+    if (in_array($action,['review','adjust'],true) && !account_action_allowed($fresh,$target,'organization')) transfer_fail('不可調整此帳戶單位。',403);
     if ($action==='request') {
-        if ($fresh['role']!=='USER') transfer_fail('此功能僅供一般使用者申請。',403);
+        if (user_is_admin($fresh)) transfer_fail('此功能僅供一般使用者申請。',403);
         if (transfer_id($input['expected_organization_id']??null)!==(int)$fresh['organization_id']) transfer_fail('目前單位已異動，請重新整理後再申請。',409);
         $toId=transfer_id($input['organization_id']??null);$reason=transfer_reason($input['reason']??null);
         if ($toId===(int)$fresh['organization_id']) transfer_fail('目標單位與目前單位相同。');

@@ -93,7 +93,7 @@ try{
   await dimensions(320,568);for(let id=3;id<=20;id++)await add(id);await screenshot('mobile-after-small-phone',320,568);check('320px 20-selection controls do not wrap or overflow',await evaluate(`document.documentElement.scrollWidth<=innerWidth&&Array.from(document.querySelectorAll('.map-action-btn')).every(e=>e.getBoundingClientRect().height===44&&e.scrollWidth<=e.clientWidth+1)`));
   await dimensions(1440,1000);await click('#btn-route-expand');await screenshot('mobile-after-desktop',1440,1000);check('desktop preserves map and route list',!(await measure('desktop')).overflow);
   await dimensions(390,844);await click('#btn-route-close');await click('.account-menu summary');await click('#btn-logout');await until(`location.pathname==='/login'`);check('account menu logout works through visible control',true);
-  await input('#email','admin@example.invalid');await input('#password','Preview-only-2026!');await click('button[type="submit"]');await until(`location.pathname==='/admin'`);check('logout then login works',true);
+  await until(`document.readyState==='complete' && !!document.querySelector('#loginForm button[type=submit]:not(:disabled)')`);await input('#email','admin@example.invalid');await input('#password','Preview-only-2026!');await click('button[type="submit"]');await until(`location.pathname==='/admin'`);check('logout then login works',true);
   check('no browser runtime exceptions',getBrowserErrors().length===0);
  }
  fs.writeFileSync(`${root}/mobile-${action}-results.json`,JSON.stringify({results,metrics},null,2));console.log('MOBILE QA',results.length,'checks passed',JSON.stringify(metrics));

@@ -8,6 +8,7 @@ declare(strict_types=1);
 
 require_once __DIR__ . '/app.php';
 require_once __DIR__ . '/db.php';
+require_once __DIR__ . '/permissions.php';
 
 // 啟動 Session（若尚未啟動）
 if (session_status() === PHP_SESSION_NONE) {
@@ -75,7 +76,8 @@ function current_user_role(): ?string
  */
 function is_admin(): bool
 {
-    return current_user_role() === 'ADMIN';
+    $user = current_user();
+    return $user && user_is_admin($user);
 }
 
 /**
@@ -127,6 +129,8 @@ function current_user(): ?array
         $_SESSION = [];
         return null;
     }
+    if (user_is_owner($user)) $user['role'] = 'ADMIN';
+    $user['is_owner'] = user_is_owner($user);
     $_SESSION['role'] = $user['role'];
     $_SESSION['organization_id'] = (int)($user['organization_id'] ?? 0);
     $cache = $user;

@@ -29,6 +29,10 @@ if (empty($input)) {
     }
 }
 
+foreach (['role','status','organization_id','is_owner','id','user_id'] as $protected) {
+    if (array_key_exists($protected,$input)) json_error('個人資料不可變更權限或單位。',403);
+}
+
 $name  = trim($input['name']  ?? '');
 $phone = trim($input['phone'] ?? '');
 $email = trim($input['email'] ?? '');

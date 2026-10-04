@@ -5,7 +5,8 @@ source=Path(__file__).resolve().parents[1]
 with tempfile.TemporaryDirectory(prefix='visitation-auth-') as folder:
     root=Path(folder)
     shutil.copyfile(source/'config/auth.php',root/'auth.php')
-    (root/'app.php').write_text('<?php session_name("isolated_auth_test");',encoding='utf-8')
+    shutil.copyfile(source/'config/permissions.php',root/'permissions.php')
+    (root/'app.php').write_text('<?php session_name("isolated_auth_test"); function env($key,$default=null){return $default;}',encoding='utf-8')
     (root/'db.php').write_text('''<?php
 class FixtureStatement {function execute($params) {} function fetch(){return $GLOBALS['fixture'];}}
 class FixtureDatabase {function prepare($sql){$GLOBALS['queries']++;return new FixtureStatement();}}

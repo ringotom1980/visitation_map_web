@@ -88,7 +88,7 @@ $pageCss   = ['assets/css/base.css', 'assets/css/admin.css'];
           類型
           <select id="typeE" style="padding:7px 10px; border:1px solid #e5e7eb; border-radius:10px; background:#fff;">
             <option value="">（全部）</option>
-            <option value="LOGIN_OK">LOGIN_OK</option>
+            <option value="ACCOUNT_ROLE">管理者任免</option><option value="ACCOUNT_STATUS">帳戶狀態異動</option><option value="LOGIN_OK">LOGIN_OK</option>
             <option value="LOGIN_FAIL">LOGIN_FAIL</option>
             <option value="REGISTER_OK">REGISTER_OK</option>
             <option value="REGISTER_FAIL">REGISTER_FAIL</option>

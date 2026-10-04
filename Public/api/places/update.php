@@ -127,7 +127,7 @@ try {
         throw new RuntimeException('找不到要編輯的標記');
     }
 
-    if (($user['role'] ?? '') !== 'ADMIN'
+    if (!user_is_admin($user)
         && (int)$orig['organization_id'] !== (int)($user['organization_id'] ?? 0)
     ) {
         throw new DomainException('無權限編輯此標記', 403);

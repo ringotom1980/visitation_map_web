@@ -80,7 +80,7 @@ try {
         json_error('找不到指定的標記', 404);
     }
 
-    if (($user['role'] ?? '') !== 'ADMIN'
+    if (!user_is_admin($user)
         && (int)$row['organization_id'] !== (int)$user['organization_id']
     ) {
         json_error('無權限存取此標記', 403);

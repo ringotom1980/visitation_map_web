@@ -23,7 +23,7 @@ $user = require_api_user();
 $pdo = db();
 $pdo->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
 
-$isAdmin = isset($user['role']) && $user['role'] === 'ADMIN';
+$isAdmin = user_is_admin($user);
 $orgId   = isset($user['organization_id']) ? (int)$user['organization_id'] : 0;
 
 try {

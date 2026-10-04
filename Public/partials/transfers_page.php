@@ -8,6 +8,10 @@
  <div class="admin-intro"><div><p class="eyebrow">服務人員管理</p><h1><?= $transferAdmin?'單位異動管理':'我的單位與異動申請' ?></h1><p>單位變更只調整帳戶的資料範圍，既有親訪紀錄保持原單位歸屬。</p></div><button id="transfer-refresh" type="button" class="btn-outline">重新整理</button></div>
  <div id="transfer-feedback" class="admin-feedback" role="status" aria-live="polite" hidden></div>
  <?php if(!$transferAdmin): ?>
+ <section class="admin-tab-panel active"><h2>個人資料</h2><p>基本資料自行修改，不需審核。單位異動另提出申請。</p><form id="personal-form" class="transfer-form-grid">
+ <?php foreach(['name'=>'姓名','email'=>'Email','phone'=>'電話','title'=>'職稱'] as $field=>$label): ?><label><?= $label ?><input name="<?= $field ?>" type="<?= $field==='email'?'email':'text' ?>" value="<?= htmlspecialchars($transferUser[$field]??'',ENT_QUOTES,'UTF-8') ?>" <?= $field==='title'?'':'required' ?>></label><?php endforeach; ?>
+ <button class="btn-primary" type="submit">儲存個人資料</button><p id="personal-feedback" role="status"></p></form></section>
+
  <section class="admin-tab-panel active"><h2>目前帳戶</h2><dl class="transfer-account"><div><dt>服務人員</dt><dd><?= htmlspecialchars($transferUser['name'],ENT_QUOTES,'UTF-8') ?></dd></div><div><dt>目前單位</dt><dd id="current-organization"><?= htmlspecialchars($transferUser['organization_name']??'未指定',ENT_QUOTES,'UTF-8') ?></dd></div></dl></section>
  <section class="admin-tab-panel active" id="request-section"><h2>申請變更單位</h2><p id="pending-message" class="transfer-note">核准前仍使用目前單位的權限。一次僅能有一筆待審申請。</p><form id="transfer-request-form"><label>目標單位<select id="request-organization" required disabled><option value="">載入中…</option></select></label><label>申請原因<textarea id="request-reason" rows="3" required minlength="3" maxlength="1000" placeholder="請說明單位異動原因（3 至 1000 字）" disabled></textarea></label><button id="request-submit" type="submit" class="btn-primary" disabled>送出申請</button></form></section>
  <?php else: ?>
@@ -19,4 +23,4 @@
  <section class="admin-tab-panel active"><h2><?= $transferAdmin?'單位異動紀錄':'我的單位異動紀錄' ?></h2><p class="transfer-note">保留前後單位、操作者、原因與時間；審核核准及直接調整皆會留存。</p><div id="transfer-audit"></div><div class="transfer-pagination"><button id="audit-prev" type="button" class="btn-outline" disabled>上一頁</button><span id="audit-page"></span><button id="audit-next" type="button" class="btn-outline" disabled>下一頁</button></div></section>
 </main>
 <dialog id="transfer-confirm" class="admin-dialog" aria-labelledby="transfer-confirm-title"><form id="transfer-confirm-form"><h2 id="transfer-confirm-title"></h2><p id="transfer-confirm-detail"></p><label id="review-reason-label">審核原因<textarea id="review-reason" rows="3" minlength="3" maxlength="1000"></textarea></label><label class="transfer-confirm-check"><input id="transfer-confirm-check" type="checkbox" required>我已確認服務人員與單位異動內容</label><div class="dialog-actions"><button id="transfer-cancel" type="button" class="btn-outline">取消</button><button id="transfer-confirm-submit" type="submit" class="btn-primary">確認送出</button></div></form></dialog>
-<script src="<?= asset_url('assets/js/api.js') ?>"></script><script src="<?= asset_url('assets/js/transfers.js') ?>"></script></body></html>
+<script src="<?= asset_url('assets/js/api.js') ?>"></script><script src="<?= asset_url('assets/js/transfers.js') ?>"></script><script src="<?= asset_url('assets/js/personal.js') ?>"></script></body></html>

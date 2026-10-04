@@ -48,7 +48,7 @@ try {
         json_error('標記不存在', 404);
     }
 
-    if (($user['role'] ?? '') !== 'ADMIN'
+    if (!user_is_admin($user)
         && (int)$orig['organization_id'] !== (int)$user['organization_id']
     ) {
         json_error('無權限刪除此標記', 403);

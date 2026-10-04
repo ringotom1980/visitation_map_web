@@ -20,7 +20,7 @@ if ($_SERVER['REQUEST_METHOD'] !== 'GET') {
 }
 
 $user = require_api_user();
-if ((string)($user['role'] ?? '') !== 'ADMIN') {
+if (!user_is_admin($user)) {
     json_error('Forbidden', 403);
 }
 
