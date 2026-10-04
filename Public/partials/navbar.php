@@ -20,7 +20,7 @@
 
   <div class="app-toolbar__center">
     <div class="search-bar">
-      <input id="map-search-input" class="search-bar__input" placeholder="搜尋官兵姓名、地點或地址" autocomplete="off" />
+      <input id="map-search-input" class="search-bar__input" aria-label="搜尋官兵姓名、地點或地址" placeholder="搜尋官兵姓名、地點或地址" autocomplete="off" />
 
       <button type="button" id="btn-search-go" class="search-bar__btn search-bar__btn--search" aria-label="搜尋">
         🔍
@@ -34,6 +34,7 @@
   </div>
 
   <div class="app-toolbar__right">
+    <?php if (is_admin()): ?><a class="service-nav-link" href="<?= route_url('admin') ?>">管理後台</a><?php endif; ?>
     <div id="nav-user" style="font-size:13px;color:#374151;white-space:nowrap;">
       目前登入：<span id="nav-user-name">—</span>
     </div>

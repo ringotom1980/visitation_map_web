@@ -38,5 +38,10 @@ jobs:
             **/.env
             **/.env.*
             **/.ftp-deploy-sync-state.json
+            **/scripts/local_preview.py
+            **/scripts/preview_*.py
+            **/scripts/preview_*.mjs
+            **/scripts/verify_auth_cache.py
+            **/__pycache__/**
 
           dangerous-clean-slate: false

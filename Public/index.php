@@ -20,6 +20,9 @@ $pageCss   = [
 ];
 
 $loginInfoMessage = '';
+if (isset($_GET['expired'])) {
+  $loginInfoMessage = '登入狀態已失效，請重新登入。若帳戶已停權，請聯絡管理者。';
+}
 if (isset($_GET['applied']) && $_GET['applied'] === '1') {
   $loginInfoMessage = '已送出帳號申請，待管理者審核通過後即可登入';
 }
@@ -48,7 +51,7 @@ if (isset($_GET['applied']) && $_GET['applied'] === '1') {
     <main class="login-wrapper">
       <h1 class="login-title">登入系統</h1>
 
-      <form id="loginForm" class="login-form" autocomplete="on">
+      <form id="loginForm" class="login-form" method="post" action="<?= route_url('api/auth/login') ?>" autocomplete="on">
         <label class="form-group">
           <span class="form-label">帳號（Email）</span>
           <input
@@ -80,7 +83,8 @@ if (isset($_GET['applied']) && $_GET['applied'] === '1') {
           </label>
         </div>
 
-        <button type="submit" class="btn-primary btn-block">登入</button>
+        <button type="submit" class="btn-primary btn-block" disabled>準備登入…</button>
+        <noscript><p class="login-message error">請啟用 JavaScript 後重新載入，以使用安全登入流程。</p></noscript>
 
         <p class="login-extra">
           還沒有帳號？
@@ -93,6 +97,7 @@ if (isset($_GET['applied']) && $_GET['applied'] === '1') {
 
         <p
           id="loginMessage"
+          role="status" aria-live="polite"
           class="login-message<?= $loginInfoMessage !== '' ? ' info' : '' ?>">
           <?= $loginInfoMessage !== '' ? htmlspecialchars($loginInfoMessage, ENT_QUOTES, 'UTF-8') : '' ?>
         </p>

@@ -22,7 +22,7 @@ if (!isset($pageExternalCss) || !is_array($pageExternalCss)) {
 <head>
   <meta charset="UTF-8">
   <title><?= htmlspecialchars((string)$pageTitle, ENT_QUOTES, 'UTF-8') ?></title>
-  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 
   <link rel="icon" type="image/png" href="<?= asset_url('assets/img/logo.png') ?>">
 
@@ -39,6 +39,7 @@ if (!isset($pageExternalCss) || !is_array($pageExternalCss)) {
   <?php endforeach; ?>
 
   <!-- 前端 api.js 會讀取此值作為 API_BASE -->
+  <link rel="stylesheet" href="<?= asset_url('assets/css/service.css') ?>">
   <meta name="api-base" content="/api">
   <?php if (function_exists('csrf_token')): ?>
     <meta name="csrf-token" content="<?= htmlspecialchars(csrf_token(), ENT_QUOTES, 'UTF-8') ?>">

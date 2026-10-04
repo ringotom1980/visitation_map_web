@@ -105,6 +105,7 @@ $mapConfig = [
   <main class="app-main">
     <section class="app-content">
       <div id="map" class="app-map"></div>
+      <div id="map-service-status" class="map-service-status" role="status" hidden></div>
       <!-- ✅ 導覽列下方浮動操作列（Google 風格） -->
       <div class="map-top-actions" aria-label="地圖操作">
         <button id="btn-my-location" class="map-action-btn" type="button" title="移到我現在的位置">
@@ -131,10 +132,10 @@ $mapConfig = [
             <div class="place-list-panel__title">名單</div>
             <div id="place-list-count" class="place-list-panel__subtitle">0 筆</div>
           </div>
-          <button type="button" id="btn-place-list-close" class="place-list-panel__close">✕</button>
+          <button type="button" id="btn-place-list-close" class="place-list-panel__close" aria-label="關閉名單">✕</button>
         </div>
         <div class="place-list-panel__tools">
-          <input id="place-list-search" type="search" placeholder="搜尋姓名、受訪者、地址、令號">
+          <input id="place-list-search" type="search" aria-label="搜尋親訪名單" placeholder="搜尋姓名、受訪者、地址、令號">
           <div class="quick-filters" aria-label="快速篩選">
             <button type="button" class="quick-filter is-active" data-quick-filter="all">全部</button>
             <button type="button" class="quick-filter" data-quick-filter="over65">65歲以上</button>

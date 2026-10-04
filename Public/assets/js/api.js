@@ -64,7 +64,14 @@ async function apiRequest(path, method, data) {
       (json && json.error && json.error.message) ? json.error.message :
       (json && json.error && typeof json.error === 'string') ? json.error :
       ('HTTP ' + res.status);
-    throw new Error(msg);
+    var error = new Error(msg);
+    error.status = res.status;
+    error.code = json && json.error ? json.error.code : null;
+    if (res.status === 401 && document.body &&
+        (document.body.classList.contains('app-page') || document.body.classList.contains('admin-body'))) {
+      window.location.replace('/login?expired=1');
+    }
+    throw error;
   }
 
   // ✅ 關鍵：直接回傳整包 JSON

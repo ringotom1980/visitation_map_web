@@ -4,6 +4,7 @@
 //      ★本版重點：為了同時顯示「點內數字」+「旁邊姓名」，姓名改用 OverlayView；Marker label 專注顯示數字
 
 var MapModule = (function () {
+  if (!window.google || !google.maps) return null;
   var map;
   var autocomplete;
   var geocoder;
@@ -1104,4 +1105,4 @@ var MapModule = (function () {
 })();
 
 window.MapModule = MapModule;
-window.markersById = MapModule._markersById;
+window.markersById = MapModule ? MapModule._markersById : new Map();

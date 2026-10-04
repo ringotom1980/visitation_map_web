@@ -53,7 +53,8 @@ function csrf_validate_request(): bool
  */
 function current_user_id(): ?int
 {
-    return isset($_SESSION['user_id']) ? (int)$_SESSION['user_id'] : null;
+    $user = current_user();
+    return $user ? (int)$user['id'] : null;
 }
 
 /**
@@ -63,7 +64,8 @@ function current_user_id(): ?int
  */
 function current_user_role(): ?string
 {
-    return $_SESSION['role'] ?? null;
+    $user = current_user();
+    return $user ? (string)$user['role'] : null;
 }
 
 /**
@@ -84,14 +86,17 @@ function is_admin(): bool
  */
 function current_user(): ?array
 {
-    $uid = current_user_id();
+    // Read the raw session ID here: the public helpers validate through this function.
+    $uid = (int)($_SESSION['user_id'] ?? 0);
     if (!$uid) {
         return null;
     }
 
     // 簡單快取，避免同一次請求重複查 DB
     static $cache = null;
-    if ($cache !== null) {
+    static $cacheId = null;
+    static $loaded = false;
+    if ($loaded && $cacheId === $uid) {
         return $cache;
     }
 
@@ -114,11 +119,15 @@ function current_user(): ?array
     $stmt = $pdo->prepare($sql);
     $stmt->execute([':id' => $uid]);
     $user = $stmt->fetch();
-
-    if (!$user) {
+    $cacheId = $uid;
+    $loaded = true;
+    // A session is not authority. Recheck once per request, including negative results.
+    if (!$user || ($user['status'] ?? '') !== 'ACTIVE') {
+        $cache = null;
+        $_SESSION = [];
         return null;
     }
-
+    $_SESSION['role'] = $user['role'];
     $cache = $user;
     return $user;
 }

@@ -13,6 +13,7 @@ document.addEventListener('DOMContentLoaded', () => {
   const rememberEl = document.querySelector('input[name="remember"], input[type="checkbox"]');
 
   if (!form) return;
+  let submitting = false;
 
   // 依 device_fingerprint 分環境記住帳號（UA + platform -> sha256）
   // 若瀏覽器不支援 crypto.subtle，退回舊 key（仍可用）
@@ -62,6 +63,8 @@ document.addEventListener('DOMContentLoaded', () => {
 
   form.addEventListener('submit', async (e) => {
     e.preventDefault();
+    if (submitting) return;
+    if (!form.reportValidity()) return;
     setMsg('', null);
 
     const email = (emailEl?.value || '').trim();
@@ -72,6 +75,9 @@ document.addEventListener('DOMContentLoaded', () => {
       return;
     }
 
+    submitting = true;
+    const submitButton = form.querySelector('button[type="submit"]');
+    if (submitButton) { submitButton.disabled = true; submitButton.textContent = '登入中…'; }
     try {
       const json = await apiRequest('auth/login', 'POST', { email, password });
       const data = json?.data || null;
@@ -89,6 +95,11 @@ document.addEventListener('DOMContentLoaded', () => {
 
     } catch (err) {
       setMsg(err?.message || '登入失敗', 'error');
+    } finally {
+      submitting = false;
+      if (submitButton) { submitButton.disabled = false; submitButton.textContent = '登入'; }
     }
   });
+  const readyButton = form.querySelector('button[type="submit"]');
+  if (readyButton) { readyButton.disabled = false; readyButton.textContent = '登入'; }
 });

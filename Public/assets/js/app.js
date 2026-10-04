@@ -121,15 +121,37 @@ document.addEventListener('DOMContentLoaded', function () {
   })();
 
   if (typeof MapModule === 'undefined') {
-    console.error('MapModule 未定義，請確認 map.js 是否有正確載入。');
-    return;
+    window.MapModule = null;
   }
 
   // ✅ 必須先初始化地圖，否則 #map 會是空的（沒有 .gm-style）
-  MapModule.init({
-    onSearchPlaceSelected: handleSearchPlaceSelected,
-    onMapLongPressForNewPlace: handleMapLongPressForNewPlace
-  });
+  var mapAvailable = true;
+  try {
+    MapModule.init({
+      onSearchPlaceSelected: handleSearchPlaceSelected,
+      onMapLongPressForNewPlace: handleMapLongPressForNewPlace
+    });
+  } catch (error) {
+    mapAvailable = false;
+    console.warn('Map unavailable:', error);
+    // Keep account, list and form flows usable when the provider script fails.
+    var originalMapModule = MapModule || {};
+    var offlineCoordinate = null;
+    MapModule = new Proxy(originalMapModule, {
+      get: function (target, name) {
+        if (name === 'getTempNewPlaceLatLng') return function () { return offlineCoordinate; };
+        if (name === 'setTempNewPlaceLatLng') return function (value) { offlineCoordinate = value; };
+        if (name === 'clearTempNewPlaceLatLng') return function () { offlineCoordinate = null; };
+        if (name === 'buildDirectionsUrl' && target[name]) return target[name];
+        return function () { return null; };
+      }
+    });
+    var mapStatus = document.getElementById('map-service-status');
+    if (mapStatus) {
+      mapStatus.hidden = false;
+      mapStatus.innerHTML = '<strong>地圖服務暫時無法載入</strong>您仍可使用「名單」查詢親訪資料。請確認網路連線後重新載入；新增地點與地圖定位需待服務恢復。<br><a href="/app">重新載入地圖</a>';
+    }
+  }
 
   // ✅ 初始化鏡頭聚焦模組（FocusCamera）
   if (window.FocusCamera && typeof window.FocusCamera.init === 'function') {
@@ -863,7 +885,7 @@ document.addEventListener('DOMContentLoaded', function () {
 
   loadMeNonBlocking();
   refreshPlaces();
-  initMyLocationNonBlocking();
+  if (mapAvailable) initMyLocationNonBlocking();
   applyMode(Mode.BROWSE);
 
   function getMapViewportEl() {
@@ -963,10 +985,12 @@ document.addEventListener('DOMContentLoaded', function () {
 
   if (btnPlaceEdit) {
     btnPlaceEdit.addEventListener('click', async function () {
+      if (btnPlaceEdit.disabled) return;
       if (state.mode !== Mode.BROWSE) return;
       if (!state.currentPlace) return;
 
       var id = state.currentPlace.id;
+      btnPlaceEdit.disabled = true;
 
       closeSheet('sheet-place');
       setPlaceSheetBackdrop(false);
@@ -982,11 +1006,13 @@ document.addEventListener('DOMContentLoaded', function () {
         // 更新 currentPlace，避免後續 submit 沿用舊資料
         state.currentPlace = place || state.currentPlace;
 
-        if (window.PlaceForm) PlaceForm.openForEdit(state.currentPlace);
+        if (window.PlaceForm) await PlaceForm.openForEdit(state.currentPlace);
       } catch (err) {
         console.error('load place detail fail:', err);
         // 失敗才退回用 cache（至少不讓使用者卡住）
-        if (window.PlaceForm) PlaceForm.openForEdit(state.currentPlace);
+        if (window.PlaceForm) await PlaceForm.openForEdit(state.currentPlace);
+      } finally {
+        btnPlaceEdit.disabled = false;
       }
     });
   }
@@ -1035,12 +1061,16 @@ document.addEventListener('DOMContentLoaded', function () {
 
   if (btnLogout) {
     btnLogout.addEventListener('click', function () {
+      if (btnLogout.disabled) return;
+      btnLogout.disabled = true;
       apiRequest('/auth/logout', 'POST', {})
+        .then(function () { window.location.href = '/login'; })
         .catch(function (err) {
           console.error('logout error:', err);
+          showToast('登出未完成，請重試：' + err.message, 'error');
         })
         .finally(function () {
-          window.location.href = '/login';
+          btnLogout.disabled = false;
         });
     });
   }
@@ -1317,11 +1347,9 @@ document.addEventListener('DOMContentLoaded', function () {
   }
 
   function refreshPlaces() {
-    return fetch('/api/places/list', { credentials: 'include' })
-      .then(function (res) {
-        if (!res.ok) throw new Error('HTTP ' + res.status);
-        return res.json();
-      })
+    if (placeListItemsEl) placeListItemsEl.setAttribute('aria-busy', 'true');
+    if (placeListCountEl) placeListCountEl.textContent = '載入中…';
+    return apiRequest('/places/list', 'GET')
       .then(function (json) {
         if (!json || typeof json !== 'object') throw new Error('回傳格式錯誤');
         if (!json.success) throw new Error((json.error && json.error.message) || '載入地點資料失敗');
@@ -1345,7 +1373,18 @@ document.addEventListener('DOMContentLoaded', function () {
       })
       .catch(function (err) {
         console.error('refreshPlaces error:', err);
-        showToast('載入地點資料失敗', 'error');
+        showToast('載入地點資料失敗：' + err.message, 'error');
+        if (placeListCountEl) placeListCountEl.textContent = '載入失敗';
+        if (placeListItemsEl) {
+          placeListItemsEl.innerHTML = '';
+          var retry = document.createElement('button');
+          retry.type = 'button'; retry.className = 'btn btn-outline';
+          retry.textContent = '名單載入失敗，點此重試';
+          retry.addEventListener('click', refreshPlaces);
+          placeListItemsEl.appendChild(retry);
+        }
+      }).finally(function () {
+        if (placeListItemsEl) placeListItemsEl.setAttribute('aria-busy', 'false');
       });
   }
 
@@ -1353,7 +1392,8 @@ document.addEventListener('DOMContentLoaded', function () {
     if (!placeListPanel) return;
     placeListPanel.classList.toggle('is-open', !!open);
     placeListPanel.setAttribute('aria-hidden', open ? 'false' : 'true');
-    if (open) renderPlaceList();
+    if (open) { renderPlaceList(); if (placeListSearchEl) placeListSearchEl.focus(); }
+    else if (btnPlaceList) btnPlaceList.focus();
   }
 
   function renderPlaceList() {
@@ -2373,10 +2413,11 @@ document.addEventListener('DOMContentLoaded', function () {
   }
 
   async function handlePlaceDelete() {
-    if (!state.currentPlace) return;
+    if (!state.currentPlace || (btnPlaceDelete && btnPlaceDelete.disabled)) return;
     if (!confirm('確定要刪除這個地點嗎？刪除後會移至回收狀態，可由資料庫復原。')) return;
 
     try {
+      if (btnPlaceDelete) btnPlaceDelete.disabled = true;
       await PlacesApi.remove(state.currentPlace.id);
       closeSheet('sheet-place');
       state.currentPlace = null;
@@ -2385,6 +2426,8 @@ document.addEventListener('DOMContentLoaded', function () {
     } catch (err) {
       console.error(err);
       showToast((err && err.message) ? err.message : '刪除失敗', 'error');
+    } finally {
+      if (btnPlaceDelete) btnPlaceDelete.disabled = false;
     }
   }
 

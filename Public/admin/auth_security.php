@@ -10,6 +10,7 @@ declare(strict_types=1);
 require_once __DIR__ . '/../../config/auth.php';
 
 require_admin_page();
+header('Cache-Control: no-store');
 
 $pageTitle = APP_NAME . ' - 安全中心';
 $pageCss   = ['assets/css/base.css', 'assets/css/admin.css'];

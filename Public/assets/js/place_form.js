@@ -60,6 +60,21 @@
                     }
                 }
             });
+            document.addEventListener('keydown', function (event) {
+                var modal = document.getElementById('modal-place-form');
+                if (!modal || !modal.classList.contains('modal--open')) return;
+                if (event.key === 'Escape') {
+                    event.preventDefault();
+                    PlaceForm.closeModal('modal-place-form');
+                }
+                if (event.key === 'Tab') {
+                    var controls = Array.from(modal.querySelectorAll('button:not(:disabled),input:not([type="hidden"]),select,textarea'))
+                        .filter(function (element) { return element.getClientRects().length > 0; });
+                    var first = controls[0], last = controls[controls.length - 1];
+                    if (event.shiftKey && document.activeElement === first) { event.preventDefault(); last.focus(); }
+                    else if (!event.shiftKey && document.activeElement === last) { event.preventDefault(); first.focus(); }
+                }
+            });
         },
 
         // 由 app.js 注入 me（避免 place_form.js 自己再打一次 /auth/me 造成競態）
@@ -92,7 +107,7 @@
             this._setTownHidden('', '', '');
 
             // 確保選單載入（若尚未載入）
-            this._ensureTownOptionsLoaded().finally(function () {
+            return this._ensureTownOptionsLoaded().finally(function () {
                 PlaceForm._syncSelectFromHidden(); // 讓 UI 跟 hidden 同步（目前是空）
                 PlaceForm.openModal('modal-place-form');
             });
@@ -131,7 +146,7 @@
             var titleEl = document.getElementById('modal-place-title');
             if (titleEl) titleEl.textContent = '編輯標記';
 
-            this._ensureTownOptionsLoaded().finally(function () {
+            return this._ensureTownOptionsLoaded().finally(function () {
                 PlaceForm._syncSelectFromHidden();
                 PlaceForm.openModal('modal-place-form');
             });
@@ -139,7 +154,8 @@
 
         // 儲存：由 app.js 的「儲存」按鈕呼叫
         submit: async function (currentPlaceForEditFallback) {
-            if (!this._form) return;
+            if (!this._form || this._submitting) return;
+            if (!this._form.reportValidity()) return;
             if (!this._PlacesApi) {
                 alert('PlacesApi 未載入，無法儲存');
                 return;
@@ -202,6 +218,9 @@
                 ? this._MapModule.getTempNewPlaceLatLng()
                 : null;
 
+            this._submitting = true;
+            var saveButton = document.getElementById('btn-place-save');
+            if (saveButton) { saveButton.disabled = true; saveButton.textContent = '儲存中…'; }
             try {
                 if (id) {
                     // 編輯：lat/lng 若沒有新點就沿用 currentPlace
@@ -231,7 +250,7 @@
                     await this._PlacesApi.create(payload);
                 }
 
-                this.closeModal('modal-place-form');
+                this.closeModal('modal-place-form', true);
                 if (this._MapModule && this._MapModule.clearTempNewPlaceLatLng) {
                     this._MapModule.clearTempNewPlaceLatLng();
                 }
@@ -247,6 +266,9 @@
                 var msg = (err && err.message) ? err.message : '儲存失敗';
                 if (global.showAppToast) global.showAppToast(msg, 'error');
                 else alert(msg);
+            } finally {
+                this._submitting = false;
+                if (saveButton) { saveButton.disabled = false; saveButton.textContent = '儲存'; }
             }
         },
 
@@ -258,13 +280,17 @@
             if (!el) return;
 
             el.classList.add('modal--open');
+            this._returnFocus = document.activeElement;
             el.setAttribute('aria-hidden', 'false');
 
             document.body.classList.add('is-modal-open');
             this._lockBodyScroll();
+            var first = el.querySelector('input:not([type="hidden"]),select,button');
+            if (first) first.focus();
         },
 
-        closeModal: function (id) {
+        closeModal: function (id, completed) {
+            if (this._submitting && !completed) return;
             var el = document.getElementById(id);
             if (!el) return;
 
@@ -278,6 +304,7 @@
                 window.PlaceCoordUpdate.onModalClosed();
             }
             this._createLatLng = null;
+            if (this._returnFocus && this._returnFocus.isConnected) this._returnFocus.focus();
 
         },
 
