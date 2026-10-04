@@ -19,26 +19,35 @@ Canonical 入口為 `/admin/accounts`、`/admin/transfers`；保留既有 `.php`
 不加入任意 PHP 檔案路由，所有原有頁面、API 與資源規則保持原樣。
 `docs/hosting-root.htaccess` 是使用者提供的原始規則測試基準，並非完整替換檔。
 
-## 實際部署位置與安全檢查
+## 生效的部署方式與根檔案限制
 
-既有 FTPS workflow 上傳 repo 到 `FTP_TARGET_DIR`。
-新增步驟只檢查該目錄與其立即上層；先確認部署的 `Public/admin/index.php` 位元組，
-再驗證候選 document root 的 `.htaccess` 包含指定 admin 規則，且該根目錄下
-`visitation_map_web/Public/admin/index.php` 與此次提交一致。
-只有唯一匹配才備份、暫存、檢查並以 rename 替換真正根檔案；所有既有文字原封保留。
-衝突路由、根目錄不明、無權限、並行修改或 TLS 驗證失敗時，不猜路徑、不關閉 TLS 驗證。
-不讀取正式 `.env`，不修改憑證或正式資料庫。
-實際 FTP 命名空間路徑與修改前後 SHA-256 由部署的 `root-routing-result` artifact 記錄。
-若根檔案位於 FTPS 帳戶無權訪問的範圍，仍須由原站檔案管理員套用上述最小修正；不得宣稱根路由已更新。
+既有 FTPS workflow 將 repo 程式發布到 `FTP_TARGET_DIR`；現有根規則的 fallback
+已指向 `visitation_map_web/Public/index.php`。本次在此真正被呼叫的入口加入八個
+固定 URL 對應（兩頁、`.php` 及尾斜線），於登入頁自動導回地圖之前分派到固定 admin 檔案。
+每個目標頁仍執行 `require_admin_page()`，不以請求內容拼接任意路徑。
+因此既有外層 `.htaccess` 保持原樣即可生效，不依賴無效的 repo Public `.htaccess`。
+
+曾嘗試以既有 FTPS secrets 核對並更新外層根檔案：程式檔案上傳成功，但額外的根檔案步驟
+在登入前因 `SSLCertVerificationError: Hostname mismatch` 拒絕連線。
+沒有登入、備份、暫存或修改根 `.htaccess`，也沒有關閉 TLS 憑證驗證、改動 secrets 或讀取 `.env`。
+該無法完成安全連線的步驟已移出自動部署，避免每次發布失敗；正式有效路由改由上述固定入口處理。
+
+已知根檔案的 HTTP 路徑為 `/.htaccess`，Apache 規則的實體位置基準為網站 document root；
+FTP 命名空間的絕對 root 路徑因登入前的憑證錯誤尚未核對，不猜測其絕對路徑或寫入權限。
+`.github/scripts/deploy_root_routes.py` 保留為可審查的嚴格驗證工具，不由自動部署執行。
+它僅核對 configured project directory 及其立即上層、部署檔案的 hash 及唯一根規則，
+成功驗證後才可備份並原子替換；無法唯一確認時不寫入。
+若操作者仍要補齊外層規則，可於原站檔案管理器依上述兩行最小 patch 修改真正根檔案。
+目前應用入口已支援相同 canonical 與 legacy 路徑，外層 patch 為可選的整理。
 
 ## 真正 Apache 驗證
 
 使用安裝的 Apache 2.4.58 Win64、`mod_rewrite`、PHP module，
 獨立暫存 document root、loopback 連線與已核對 datadir 的合成 MariaDB。
-`python scripts/preview_apache_routes.py` 共 49 項通過：
+`python scripts/preview_apache_routes.py` 共 54 項通過：
 
 - 原始根規則重現四個新入口落入登入頁。
-- 修正後新入口、`.php` 相容路徑、尾斜線及授權查詢匿名均 302 至登入。
+- 原始根規則不變，新的固定入口即可使新頁面、`.php` 相容路徑、尾斜線及授權查詢匿名均 302 至登入。
 - OWNER／ADMIN 真正登入合成帳戶後進入正確頁面；USER 導回地圖。
 - 既有登入、註冊、忘記密碼、裝置驗證、個資、安全、API 與靜態資源路由保持正確。
 - 非允許名單的 admin 路徑未取得任意 PHP 存取。

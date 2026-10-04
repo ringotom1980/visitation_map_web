@@ -12,6 +12,10 @@ shutil.copyfile(FIXTURE/'app/.env',project/'.env')
 spec=importlib.util.spec_from_file_location('root_routes',SOURCE/'.github/scripts/deploy_root_routes.py')
 deploy=importlib.util.module_from_spec(spec);spec.loader.exec_module(deploy)
 baseline=(SOURCE/'docs/hosting-root.htaccess').read_bytes();patched=deploy.patch_routes(baseline)
+current_entry=(SOURCE/'Public/index.php').read_bytes()
+# Reproduce the previously published login fallback, then test the actual new
+# allowlisted entry under the user's unchanged document-root rewrite rules.
+(project/'Public/index.php').write_bytes(subprocess.check_output(['git','show','0da63a3:Public/index.php'],cwd=SOURCE))
 assert deploy.patch_routes(patched)==patched
 for invalid in [baseline.replace(b'RewriteRule ^admin/?$',b'RewriteRule ^other/?$'),baseline+baseline,baseline+b'\nRewriteRule ^admin/accounts/?$ unrelated.php [L]\n']:
  try:deploy.patch_routes(invalid);raise AssertionError('Unsafe routing accepted')
@@ -76,7 +80,8 @@ try:
  anonymous=client()
  for path in ['/admin/accounts','/admin/accounts.php','/admin/transfers','/admin/transfers.php']:
   code,body,_=req(anonymous,path);check('baseline reproduces fallback '+path,code==200 and b'id="loginForm"' in body)
- (docroot/'.htaccess').write_bytes(patched)
+ (project/'Public/index.php').write_bytes(current_entry)
+ check('unchanged real root rules with allowlisted application dispatcher',(docroot/'.htaccess').read_bytes()==baseline)
  check('patch idempotent and preserves baseline rules',all(line in patched for line in baseline.splitlines()))
  for path in ['/admin/accounts','/admin/accounts/','/admin/accounts.php','/admin/transfers','/admin/transfers/','/admin/transfers.php','/admin/accounts?view=authorization','/admin','/admin/security','/profile','/app']:
   code,body,headers=req(anonymous,path);check('anonymous login redirect '+path,code==302 and headers.get('Location')=='/login' and b'id="loginForm"' not in body)
@@ -98,7 +103,11 @@ try:
   if role!='USER':
    check(role+' dashboard links canonical pages',b'href="/admin/accounts"' in body and b'href="/admin/transfers"' in body)
  check('configured isolated Apache document root',str(docroot).startswith(os.environ['TEMP']))
- (ROOT/'results.json').write_text(json.dumps({'engine':'Apache httpd mod_rewrite + PHP module','synthetic_only':True,'root_rules_sha256':hashlib.sha256(patched).hexdigest(),'results':results},ensure_ascii=False,indent=2),encoding='utf8')
+ # The optional minimal outer-root patch also works with the same application.
+ (docroot/'.htaccess').write_bytes(patched)
+ for path in ['/admin/accounts','/admin/accounts.php','/admin/transfers','/admin/transfers.php']:
+  code,_,headers=req(anonymous,path);check('optional outer-root patch login redirect '+path,code==302 and headers.get('Location')=='/login')
+ (ROOT/'results.json').write_text(json.dumps({'engine':'Apache httpd mod_rewrite + PHP module','synthetic_only':True,'primary_mode':'unchanged document-root rules plus explicit application allowlist','root_rules_sha256':hashlib.sha256(baseline).hexdigest(),'optional_patched_root_sha256':hashlib.sha256(patched).hexdigest(),'results':results},ensure_ascii=False,indent=2),encoding='utf8')
  print('Apache rewrite:',len(results),'checks passed',flush=True)
 finally:
  process.terminate()

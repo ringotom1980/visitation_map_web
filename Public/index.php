@@ -7,6 +7,21 @@
 
 require_once __DIR__ . '/../config/auth.php';
 
+// The hosting document-root rewrite already sends unmatched routes here.
+// Dispatch only these known pages before the login-page redirect. No arbitrary
+// filename or path supplied by a request is ever included.
+$adminPages = [
+    '/admin/accounts' => 'accounts.php', '/admin/accounts/' => 'accounts.php',
+    '/admin/accounts.php' => 'accounts.php', '/admin/accounts.php/' => 'accounts.php',
+    '/admin/transfers' => 'transfers.php', '/admin/transfers/' => 'transfers.php',
+    '/admin/transfers.php' => 'transfers.php', '/admin/transfers.php/' => 'transfers.php',
+];
+$requestPath = parse_url($_SERVER['REQUEST_URI'] ?? '/', PHP_URL_PATH);
+if (isset($adminPages[$requestPath])) {
+    require __DIR__ . '/admin/' . $adminPages[$requestPath];
+    exit;
+}
+
 // 若已登入，直接導向主地圖
 if (current_user_id()) {
   header('Location: ' . route_url('app'));

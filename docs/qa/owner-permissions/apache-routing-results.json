@@ -1,7 +1,9 @@
 {
   "engine": "Apache httpd mod_rewrite + PHP module",
   "synthetic_only": true,
-  "root_rules_sha256": "c63a21736e94ac70dc03c09a229ccc0710a212d6fb33f03c7bca2fa177e3fb36",
+  "primary_mode": "unchanged document-root rules plus explicit application allowlist",
+  "root_rules_sha256": "56e2d3c025c5a7621722b8789a7e88345f1c0c61c20986bd69898e9e189cd4e8",
+  "optional_patched_root_sha256": "c63a21736e94ac70dc03c09a229ccc0710a212d6fb33f03c7bca2fa177e3fb36",
   "results": [
     {
       "check": "baseline reproduces fallback /admin/accounts",
@@ -17,6 +19,10 @@
     },
     {
       "check": "baseline reproduces fallback /admin/transfers.php",
+      "passed": true
+    },
+    {
+      "check": "unchanged real root rules with allowlisted application dispatcher",
       "passed": true
     },
     {
@@ -197,6 +203,22 @@
     },
     {
       "check": "configured isolated Apache document root",
+      "passed": true
+    },
+    {
+      "check": "optional outer-root patch login redirect /admin/accounts",
+      "passed": true
+    },
+    {
+      "check": "optional outer-root patch login redirect /admin/accounts.php",
+      "passed": true
+    },
+    {
+      "check": "optional outer-root patch login redirect /admin/transfers",
+      "passed": true
+    },
+    {
+      "check": "optional outer-root patch login redirect /admin/transfers.php",
       "passed": true
     }
   ]

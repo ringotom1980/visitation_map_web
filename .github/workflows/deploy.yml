@@ -48,19 +48,3 @@ jobs:
             **/__pycache__/**
 
           dangerous-clean-slate: false
-
-      - name: Verify and update document-root admin routes
-        env:
-          FTP_HOST: ${{ secrets.FTP_HOST }}
-          FTP_USERNAME: ${{ secrets.FTP_USERNAME }}
-          FTP_PASSWORD: ${{ secrets.FTP_PASSWORD }}
-          FTP_TARGET_DIR: ${{ secrets.FTP_TARGET_DIR }}
-        run: python .github/scripts/deploy_root_routes.py --apply
-
-      - name: Preserve verified routing deployment metadata
-        if: always()
-        uses: actions/upload-artifact@v4
-        with:
-          name: root-routing-result
-          path: root-routing-result.json
-          if-no-files-found: ignore
