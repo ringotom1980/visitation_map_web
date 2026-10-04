@@ -64,7 +64,7 @@ php -r 'require "config/db.php"; $p=db(); echo json_encode($p->query("SELECT DAT
 
 config/bootstrap.php 的 load_env() 每次讀取與 config 同級的專案根目錄 `.env`，並以其值覆蓋 putenv／$_ENV／$_SERVER。在原有主機檔案管理或既有私有部署方式中，只把該檔的 `ORGANIZATION_TRANSFERS_ENABLED=false` 改成 `ORGANIZATION_TRANSFERS_ENABLED=true`（不存在則新增一行，禁止重複 key），不修改其他設定、不回傳整份 .env。網站請求會重新讀取，不需 PHP 服務重啟。若 `.env` 已有 false，只改外部程序環境變數會被覆蓋。FTPS workflow 排除 .env，不會替操作者開啟功能。兩表未確認前保持 false；回復同一行為 false。
 
-正式 DB provider／版本／引擎／權限與實際備份位置尚未驗證；尚未讀取正式 .env、改正式帳戶或執行正式 DDL／開關。
+版本與引擎已由下列正式 dump 結構確認；正式 DB provider、權限與實際備份狀態仍需沿既有管理介面確認。尚未讀取正式 .env、改正式帳戶或執行正式 DDL／開關。
 
 ## 本機驗證
 
@@ -111,3 +111,18 @@ ORDER BY TABLE_NAME, ORDINAL_POSITION;
 ```
 
 僅查 server/schema metadata；不查使用者或申請資料列、不回傳帳密、token 或 SHOW GRANTS。第一行應為已確認 DB，若不符則停止；後兩段另設選取 DB guard。不根據截圖的「14 表 InnoDB」猜測版本或 CREATE 權限。主對話已指示使用者自行匯出 SQL 備份、留本機不傳回；此輪沒有要求另建 DB／執行還原演練，早先該段為可選的備份驗證建議，並非目前必做步驟。
+
+
+## 正式 dump 結構相容性（主對話提供 metadata，未讀 INSERT）
+
+主對話已只讀確認 dump 於 2026-10-04 03:34 產生、server 11.8.9-MariaDB-log、DB u327657097_visitation_map，14 張既有表均 InnoDB。users.organization_id 為 BIGINT UNSIGNED NOT NULL、role 包含 USER/ADMIN、status 包含 ACTIVE/SUSPENDED；organizations 有 id/name/code/county_code/parent_id/is_active，其中 is_active 為 tinyint default 1。**不再要求使用者另跑查版本 SQL。**
+
+user_applications 明確 COMMENT「帳號申請紀錄」，包含 name/phone/email/organization_id/title/password_hash/status(PENDING/APPROVED/REJECTED)/reviewer_user_id/reviewed_at/review_note/created_at/updated_at，與 Git 歷史的註冊審核一致，不含已知單位異動類型、原／新單位欄位。新流程不重複改造這張舊表、不動 pending_registrations。
+
+純新增 SQL 仍是 `docs/database_migration_organization_transfers.sql`，兩個 CREATE，沒有 USE/INSERT/DELETE/DROP/ALTER/GRANT 或正式資料。MariaDB 11.8.9 支援所用 STORED generated column 與 nullable unique index；終態 pending_user_id 為 NULL，可留多筆歷史，但每人只能一筆非 NULL PENDING。新 ID 為 BIGINT UNSIGNED，與已確認的 users.organization_id 相容；沒有 FK，因此不要求 ALTER 任何舊表或新增舊表索引。新增表所有必要 PK/unique/查詢索引已內嵌 CREATE。原 SQL 已在隔離 MariaDB 12.0 實際建立並通過 50 HTTP／39 UI，不宣稱在正式 11.8.9 執行過。
+
+尚需主對話僅看 dump CREATE／ALTER 結構確認兩項：users.id 與 organizations.id 各為 PK 或 UNIQUE（API 以 id 識別並鎖單一帳戶／單位）；users.name 與 organizations.name 長度不超過新快照 VARCHAR(100)。這些 metadata 未在本次委派收到；若較長，先調整新表快照欄位並隔離重測，不改正式舊表。無需讀 INSERT 或任何真實資料列。
+
+最小匯入檔已準備為上述 .sql；不要匯入整份正式 dump，不使用 CREATE IF NOT EXISTS 掩蓋同名不同結構。安全核對完成、私人備份確認及正式 DDL 獲授權前，不請使用者執行。選對既有 DB 後由 phpMyAdmin 匯入這個檔，兩表 DDL 不具整批原子 rollback，第二表若失敗，保持 flag false 並核對第一表，不盲目重跑。
+
+開關由使用者在原站檔案管理器找到與 config/、Public/ 同級的私有 .env，只新增或修改唯一一行 `ORGANIZATION_TRANSFERS_ENABLED=true`，不傳回該檔或含憑證畫面。先部署本機已驗證新程式且保持 flag false；完成新增兩表並確認 runtime 表權限後才開 true。現有 FTPS workflow 排除 .env 與 docs；程式提交不會幫忙匯入 SQL 或開旗標。失敗時將該行改回 false，保留新表與稽核紀錄。
