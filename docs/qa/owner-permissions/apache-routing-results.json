@@ -1,0 +1,203 @@
+{
+  "engine": "Apache httpd mod_rewrite + PHP module",
+  "synthetic_only": true,
+  "root_rules_sha256": "c63a21736e94ac70dc03c09a229ccc0710a212d6fb33f03c7bca2fa177e3fb36",
+  "results": [
+    {
+      "check": "baseline reproduces fallback /admin/accounts",
+      "passed": true
+    },
+    {
+      "check": "baseline reproduces fallback /admin/accounts.php",
+      "passed": true
+    },
+    {
+      "check": "baseline reproduces fallback /admin/transfers",
+      "passed": true
+    },
+    {
+      "check": "baseline reproduces fallback /admin/transfers.php",
+      "passed": true
+    },
+    {
+      "check": "patch idempotent and preserves baseline rules",
+      "passed": true
+    },
+    {
+      "check": "anonymous login redirect /admin/accounts",
+      "passed": true
+    },
+    {
+      "check": "anonymous login redirect /admin/accounts/",
+      "passed": true
+    },
+    {
+      "check": "anonymous login redirect /admin/accounts.php",
+      "passed": true
+    },
+    {
+      "check": "anonymous login redirect /admin/transfers",
+      "passed": true
+    },
+    {
+      "check": "anonymous login redirect /admin/transfers/",
+      "passed": true
+    },
+    {
+      "check": "anonymous login redirect /admin/transfers.php",
+      "passed": true
+    },
+    {
+      "check": "anonymous login redirect /admin/accounts?view=authorization",
+      "passed": true
+    },
+    {
+      "check": "anonymous login redirect /admin",
+      "passed": true
+    },
+    {
+      "check": "anonymous login redirect /admin/security",
+      "passed": true
+    },
+    {
+      "check": "anonymous login redirect /profile",
+      "passed": true
+    },
+    {
+      "check": "anonymous login redirect /app",
+      "passed": true
+    },
+    {
+      "check": "existing public route retained /login",
+      "passed": true
+    },
+    {
+      "check": "existing public route retained /register",
+      "passed": true
+    },
+    {
+      "check": "existing public route retained /forgot",
+      "passed": true
+    },
+    {
+      "check": "existing public route retained /reset",
+      "passed": true
+    },
+    {
+      "check": "existing public route retained /device-verify",
+      "passed": true
+    },
+    {
+      "check": "existing API protected /api/auth/me",
+      "passed": true
+    },
+    {
+      "check": "existing API protected /api/places/list",
+      "passed": true
+    },
+    {
+      "check": "existing API protected /api/organization-transfers",
+      "passed": true
+    },
+    {
+      "check": "existing API protected /api/organization-transfers.php",
+      "passed": true
+    },
+    {
+      "check": "static rewrite byte identity assets/css/admin.css",
+      "passed": true
+    },
+    {
+      "check": "static rewrite byte identity assets/js/admin.js",
+      "passed": true
+    },
+    {
+      "check": "static rewrite byte identity assets/js/personal.js",
+      "passed": true
+    },
+    {
+      "check": "unallowlisted admin route remains fallback /admin/config.php",
+      "passed": true
+    },
+    {
+      "check": "unallowlisted admin route remains fallback /admin/accounts/anything.php",
+      "passed": true
+    },
+    {
+      "check": "unallowlisted admin route remains fallback /admin/transfers/anything.php",
+      "passed": true
+    },
+    {
+      "check": "real Apache login admin@example.invalid",
+      "passed": true
+    },
+    {
+      "check": "OWNER reaches correct canonical/legacy page accounts",
+      "passed": true
+    },
+    {
+      "check": "OWNER reaches correct canonical/legacy page accounts.php",
+      "passed": true
+    },
+    {
+      "check": "OWNER reaches correct canonical/legacy page transfers",
+      "passed": true
+    },
+    {
+      "check": "OWNER reaches correct canonical/legacy page transfers.php",
+      "passed": true
+    },
+    {
+      "check": "OWNER dashboard links canonical pages",
+      "passed": true
+    },
+    {
+      "check": "real Apache login target@example.invalid",
+      "passed": true
+    },
+    {
+      "check": "ADMIN reaches correct canonical/legacy page accounts",
+      "passed": true
+    },
+    {
+      "check": "ADMIN reaches correct canonical/legacy page accounts.php",
+      "passed": true
+    },
+    {
+      "check": "ADMIN reaches correct canonical/legacy page transfers",
+      "passed": true
+    },
+    {
+      "check": "ADMIN reaches correct canonical/legacy page transfers.php",
+      "passed": true
+    },
+    {
+      "check": "ADMIN dashboard links canonical pages",
+      "passed": true
+    },
+    {
+      "check": "real Apache login user@example.invalid",
+      "passed": true
+    },
+    {
+      "check": "USER reaches correct canonical/legacy page accounts",
+      "passed": true
+    },
+    {
+      "check": "USER reaches correct canonical/legacy page accounts.php",
+      "passed": true
+    },
+    {
+      "check": "USER reaches correct canonical/legacy page transfers",
+      "passed": true
+    },
+    {
+      "check": "USER reaches correct canonical/legacy page transfers.php",
+      "passed": true
+    },
+    {
+      "check": "configured isolated Apache document root",
+      "passed": true
+    }
+  ]
+}

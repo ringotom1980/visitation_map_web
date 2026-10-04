@@ -21,7 +21,7 @@ class PreviewProxy(http.server.BaseHTTPRequestHandler):
     def forward(self):
         url=urllib.parse.urlsplit(self.path);path=urllib.parse.unquote(url.path)
         public=ROOT/'app/Public'
-        pages={'/login':'index.php','/app':'app.php','/admin':'admin/index.php','/admin/security':'admin/auth_security.php','/profile':'profile.php','/forgot':'forgot.php','/register':'register.php','/reset':'reset.php','/device-verify':'device_verify.php'}
+        pages={'/login':'index.php','/app':'app.php','/admin':'admin/index.php','/admin/accounts':'admin/accounts.php','/admin/transfers':'admin/transfers.php','/admin/security':'admin/auth_security.php','/profile':'profile.php','/forgot':'forgot.php','/register':'register.php','/reset':'reset.php','/device-verify':'device_verify.php'}
         relative=pages.get(path,path.lstrip('/')+('.php' if path.startswith('/api/') and not path.endswith('.php') else ''))
         file=(public/relative).resolve()
         if not file.is_relative_to(public.resolve()) or not file.is_file():self.send_error(404);return

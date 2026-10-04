@@ -1,0 +1,21 @@
+RewriteEngine On
+RewriteBase /
+RewriteRule ^assets/(.*)$ visitation_map_web/Public/assets/$1 [L]
+RewriteRule ^partials/(.*)$ visitation_map_web/Public/partials/$1 [L]
+RewriteRule ^visitation_map_web/Public/assets/(.*)$ visitation_map_web/Public/assets/$1 [L]
+RewriteRule ^visitation_map_web/Public/partials/(.*)$ visitation_map_web/Public/partials/$1 [L]
+RewriteRule ^$ visitation_map_web/Public/index.php [L]
+RewriteRule ^login/?$ visitation_map_web/Public/index.php [L]
+RewriteRule ^register/?$ visitation_map_web/Public/register.php [L]
+RewriteRule ^app/?$ visitation_map_web/Public/app.php [L]
+RewriteRule ^profile/?$ visitation_map_web/Public/profile.php [L]
+RewriteRule ^admin/security/?$ visitation_map_web/Public/admin/auth_security.php [L]
+RewriteRule ^admin/?$ visitation_map_web/Public/admin/index.php [L]
+RewriteRule ^forgot/?$ visitation_map_web/Public/forgot.php [L]
+RewriteRule ^reset/?$ visitation_map_web/Public/reset.php [L]
+RewriteRule ^device-verify/?$ visitation_map_web/Public/device_verify.php [L]
+RewriteRule ^api/(.+)\.php$ visitation_map_web/Public/api/$1.php [L]
+RewriteRule ^api/(.+)$ visitation_map_web/Public/api/$1.php [L]
+RewriteCond %{REQUEST_FILENAME} !-f
+RewriteCond %{REQUEST_FILENAME} !-d
+RewriteRule . visitation_map_web/Public/index.php [L]
