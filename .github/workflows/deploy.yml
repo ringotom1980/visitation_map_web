@@ -13,6 +13,8 @@ jobs:
     steps:
       - name: Checkout repo
         uses: actions/checkout@v4
+        with:
+          persist-credentials: false
 
       - name: Validate PHP syntax before publishing
         run: find config Public -name '*.php' -print0 | xargs -0 -n1 php -l
@@ -34,7 +36,9 @@ jobs:
 
           exclude: |
             **/.git*
+            **/.git/**
             **/.github*
+            **/.github/**
             **/docs/**
             **/README.md
             **/LICENSE

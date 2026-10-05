@@ -1,0 +1,206 @@
+{
+  "source": "https://raw.githubusercontent.com/SamKirkland/FTP-Deploy-Action/v4.3.4/dist/index.js",
+  "bundleSha256": "ad0aea892c11ea8c06e40f663042b7120485d528196127e803d23ee7cfcbaa77",
+  "syntheticOnly": true,
+  "beforeGitEntries": [
+    ".git/config",
+    ".git/objects",
+    ".github/scripts",
+    ".github/workflows",
+    ".git/objects/pack",
+    ".github/scripts/deploy_root_routes.py",
+    ".github/workflows/deploy.yml",
+    "Public/.git/config",
+    ".git/objects/pack/synthetic.pack"
+  ],
+  "results": [
+    {
+      "check": "excluded .git/config",
+      "passed": true
+    },
+    {
+      "check": "excluded .git/objects/pack/synthetic.pack",
+      "passed": true
+    },
+    {
+      "check": "excluded .git/logs/refs/heads/main",
+      "passed": true
+    },
+    {
+      "check": "excluded .github/workflows/deploy.yml",
+      "passed": true
+    },
+    {
+      "check": "excluded .github/scripts/deploy_root_routes.py",
+      "passed": true
+    },
+    {
+      "check": "excluded Public/.git/config",
+      "passed": true
+    },
+    {
+      "check": "excluded Public/.github/workflows/test.yml",
+      "passed": true
+    },
+    {
+      "check": "excluded .env",
+      "passed": true
+    },
+    {
+      "check": "excluded .env.backup",
+      "passed": true
+    },
+    {
+      "check": "excluded config/.env",
+      "passed": true
+    },
+    {
+      "check": "excluded docs/qa/evidence.png",
+      "passed": true
+    },
+    {
+      "check": "excluded scripts/preview_visual.mjs",
+      "passed": true
+    },
+    {
+      "check": "excluded scripts/preview_recovery.mjs",
+      "passed": true
+    },
+    {
+      "check": "excluded scripts/local_preview.py",
+      "passed": true
+    },
+    {
+      "check": "excluded scripts/verify_auth_cache.py",
+      "passed": true
+    },
+    {
+      "check": "excluded __pycache__/preview.pyc",
+      "passed": true
+    },
+    {
+      "check": "excluded folder .git",
+      "passed": true
+    },
+    {
+      "check": "excluded folder .github",
+      "passed": true
+    },
+    {
+      "check": "excluded folder Public/.git",
+      "passed": true
+    },
+    {
+      "check": "excluded folder Public/.github",
+      "passed": true
+    },
+    {
+      "check": "excluded folder docs",
+      "passed": true
+    },
+    {
+      "check": "retained Public/app.php",
+      "passed": true
+    },
+    {
+      "check": "retained Public/assets/js/app.js",
+      "passed": true
+    },
+    {
+      "check": "retained Public/assets/js/place_form.js",
+      "passed": true
+    },
+    {
+      "check": "retained Public/assets/css/service.css",
+      "passed": true
+    },
+    {
+      "check": "retained config/auth.php",
+      "passed": true
+    },
+    {
+      "check": "retained scripts/cron_cleanup_auth.php",
+      "passed": true
+    },
+    {
+      "check": "all previous exclusions retained",
+      "passed": true
+    },
+    {
+      "check": "checkout credentials disabled",
+      "passed": true
+    },
+    {
+      "check": "clean slate remains false",
+      "passed": true
+    },
+    {
+      "check": "old matcher reproduces Git descendants in upload set",
+      "passed": true
+    },
+    {
+      "check": "new local inventory contains no Git descendants",
+      "passed": true
+    },
+    {
+      "check": "actual server-state reader filters old Git entries",
+      "passed": true
+    },
+    {
+      "check": "existing Git entries do not become delete operations",
+      "passed": true
+    },
+    {
+      "check": "only four UI files require replacement",
+      "passed": true
+    },
+    {
+      "check": "new QA and tests require no uploads",
+      "passed": true
+    },
+    {
+      "check": "actual sync executes no delete commands",
+      "passed": true
+    },
+    {
+      "check": "actual sync touches no Git paths",
+      "passed": true
+    },
+    {
+      "check": "state saved only after four UI uploads",
+      "passed": true
+    }
+  ],
+  "diff": {
+    "upload": [],
+    "replace": [
+      "Public/app.php",
+      "Public/assets/css/service.css",
+      "Public/assets/js/app.js",
+      "Public/assets/js/place_form.js"
+    ],
+    "delete": []
+  },
+  "mockOperations": [
+    {
+      "operation": "upload",
+      "path": "Public/app.php"
+    },
+    {
+      "operation": "upload",
+      "path": "Public/assets/css/service.css"
+    },
+    {
+      "operation": "upload",
+      "path": "Public/assets/js/app.js"
+    },
+    {
+      "operation": "upload",
+      "path": "Public/assets/js/place_form.js"
+    },
+    {
+      "operation": "upload",
+      "path": ".ftp-deploy-sync-state.json"
+    }
+  ]
+}
