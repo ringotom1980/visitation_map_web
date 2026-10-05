@@ -24,6 +24,8 @@
         // state
         _me: null,
         _townOptionsLoaded: false,
+        _townLoadPromise: null,
+        _townRetry: null,
         _createLatLng: null,
 
         init: function (deps) {
@@ -42,6 +44,15 @@
             // 綁定：選單選到哪一筆，就同步 hidden 三欄
             if (this._selectTown) {
                 this._selectTown.addEventListener('change', this._onTownChanged.bind(this));
+                this._townRetry = document.createElement('button');
+                this._townRetry.type = 'button';
+                this._townRetry.className = 'btn btn-outline';
+                this._townRetry.textContent = '重新載入鄉鎮市區';
+                this._townRetry.hidden = true;
+                this._selectTown.insertAdjacentElement('afterend', this._townRetry);
+                this._townRetry.addEventListener('click', function () {
+                    PlaceForm._ensureTownOptionsLoaded().then(function () { PlaceForm._syncSelectFromHidden(); });
+                });
             }
 
             // 全站委派：點 backdrop / data-modal-close 關閉
@@ -354,6 +365,7 @@
 
             if (!self._selectTown) return Promise.resolve();
             if (self._townOptionsLoaded) return Promise.resolve();
+            if (self._townLoadPromise) return self._townLoadPromise;
 
             // 沒有 apiRequest 或後端 endpoint 就先降級：只顯示「未提供」
             if (!self._apiRequest) {
@@ -362,10 +374,13 @@
                 return Promise.resolve();
             }
 
-            return self._apiRequest('/managed_towns/list', 'GET')
+            if (self._townRetry) { self._townRetry.disabled = true; self._townRetry.textContent = '載入中…'; }
+            self._townLoadPromise = self._apiRequest('/managed_towns/list', 'GET')
                 .then(function (json) {
                     // 期待格式：{ success:true, data:[{town_code,town_name,county_code,county_name}] }
-                    var list = (json && json.success && Array.isArray(json.data)) ? json.data : [];
+                    if (!json || !json.success || !Array.isArray(json.data)) throw new Error('鄉鎮市區回傳格式錯誤');
+                    var list = json.data;
+                    if (self._townRetry) self._townRetry.hidden = true;
 
                     if (!list.length) {
                         self._setSelectOptions([{ value: '', label: '（此單位無可選鄉鎮市區）' }]);
@@ -395,9 +410,14 @@
                 })
                 .catch(function (err) {
                     console.warn('managed_towns/list fail:', err);
-                    self._setSelectOptions([{ value: '', label: '（載入失敗）' }]);
-                    self._townOptionsLoaded = true;
+                    self._setSelectOptions([{ value: '', label: '（載入失敗，請重試）' }]);
+                    self._townOptionsLoaded = false;
+                    if (self._townRetry) self._townRetry.hidden = false;
+                }).finally(function () {
+                    self._townLoadPromise = null;
+                    if (self._townRetry) { self._townRetry.disabled = false; self._townRetry.textContent = '重新載入鄉鎮市區'; }
                 });
+            return self._townLoadPromise;
         },
 
         _setSelectOptions: function (opts) {

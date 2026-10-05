@@ -1,0 +1,26 @@
+{
+  "syntheticOnly": true,
+  "results": [
+    {
+      "check": "open list preserves failure and retry",
+      "passed": false
+    },
+    {
+      "check": "search preserves failure state",
+      "passed": false
+    },
+    {
+      "check": "close and reopen preserves retry",
+      "passed": false
+    },
+    {
+      "check": "failed town lookup offers visible retry",
+      "passed": false
+    },
+    {
+      "check": "reopening can recover failed lookup",
+      "passed": false
+    }
+  ],
+  "errors": []
+}

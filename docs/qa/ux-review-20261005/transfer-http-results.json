@@ -1,0 +1,202 @@
+[
+  {
+    "check": "anonymous denied",
+    "passed": true
+  },
+  {
+    "check": "CSRF required",
+    "passed": true
+  },
+  {
+    "check": "ordinary user cannot view review queue",
+    "passed": true
+  },
+  {
+    "check": "only active organizations offered",
+    "passed": true
+  },
+  {
+    "check": "same unit rejected",
+    "passed": true
+  },
+  {
+    "check": "inactive unit rejected",
+    "passed": true
+  },
+  {
+    "check": "missing unit rejected",
+    "passed": true
+  },
+  {
+    "check": "empty reason rejected",
+    "passed": true
+  },
+  {
+    "check": "oversize reason rejected",
+    "passed": true
+  },
+  {
+    "check": "invalid id rejected",
+    "passed": true
+  },
+  {
+    "check": "admin self request rejected",
+    "passed": true
+  },
+  {
+    "check": "pending leaves membership unchanged",
+    "passed": true
+  },
+  {
+    "check": "duplicate pending rejected",
+    "passed": true
+  },
+  {
+    "check": "other user history private",
+    "passed": true
+  },
+  {
+    "check": "other user cannot withdraw",
+    "passed": true
+  },
+  {
+    "check": "ordinary reviewer denied",
+    "passed": true
+  },
+  {
+    "check": "withdraw succeeds",
+    "passed": true
+  },
+  {
+    "check": "withdrawn cannot be approved",
+    "passed": true
+  },
+  {
+    "check": "reject reason required",
+    "passed": true
+  },
+  {
+    "check": "reject preserves unit",
+    "passed": true
+  },
+  {
+    "check": "user sees rejection reason",
+    "passed": true
+  },
+  {
+    "check": "simultaneous review exactly one winner",
+    "passed": true
+  },
+  {
+    "check": "single transactional audit",
+    "passed": true
+  },
+  {
+    "check": "old session now has new unit",
+    "passed": true
+  },
+  {
+    "check": "old unit get denied",
+    "passed": true
+  },
+  {
+    "check": "old session sees only new unit places",
+    "passed": true
+  },
+  {
+    "check": "old unit update denied",
+    "passed": true
+  },
+  {
+    "check": "records ownership unchanged",
+    "passed": true
+  },
+  {
+    "check": "direct revert succeeds",
+    "passed": true
+  },
+  {
+    "check": "direct action named confirmation required",
+    "passed": true
+  },
+  {
+    "check": "self direct adjustment forbidden",
+    "passed": true
+  },
+  {
+    "check": "admin target not adjustable",
+    "passed": true
+  },
+  {
+    "check": "direct supersedes pending",
+    "passed": true
+  },
+  {
+    "check": "superseded cannot approve",
+    "passed": true
+  },
+  {
+    "check": "stale direct source rejected",
+    "passed": true
+  },
+  {
+    "check": "membership restored for inactive tests",
+    "passed": true
+  },
+  {
+    "check": "suspended target approval rejected",
+    "passed": true
+  },
+  {
+    "check": "suspended old session rejected",
+    "passed": true
+  },
+  {
+    "check": "suspended target direct rejected",
+    "passed": true
+  },
+  {
+    "check": "suspended request can be rejected safely",
+    "passed": true
+  },
+  {
+    "check": "promoted target approval rejected",
+    "passed": true
+  },
+  {
+    "check": "disabled target after submission cannot approve",
+    "passed": true
+  },
+  {
+    "check": "demoted old reviewer session rejected",
+    "passed": true
+  },
+  {
+    "check": "audit failure rejects change",
+    "passed": true
+  },
+  {
+    "check": "audit failure rolls back membership and pending",
+    "passed": true
+  },
+  {
+    "check": "missing schema returns 503 without DDL",
+    "passed": true
+  },
+  {
+    "check": "audit only visible to owner or admin",
+    "passed": true
+  },
+  {
+    "check": "audit records immutable via API",
+    "passed": true
+  },
+  {
+    "check": "database constraint prevents duplicate pending",
+    "passed": true
+  },
+  {
+    "check": "fixture ready for UI",
+    "passed": true
+  }
+]

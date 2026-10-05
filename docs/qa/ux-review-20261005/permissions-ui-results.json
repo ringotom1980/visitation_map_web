@@ -1,0 +1,94 @@
+[
+  {
+    "check": "login admin@example.invalid",
+    "passed": true
+  },
+  {
+    "check": "OWNER four dashboard entrances",
+    "passed": true
+  },
+  {
+    "check": "permissions-owner-dashboard no horizontal overflow",
+    "passed": true
+  },
+  {
+    "check": "permissions-owner-dashboard-mobile no horizontal overflow",
+    "passed": true
+  },
+  {
+    "check": "unit overview before personnel",
+    "passed": true
+  },
+  {
+    "check": "permissions-unit-cards-mobile no horizontal overflow",
+    "passed": true
+  },
+  {
+    "check": "OWNER row protected",
+    "passed": true
+  },
+  {
+    "check": "permissions-personnel-mobile no horizontal overflow",
+    "passed": true
+  },
+  {
+    "check": "permissions-personnel-desktop no horizontal overflow",
+    "passed": true
+  },
+  {
+    "check": "cross-unit search finds another unit",
+    "passed": true
+  },
+  {
+    "check": "login target@example.invalid",
+    "passed": true
+  },
+  {
+    "check": "ADMIN has three entrances",
+    "passed": true
+  },
+  {
+    "check": "ADMIN cannot use appointment buttons",
+    "passed": true
+  },
+  {
+    "check": "permissions-admin-personnel-mobile no horizontal overflow",
+    "passed": true
+  },
+  {
+    "check": "login user@example.invalid",
+    "passed": true
+  },
+  {
+    "check": "USER redirected to map",
+    "passed": true
+  },
+  {
+    "check": "USER menu shows unit, personal details, application and email",
+    "passed": true
+  },
+  {
+    "check": "permissions-user-account-menu no horizontal overflow",
+    "passed": true
+  },
+  {
+    "check": "personal form has only four basic fields",
+    "passed": true
+  },
+  {
+    "check": "permissions-personal-mobile no horizontal overflow",
+    "passed": true
+  },
+  {
+    "check": "permissions-personal-small no horizontal overflow",
+    "passed": true
+  },
+  {
+    "check": "basic profile saves immediately",
+    "passed": true
+  },
+  {
+    "check": "no uncaught browser exceptions",
+    "passed": true
+  }
+]

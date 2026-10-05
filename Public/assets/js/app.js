@@ -78,6 +78,8 @@ document.addEventListener('DOMContentLoaded', function () {
   }
 
   var navUserNameEl = document.getElementById('nav-user-name');
+  var placesLoadState = 'idle';
+  var placesLoadPromise = null;
   var placeListQuery = '';
   var placeListQuickFilter = 'all';
 
@@ -1415,15 +1417,19 @@ document.addEventListener('DOMContentLoaded', function () {
   setInterval(recheckAccessScope, 60000);
 
   function refreshPlaces() {
+    if (placesLoadPromise) return placesLoadPromise;
+    placesLoadState = 'loading';
     if (placeListItemsEl) placeListItemsEl.setAttribute('aria-busy', 'true');
-    if (placeListCountEl) placeListCountEl.textContent = '載入中…';
-    return apiRequest('/places/list', 'GET')
+    renderPlaceList();
+    placesLoadPromise = apiRequest('/places/list', 'GET')
       .then(function (json) {
         if (!json || typeof json !== 'object') throw new Error('回傳格式錯誤');
         if (!json.success) throw new Error((json.error && json.error.message) || '載入地點資料失敗');
 
-        var places = Array.isArray(json.data) ? json.data : [];
+        if (!Array.isArray(json.data)) throw new Error('地點資料格式錯誤');
+        var places = json.data;
         state.placesCache = places;
+        placesLoadState = 'ready';
 
         MapModule.setPlaces(
           places,
@@ -1442,18 +1448,13 @@ document.addEventListener('DOMContentLoaded', function () {
       .catch(function (err) {
         console.error('refreshPlaces error:', err);
         showToast('載入地點資料失敗：' + err.message, 'error');
-        if (placeListCountEl) placeListCountEl.textContent = '載入失敗';
-        if (placeListItemsEl) {
-          placeListItemsEl.innerHTML = '';
-          var retry = document.createElement('button');
-          retry.type = 'button'; retry.className = 'btn btn-outline';
-          retry.textContent = '名單載入失敗，點此重試';
-          retry.addEventListener('click', refreshPlaces);
-          placeListItemsEl.appendChild(retry);
-        }
+        placesLoadState = 'error';
+        renderPlaceList();
       }).finally(function () {
+        placesLoadPromise = null;
         if (placeListItemsEl) placeListItemsEl.setAttribute('aria-busy', 'false');
       });
+    return placesLoadPromise;
   }
 
   function setPlaceListOpen(open) {
@@ -1472,6 +1473,26 @@ document.addEventListener('DOMContentLoaded', function () {
 
   function renderPlaceList() {
     if (!placeListItemsEl) return;
+
+    if (placesLoadState === 'loading' || placesLoadState === 'error') {
+      var failed = placesLoadState === 'error';
+      if (placeListCountEl) placeListCountEl.textContent = failed ? '載入失敗' : '載入中…';
+      placeListItemsEl.innerHTML = '';
+      var notice = document.createElement('div');
+      notice.className = 'place-list-empty';
+      notice.setAttribute('role', 'status');
+      notice.textContent = failed ? '名單暫時無法載入，請重試。' : '正在載入名單，請稍候…';
+      placeListItemsEl.appendChild(notice);
+      if (failed) {
+        var retry = document.createElement('button');
+        retry.type = 'button'; retry.className = 'btn btn-outline';
+        retry.dataset.placeListRetry = '';
+        retry.textContent = '重新載入名單';
+        retry.addEventListener('click', refreshPlaces);
+        placeListItemsEl.appendChild(retry);
+      }
+      return;
+    }
 
     var q = normalizeSearchText(placeListQuery);
     var routeIds = new Set((state.routePoints || [])

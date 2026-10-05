@@ -1,0 +1,32 @@
+[
+  {
+    "path": "/login",
+    "status": 200,
+    "bytes": 3804,
+    "content_type": "text/html; charset=UTF-8"
+  },
+  {
+    "path": "/assets/js/app.js",
+    "status": 200,
+    "bytes": 91541,
+    "content_type": "application/x-javascript",
+    "sha256": "f896d451c94c17a0173318f3aef095a0ab2aea11b01aea7b983065fb41243ced",
+    "matches_remote_main": true
+  },
+  {
+    "path": "/assets/js/place_form.js",
+    "status": 200,
+    "bytes": 21433,
+    "content_type": "application/x-javascript",
+    "sha256": "0752efc4e783833aa679a682b4cb287fab4a434bb6ee4da747179c77ac156645",
+    "matches_remote_main": true
+  },
+  {
+    "path": "/assets/css/service.css",
+    "status": 200,
+    "bytes": 13730,
+    "content_type": "text/css",
+    "sha256": "5e0b1863351bf98674a44011cf1147e13314ca98cdb31ee7d072bf917e9b9ad8",
+    "matches_remote_main": true
+  }
+]
