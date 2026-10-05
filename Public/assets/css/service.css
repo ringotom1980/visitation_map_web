@@ -54,3 +54,51 @@ button,input,select,textarea{font-size:16px}button,a,input,select,textarea{touch
  .app-page .bottom-sheet--route .bottom-sheet__inner{max-height:calc(var(--visual-height,100dvh) * .47)}
  .app-page .place-list-panel,.app-page .filter-panel__drawer{height:calc(var(--visual-height,100dvh) * .47);max-height:calc(var(--visual-height,100dvh) * .47)}
 }
+
+/* Place inspection: keep controls visible while the content scrolls. */
+.app-page .btn-danger {
+  color: #a73434;
+  border-color: #a73434;
+  background: #fff;
+}
+.app-page .btn-danger:hover { background: #fff1f1; }
+.app-page .modal__close,
+.app-page .bottom-sheet--place .bottom-sheet__close {
+  min-width: 44px;
+  min-height: 44px;
+  flex: none;
+  color: var(--service-muted);
+  border-radius: 8px;
+}
+.app-page .modal__close:hover,
+.app-page .bottom-sheet--place .bottom-sheet__close:hover { background: var(--service-surface); }
+.app-page .bottom-sheet--place .bottom-sheet__inner {
+  display: flex;
+  flex-direction: column;
+  max-height: min(65dvh, calc(var(--visual-height, 100dvh) - var(--toolbar-h) - 52px - 80px));
+  overflow: hidden;
+}
+.app-page .bottom-sheet--place .bottom-sheet__header,
+.app-page .bottom-sheet--place .bottom-sheet__footer { flex: none; }
+.app-page .bottom-sheet--place .bottom-sheet__header > div { min-width: 0; }
+.app-page .bottom-sheet--place .bottom-sheet__title,
+.app-page .bottom-sheet--place .field-value { overflow-wrap: anywhere; }
+.app-page .bottom-sheet--place .bottom-sheet__body {
+  min-height: 0;
+  max-height: none;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  scrollbar-gutter: stable;
+}
+@media (max-width: 900px) and (max-height: 500px) and (orientation: landscape) {
+  .app-page .bottom-sheet--place .bottom-sheet__inner { padding: 6px 12px calc(6px + var(--safe-bottom)); }
+  .app-page .bottom-sheet--place .bottom-sheet__header { margin-bottom: 4px; }
+  .app-page .bottom-sheet--place .bottom-sheet__header .field-row { padding: 2px 0; }
+  .app-page .bottom-sheet--place .bottom-sheet__body .field-row { padding: 4px 0; }
+  .app-page .bottom-sheet--place .bottom-sheet__footer { padding-top: 4px; }
+}
+@media (max-width: 900px) and (max-height: 350px) and (orientation: landscape) {
+  .app-page .bottom-sheet--place .bottom-sheet__inner {
+    max-height: calc(var(--visual-height, 100dvh) - var(--toolbar-h) - 52px - 12px);
+  }
+}

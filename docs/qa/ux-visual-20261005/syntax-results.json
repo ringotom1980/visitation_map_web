@@ -1,0 +1,318 @@
+[
+  {
+    "file": "Public/profile.php",
+    "passed": true
+  },
+  {
+    "file": "Public/reset.php",
+    "passed": true
+  },
+  {
+    "file": "Public/device_verify.php",
+    "passed": true
+  },
+  {
+    "file": "Public/index.php",
+    "passed": true
+  },
+  {
+    "file": "Public/forgot.php",
+    "passed": true
+  },
+  {
+    "file": "Public/app.php",
+    "passed": true
+  },
+  {
+    "file": "Public/register.php",
+    "passed": true
+  },
+  {
+    "file": "Public/admin/auth_security.php",
+    "passed": true
+  },
+  {
+    "file": "Public/admin/index.php",
+    "passed": true
+  },
+  {
+    "file": "Public/admin/transfers.php",
+    "passed": true
+  },
+  {
+    "file": "Public/admin/accounts.php",
+    "passed": true
+  },
+  {
+    "file": "Public/partials/flash.php",
+    "passed": true
+  },
+  {
+    "file": "Public/partials/navbar.php",
+    "passed": true
+  },
+  {
+    "file": "Public/partials/admin_nav.php",
+    "passed": true
+  },
+  {
+    "file": "Public/partials/head.php",
+    "passed": true
+  },
+  {
+    "file": "Public/partials/transfers_page.php",
+    "passed": true
+  },
+  {
+    "file": "Public/api/organization-transfers.php",
+    "passed": true
+  },
+  {
+    "file": "Public/api/filters/options.php",
+    "passed": true
+  },
+  {
+    "file": "Public/api/admin/stats.php",
+    "passed": true
+  },
+  {
+    "file": "Public/api/admin/auth_throttles.php",
+    "passed": true
+  },
+  {
+    "file": "Public/api/admin/auth_events.php",
+    "passed": true
+  },
+  {
+    "file": "Public/api/users/list.php",
+    "passed": true
+  },
+  {
+    "file": "Public/api/users/profile.php",
+    "passed": true
+  },
+  {
+    "file": "Public/api/users/set_role.php",
+    "passed": true
+  },
+  {
+    "file": "Public/api/users/set_status.php",
+    "passed": true
+  },
+  {
+    "file": "Public/api/users/change_password.php",
+    "passed": true
+  },
+  {
+    "file": "Public/api/users/update.php",
+    "passed": true
+  },
+  {
+    "file": "Public/api/routing/route.php",
+    "passed": true
+  },
+  {
+    "file": "Public/api/managed_towns/list.php",
+    "passed": true
+  },
+  {
+    "file": "Public/api/places/list.php",
+    "passed": true
+  },
+  {
+    "file": "Public/api/places/create.php",
+    "passed": true
+  },
+  {
+    "file": "Public/api/places/get.php",
+    "passed": true
+  },
+  {
+    "file": "Public/api/places/delete.php",
+    "passed": true
+  },
+  {
+    "file": "Public/api/places/update.php",
+    "passed": true
+  },
+  {
+    "file": "Public/api/common/bootstrap.php",
+    "passed": true
+  },
+  {
+    "file": "Public/api/common/address_parser.php",
+    "passed": true
+  },
+  {
+    "file": "Public/api/auth/login.php",
+    "passed": true
+  },
+  {
+    "file": "Public/api/auth/register_verify.php",
+    "passed": true
+  },
+  {
+    "file": "Public/api/auth/register_request.php",
+    "passed": true
+  },
+  {
+    "file": "Public/api/auth/device_otp_request.php",
+    "passed": true
+  },
+  {
+    "file": "Public/api/auth/device_otp_verify.php",
+    "passed": true
+  },
+  {
+    "file": "Public/api/auth/me.php",
+    "passed": true
+  },
+  {
+    "file": "Public/api/auth/forgot_verify.php",
+    "passed": true
+  },
+  {
+    "file": "Public/api/auth/logout.php",
+    "passed": true
+  },
+  {
+    "file": "Public/api/auth/forgot_request.php",
+    "passed": true
+  },
+  {
+    "file": "Public/api/admin/users/list.php",
+    "passed": true
+  },
+  {
+    "file": "Public/api/admin/users/reset-password.php",
+    "passed": true
+  },
+  {
+    "file": "Public/api/admin/users/set-status.php",
+    "passed": true
+  },
+  {
+    "file": "Public/api/admin/users/set-role.php",
+    "passed": true
+  },
+  {
+    "file": "Public/api/admin/users/account-mutation.php",
+    "passed": true
+  },
+  {
+    "file": "config/auth.php",
+    "passed": true
+  },
+  {
+    "file": "config/bootstrap.php",
+    "passed": true
+  },
+  {
+    "file": "config/app.php",
+    "passed": true
+  },
+  {
+    "file": "config/permissions.php",
+    "passed": true
+  },
+  {
+    "file": "config/db.php",
+    "passed": true
+  },
+  {
+    "file": "Public/assets/js/filters_ui.js",
+    "passed": true
+  },
+  {
+    "file": "Public/assets/js/filters.js",
+    "passed": true
+  },
+  {
+    "file": "Public/assets/js/reset.js",
+    "passed": true
+  },
+  {
+    "file": "Public/assets/js/login copy.js",
+    "passed": true
+  },
+  {
+    "file": "Public/assets/js/login_page.js",
+    "passed": true
+  },
+  {
+    "file": "Public/assets/js/places.js",
+    "passed": true
+  },
+  {
+    "file": "Public/assets/js/focus_camera.js",
+    "passed": true
+  },
+  {
+    "file": "Public/assets/js/place_form.js",
+    "passed": true
+  },
+  {
+    "file": "Public/assets/js/transfers.js",
+    "passed": true
+  },
+  {
+    "file": "Public/assets/js/login.js",
+    "passed": true
+  },
+  {
+    "file": "Public/assets/js/app.js",
+    "passed": true
+  },
+  {
+    "file": "Public/assets/js/device_verify.js",
+    "passed": true
+  },
+  {
+    "file": "Public/assets/js/map.js",
+    "passed": true
+  },
+  {
+    "file": "Public/assets/js/auth_security.js",
+    "passed": true
+  },
+  {
+    "file": "Public/assets/js/register.js",
+    "passed": true
+  },
+  {
+    "file": "Public/assets/js/forgot.js",
+    "passed": true
+  },
+  {
+    "file": "Public/assets/js/api.js",
+    "passed": true
+  },
+  {
+    "file": "Public/assets/js/place_coord_update.js",
+    "passed": true
+  },
+  {
+    "file": "Public/assets/js/maplibre_map.js",
+    "passed": true
+  },
+  {
+    "file": "Public/assets/js/admin.js",
+    "passed": true
+  },
+  {
+    "file": "Public/assets/js/personal.js",
+    "passed": true
+  },
+  {
+    "file": "Public/assets/js/session.js",
+    "passed": true
+  },
+  {
+    "file": "scripts/preview_visual.mjs",
+    "passed": true
+  },
+  {
+    "file": "scripts/preview_recovery.mjs",
+    "passed": true
+  }
+]

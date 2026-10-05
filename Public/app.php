@@ -228,10 +228,10 @@ $mapConfig = [
             <button
               type="button"
               class="bottom-sheet__close"
-              data-sheet-close="sheet-place">✕</button>
+              data-sheet-close="sheet-place" aria-label="關閉親訪資訊">✕</button>
           </header>
 
-          <div class="bottom-sheet__body">
+          <div class="bottom-sheet__body" tabindex="0" role="region" aria-label="親訪資訊">
             <!-- S1：初始滑上來的簡略資訊（依圖1） -->
 
             <div class="field-row field-row--split">
@@ -362,7 +362,7 @@ $mapConfig = [
               <button
                 id="btn-route-exit"
                 type="button"
-                class="btn btn-danger">
+                class="btn btn-outline">
                 退出
               </button>
 
@@ -400,7 +400,7 @@ $mapConfig = [
         <div class="modal__dialog">
           <header class="modal__header">
             <h2 id="modal-place-title" class="modal__title">新增標記</h2>
-            <button type="button" class="modal__close" data-modal-close="modal-place-form">✕</button>
+            <button type="button" class="modal__close" data-modal-close="modal-place-form" aria-label="關閉親訪表單">✕</button>
           </header>
 
           <div class="modal__body">

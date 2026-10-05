@@ -1,0 +1,118 @@
+[
+  {
+    "check": "USER backend page denied",
+    "passed": true
+  },
+  {
+    "check": "USER account list denied",
+    "passed": true
+  },
+  {
+    "check": "USER cannot appoint self",
+    "passed": true
+  },
+  {
+    "check": "ADMIN cannot alter OWNER role",
+    "passed": true
+  },
+  {
+    "check": "ADMIN cannot alter OWNER status",
+    "passed": true
+  },
+  {
+    "check": "ADMIN cannot appoint USER",
+    "passed": true
+  },
+  {
+    "check": "ADMIN cannot remove other ADMIN",
+    "passed": true
+  },
+  {
+    "check": "OWNER cannot accidentally demote self",
+    "passed": true
+  },
+  {
+    "check": "administrative password reset disabled",
+    "passed": true
+  },
+  {
+    "check": "administrative password reset disabled",
+    "passed": true
+  },
+  {
+    "check": "ADMIN cannot adjust OWNER organization",
+    "passed": true
+  },
+  {
+    "check": "profile rejects authority injection",
+    "passed": true
+  },
+  {
+    "check": "profile saves without review",
+    "passed": true
+  },
+  {
+    "check": "profile leaves unit and role intact",
+    "passed": true
+  },
+  {
+    "check": "OWNER appoints ADMIN",
+    "passed": true
+  },
+  {
+    "check": "old USER session acquires assigned ADMIN role",
+    "passed": true
+  },
+  {
+    "check": "OWNER removes ADMIN",
+    "passed": true
+  },
+  {
+    "check": "old ADMIN session loses backend access",
+    "passed": true
+  },
+  {
+    "check": "ADMIN can suspend USER",
+    "passed": true
+  },
+  {
+    "check": "suspended session rejected",
+    "passed": true
+  },
+  {
+    "check": "OWNER restores USER",
+    "passed": true
+  },
+  {
+    "check": "OWNER metadata does not narrow map",
+    "passed": true
+  },
+  {
+    "check": "OWNER remains highest after editable email and stored role change",
+    "passed": true
+  },
+  {
+    "check": "USER adopting previous OWNER email does not become OWNER",
+    "passed": true
+  },
+  {
+    "check": "concurrent owner role changes serialize",
+    "passed": true
+  },
+  {
+    "check": "unconfigured binding fails closed for role",
+    "passed": true
+  },
+  {
+    "check": "unconfigured binding fails closed for status",
+    "passed": true
+  },
+  {
+    "check": "unconfigured binding preserves business map access",
+    "passed": true
+  },
+  {
+    "check": "OWNER badge and permissions supplied by server",
+    "passed": true
+  }
+]

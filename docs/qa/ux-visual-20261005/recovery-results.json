@@ -1,0 +1,102 @@
+{
+  "syntheticOnly": true,
+  "results": [
+    {
+      "check": "open list preserves failure and retry",
+      "passed": true
+    },
+    {
+      "check": "search preserves failure state",
+      "passed": true
+    },
+    {
+      "check": "close and reopen preserves retry",
+      "passed": true
+    },
+    {
+      "check": "slow retry is busy rather than empty",
+      "passed": true
+    },
+    {
+      "check": "duplicate retry sends one request",
+      "passed": true
+    },
+    {
+      "check": "recovery retains search query",
+      "passed": true
+    },
+    {
+      "check": "successful empty search has no retry",
+      "passed": true
+    },
+    {
+      "check": "malformed place list stays retryable",
+      "passed": true
+    },
+    {
+      "check": "successful empty database shows real empty state",
+      "passed": true
+    },
+    {
+      "check": "failed town lookup offers visible retry",
+      "passed": true
+    },
+    {
+      "check": "town retry retains entered values",
+      "passed": true
+    },
+    {
+      "check": "town retry hides after success",
+      "passed": true
+    },
+    {
+      "check": "town retry remains in open editor",
+      "passed": true
+    },
+    {
+      "check": "reopening can recover failed lookup",
+      "passed": true
+    },
+    {
+      "check": "concurrent town loads share one request",
+      "passed": true
+    },
+    {
+      "check": "malformed town response stays retryable",
+      "passed": true
+    },
+    {
+      "check": "save disables during slow response",
+      "passed": true
+    },
+    {
+      "check": "Escape during save retains modal",
+      "passed": true
+    },
+    {
+      "check": "slow double save writes once",
+      "passed": true
+    },
+    {
+      "check": "saved data refreshes searchable list",
+      "passed": true
+    },
+    {
+      "check": "320px recovered list has no document overflow",
+      "passed": true
+    },
+    {
+      "check": "844px recovered list has no document overflow",
+      "passed": true
+    },
+    {
+      "check": "1440px recovered list has no document overflow",
+      "passed": true
+    },
+    {
+      "check": "no browser runtime exceptions",
+      "passed": true
+    }
+  ],
+  "errors": []
+}

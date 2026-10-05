@@ -1,0 +1,804 @@
+{
+  "syntheticOnly": true,
+  "results": [
+    {
+      "check": "390x844 info sheet leaves top actions visible",
+      "passed": true
+    },
+    {
+      "check": "390x844 info content has at least 44px visible",
+      "passed": true
+    },
+    {
+      "check": "390x844 footer stays inside viewport",
+      "passed": true
+    },
+    {
+      "check": "390x844 sheet has no horizontal overflow",
+      "passed": true
+    },
+    {
+      "check": "390x844 danger text contrast >=4.5",
+      "passed": true
+    },
+    {
+      "check": "390x844 close text contrast >=4.5",
+      "passed": true
+    },
+    {
+      "check": "390x844 expanded details keep controls visible",
+      "passed": true
+    },
+    {
+      "check": "390x844 keyboard reaches lower details",
+      "passed": true
+    },
+    {
+      "check": "390x844 expanded lower fields remain in scrollable region",
+      "passed": true
+    },
+    {
+      "check": "390x844 form close target >=44px",
+      "passed": true
+    },
+    {
+      "check": "390x844 form close text contrast >=4.5",
+      "passed": true
+    },
+    {
+      "check": "390x844 Escape cancels editor",
+      "passed": true
+    },
+    {
+      "check": "320x568 info sheet leaves top actions visible",
+      "passed": true
+    },
+    {
+      "check": "320x568 info content has at least 44px visible",
+      "passed": true
+    },
+    {
+      "check": "320x568 footer stays inside viewport",
+      "passed": true
+    },
+    {
+      "check": "320x568 sheet has no horizontal overflow",
+      "passed": true
+    },
+    {
+      "check": "320x568 danger text contrast >=4.5",
+      "passed": true
+    },
+    {
+      "check": "320x568 close text contrast >=4.5",
+      "passed": true
+    },
+    {
+      "check": "320x568 expanded details keep controls visible",
+      "passed": true
+    },
+    {
+      "check": "320x568 keyboard reaches lower details",
+      "passed": true
+    },
+    {
+      "check": "320x568 expanded lower fields remain in scrollable region",
+      "passed": true
+    },
+    {
+      "check": "320x568 form close target >=44px",
+      "passed": true
+    },
+    {
+      "check": "320x568 form close text contrast >=4.5",
+      "passed": true
+    },
+    {
+      "check": "320x568 Escape cancels editor",
+      "passed": true
+    },
+    {
+      "check": "844x390 info sheet leaves top actions visible",
+      "passed": true
+    },
+    {
+      "check": "844x390 info content has at least 44px visible",
+      "passed": true
+    },
+    {
+      "check": "844x390 footer stays inside viewport",
+      "passed": true
+    },
+    {
+      "check": "844x390 sheet has no horizontal overflow",
+      "passed": true
+    },
+    {
+      "check": "844x390 danger text contrast >=4.5",
+      "passed": true
+    },
+    {
+      "check": "844x390 close text contrast >=4.5",
+      "passed": true
+    },
+    {
+      "check": "844x390 expanded details keep controls visible",
+      "passed": true
+    },
+    {
+      "check": "844x390 keyboard reaches lower details",
+      "passed": true
+    },
+    {
+      "check": "844x390 expanded lower fields remain in scrollable region",
+      "passed": true
+    },
+    {
+      "check": "844x390 form close target >=44px",
+      "passed": true
+    },
+    {
+      "check": "844x390 form close text contrast >=4.5",
+      "passed": true
+    },
+    {
+      "check": "844x390 Escape cancels editor",
+      "passed": true
+    },
+    {
+      "check": "568x320 info sheet leaves top actions visible",
+      "passed": true
+    },
+    {
+      "check": "568x320 info content has at least 44px visible",
+      "passed": true
+    },
+    {
+      "check": "568x320 footer stays inside viewport",
+      "passed": true
+    },
+    {
+      "check": "568x320 sheet has no horizontal overflow",
+      "passed": true
+    },
+    {
+      "check": "568x320 danger text contrast >=4.5",
+      "passed": true
+    },
+    {
+      "check": "568x320 close text contrast >=4.5",
+      "passed": true
+    },
+    {
+      "check": "568x320 expanded details keep controls visible",
+      "passed": true
+    },
+    {
+      "check": "568x320 keyboard reaches lower details",
+      "passed": true
+    },
+    {
+      "check": "568x320 expanded lower fields remain in scrollable region",
+      "passed": true
+    },
+    {
+      "check": "568x320 form close target >=44px",
+      "passed": true
+    },
+    {
+      "check": "568x320 form close text contrast >=4.5",
+      "passed": true
+    },
+    {
+      "check": "568x320 Escape cancels editor",
+      "passed": true
+    },
+    {
+      "check": "390x480 info sheet leaves top actions visible",
+      "passed": true
+    },
+    {
+      "check": "390x480 info content has at least 44px visible",
+      "passed": true
+    },
+    {
+      "check": "390x480 footer stays inside viewport",
+      "passed": true
+    },
+    {
+      "check": "390x480 sheet has no horizontal overflow",
+      "passed": true
+    },
+    {
+      "check": "390x480 danger text contrast >=4.5",
+      "passed": true
+    },
+    {
+      "check": "390x480 close text contrast >=4.5",
+      "passed": true
+    },
+    {
+      "check": "390x480 expanded details keep controls visible",
+      "passed": true
+    },
+    {
+      "check": "390x480 keyboard reaches lower details",
+      "passed": true
+    },
+    {
+      "check": "390x480 expanded lower fields remain in scrollable region",
+      "passed": true
+    },
+    {
+      "check": "390x480 form close target >=44px",
+      "passed": true
+    },
+    {
+      "check": "390x480 form close text contrast >=4.5",
+      "passed": true
+    },
+    {
+      "check": "390x480 Escape cancels editor",
+      "passed": true
+    },
+    {
+      "check": "1440x1000 info sheet leaves top actions visible",
+      "passed": true
+    },
+    {
+      "check": "1440x1000 info content has at least 44px visible",
+      "passed": true
+    },
+    {
+      "check": "1440x1000 footer stays inside viewport",
+      "passed": true
+    },
+    {
+      "check": "1440x1000 sheet has no horizontal overflow",
+      "passed": true
+    },
+    {
+      "check": "1440x1000 danger text contrast >=4.5",
+      "passed": true
+    },
+    {
+      "check": "1440x1000 close text contrast >=4.5",
+      "passed": true
+    },
+    {
+      "check": "1440x1000 expanded details keep controls visible",
+      "passed": true
+    },
+    {
+      "check": "1440x1000 keyboard reaches lower details",
+      "passed": true
+    },
+    {
+      "check": "1440x1000 expanded lower fields remain in scrollable region",
+      "passed": true
+    },
+    {
+      "check": "1440x1000 form close target >=44px",
+      "passed": true
+    },
+    {
+      "check": "1440x1000 form close text contrast >=4.5",
+      "passed": true
+    },
+    {
+      "check": "1440x1000 Escape cancels editor",
+      "passed": true
+    },
+    {
+      "check": "route exit uses a different visual role from clear",
+      "passed": true
+    },
+    {
+      "check": "route exit still retains selected destination",
+      "passed": true
+    },
+    {
+      "check": "route exit still closes planning controls",
+      "passed": true
+    },
+    {
+      "check": "emulated touch closes form through labelled 44px control",
+      "passed": true
+    },
+    {
+      "check": "touch cancel restores body scrolling",
+      "passed": true
+    },
+    {
+      "check": "emulated touch closes info through labelled control",
+      "passed": true
+    },
+    {
+      "check": "no browser runtime exceptions",
+      "passed": true
+    }
+  ],
+  "metrics": [
+    {
+      "width": 390,
+      "height": 844,
+      "sheet": {
+        "x": 0,
+        "top": 407.21875,
+        "bottom": 844,
+        "width": 390,
+        "height": 436.78125,
+        "clientHeight": 435,
+        "scrollHeight": 435,
+        "color": "rgb(17, 24, 39)",
+        "bg": "rgb(255, 255, 255)"
+      },
+      "actions": {
+        "x": 8,
+        "top": 115,
+        "bottom": 159,
+        "width": 374,
+        "height": 44,
+        "clientHeight": 44,
+        "scrollHeight": 44,
+        "color": "rgb(17, 24, 39)",
+        "bg": "rgba(0, 0, 0, 0)"
+      },
+      "body": {
+        "x": 17,
+        "top": 509.015625,
+        "bottom": 760,
+        "width": 356,
+        "height": 250.984375,
+        "clientHeight": 251,
+        "scrollHeight": 251,
+        "color": "rgb(17, 24, 39)",
+        "bg": "rgba(0, 0, 0, 0)"
+      },
+      "footer": {
+        "x": 17,
+        "top": 764,
+        "bottom": 817,
+        "width": 356,
+        "height": 53,
+        "clientHeight": 52,
+        "scrollHeight": 52,
+        "color": "rgb(17, 24, 39)",
+        "bg": "rgba(0, 0, 0, 0)"
+      },
+      "danger": {
+        "x": 320.984375,
+        "top": 773,
+        "bottom": 817,
+        "width": 52.015625,
+        "height": 44,
+        "clientHeight": 42,
+        "scrollHeight": 42,
+        "color": "rgb(167, 52, 52)",
+        "bg": "rgb(255, 255, 255)"
+      },
+      "close": {
+        "x": 329,
+        "top": 420.21875,
+        "bottom": 464.21875,
+        "width": 44,
+        "height": 44,
+        "clientHeight": 44,
+        "scrollHeight": 44,
+        "color": "rgb(83, 103, 120)",
+        "bg": "rgba(0, 0, 0, 0)"
+      },
+      "overflow": false,
+      "dangerContrast": 6.595723421327189,
+      "closeContrast": 5.867376655919111,
+      "modalClose": {
+        "width": 44,
+        "height": 44,
+        "color": "rgb(83, 103, 120)",
+        "bg": "rgba(0, 0, 0, 0)"
+      },
+      "modalCloseContrast": 5.867376655919111
+    },
+    {
+      "width": 320,
+      "height": 568,
+      "sheet": {
+        "x": 0,
+        "top": 239,
+        "bottom": 568,
+        "width": 320,
+        "height": 329,
+        "clientHeight": 327,
+        "scrollHeight": 327,
+        "color": "rgb(17, 24, 39)",
+        "bg": "rgb(255, 255, 255)"
+      },
+      "actions": {
+        "x": 8,
+        "top": 115,
+        "bottom": 159,
+        "width": 304,
+        "height": 44,
+        "clientHeight": 44,
+        "scrollHeight": 44,
+        "color": "rgb(17, 24, 39)",
+        "bg": "rgba(0, 0, 0, 0)"
+      },
+      "body": {
+        "x": 17,
+        "top": 340.796875,
+        "bottom": 484,
+        "width": 286,
+        "height": 143.203125,
+        "clientHeight": 143,
+        "scrollHeight": 251,
+        "color": "rgb(17, 24, 39)",
+        "bg": "rgba(0, 0, 0, 0)"
+      },
+      "footer": {
+        "x": 17,
+        "top": 488,
+        "bottom": 541,
+        "width": 286,
+        "height": 53,
+        "clientHeight": 52,
+        "scrollHeight": 52,
+        "color": "rgb(17, 24, 39)",
+        "bg": "rgba(0, 0, 0, 0)"
+      },
+      "danger": {
+        "x": 250.984375,
+        "top": 497,
+        "bottom": 541,
+        "width": 52.015625,
+        "height": 44,
+        "clientHeight": 42,
+        "scrollHeight": 42,
+        "color": "rgb(167, 52, 52)",
+        "bg": "rgb(255, 255, 255)"
+      },
+      "close": {
+        "x": 259,
+        "top": 252,
+        "bottom": 296,
+        "width": 44,
+        "height": 44,
+        "clientHeight": 44,
+        "scrollHeight": 44,
+        "color": "rgb(83, 103, 120)",
+        "bg": "rgba(0, 0, 0, 0)"
+      },
+      "overflow": false,
+      "dangerContrast": 6.595723421327189,
+      "closeContrast": 5.867376655919111,
+      "modalClose": {
+        "width": 44,
+        "height": 44,
+        "color": "rgb(83, 103, 120)",
+        "bg": "rgba(0, 0, 0, 0)"
+      },
+      "modalCloseContrast": 5.867376655919111
+    },
+    {
+      "width": 844,
+      "height": 390,
+      "sheet": {
+        "x": 62,
+        "top": 185,
+        "bottom": 390,
+        "width": 720,
+        "height": 205,
+        "clientHeight": 203,
+        "scrollHeight": 203,
+        "color": "rgb(17, 24, 39)",
+        "bg": "rgb(255, 255, 255)"
+      },
+      "actions": {
+        "x": 8,
+        "top": 61,
+        "bottom": 105,
+        "width": 828,
+        "height": 44,
+        "clientHeight": 44,
+        "scrollHeight": 44,
+        "color": "rgb(17, 24, 39)",
+        "bg": "rgba(0, 0, 0, 0)"
+      },
+      "body": {
+        "x": 75,
+        "top": 244.796875,
+        "bottom": 330,
+        "width": 694,
+        "height": 85.203125,
+        "clientHeight": 85,
+        "scrollHeight": 139,
+        "color": "rgb(17, 24, 39)",
+        "bg": "rgba(0, 0, 0, 0)"
+      },
+      "footer": {
+        "x": 75,
+        "top": 334,
+        "bottom": 383,
+        "width": 694,
+        "height": 49,
+        "clientHeight": 48,
+        "scrollHeight": 48,
+        "color": "rgb(17, 24, 39)",
+        "bg": "rgba(0, 0, 0, 0)"
+      },
+      "danger": {
+        "x": 716.984375,
+        "top": 339,
+        "bottom": 383,
+        "width": 52.015625,
+        "height": 44,
+        "clientHeight": 42,
+        "scrollHeight": 42,
+        "color": "rgb(167, 52, 52)",
+        "bg": "rgb(255, 255, 255)"
+      },
+      "close": {
+        "x": 725,
+        "top": 192,
+        "bottom": 236,
+        "width": 44,
+        "height": 44,
+        "clientHeight": 44,
+        "scrollHeight": 44,
+        "color": "rgb(83, 103, 120)",
+        "bg": "rgba(0, 0, 0, 0)"
+      },
+      "overflow": false,
+      "dangerContrast": 6.595723421327189,
+      "closeContrast": 5.867376655919111,
+      "modalClose": {
+        "width": 44,
+        "height": 44,
+        "color": "rgb(83, 103, 120)",
+        "bg": "rgba(0, 0, 0, 0)"
+      },
+      "modalCloseContrast": 5.867376655919111
+    },
+    {
+      "width": 568,
+      "height": 320,
+      "sheet": {
+        "x": 0,
+        "top": 117,
+        "bottom": 320,
+        "width": 568,
+        "height": 203,
+        "clientHeight": 201,
+        "scrollHeight": 201,
+        "color": "rgb(17, 24, 39)",
+        "bg": "rgb(255, 255, 255)"
+      },
+      "actions": {
+        "x": 8,
+        "top": 61,
+        "bottom": 105,
+        "width": 552,
+        "height": 44,
+        "clientHeight": 44,
+        "scrollHeight": 44,
+        "color": "rgb(17, 24, 39)",
+        "bg": "rgba(0, 0, 0, 0)"
+      },
+      "body": {
+        "x": 13,
+        "top": 176.796875,
+        "bottom": 260,
+        "width": 542,
+        "height": 83.203125,
+        "clientHeight": 83,
+        "scrollHeight": 139,
+        "color": "rgb(17, 24, 39)",
+        "bg": "rgba(0, 0, 0, 0)"
+      },
+      "footer": {
+        "x": 13,
+        "top": 264,
+        "bottom": 313,
+        "width": 542,
+        "height": 49,
+        "clientHeight": 48,
+        "scrollHeight": 48,
+        "color": "rgb(17, 24, 39)",
+        "bg": "rgba(0, 0, 0, 0)"
+      },
+      "danger": {
+        "x": 502.984375,
+        "top": 269,
+        "bottom": 313,
+        "width": 52.015625,
+        "height": 44,
+        "clientHeight": 42,
+        "scrollHeight": 42,
+        "color": "rgb(167, 52, 52)",
+        "bg": "rgb(255, 255, 255)"
+      },
+      "close": {
+        "x": 511,
+        "top": 124,
+        "bottom": 168,
+        "width": 44,
+        "height": 44,
+        "clientHeight": 44,
+        "scrollHeight": 44,
+        "color": "rgb(83, 103, 120)",
+        "bg": "rgba(0, 0, 0, 0)"
+      },
+      "overflow": false,
+      "dangerContrast": 6.595723421327189,
+      "closeContrast": 5.867376655919111,
+      "modalClose": {
+        "width": 44,
+        "height": 44,
+        "color": "rgb(83, 103, 120)",
+        "bg": "rgba(0, 0, 0, 0)"
+      },
+      "modalCloseContrast": 5.867376655919111
+    },
+    {
+      "width": 390,
+      "height": 480,
+      "sheet": {
+        "x": 0,
+        "top": 239,
+        "bottom": 480,
+        "width": 390,
+        "height": 241,
+        "clientHeight": 239,
+        "scrollHeight": 239,
+        "color": "rgb(17, 24, 39)",
+        "bg": "rgb(255, 255, 255)"
+      },
+      "actions": {
+        "x": 8,
+        "top": 115,
+        "bottom": 159,
+        "width": 374,
+        "height": 44,
+        "clientHeight": 44,
+        "scrollHeight": 44,
+        "color": "rgb(17, 24, 39)",
+        "bg": "rgba(0, 0, 0, 0)"
+      },
+      "body": {
+        "x": 17,
+        "top": 340.796875,
+        "bottom": 396,
+        "width": 356,
+        "height": 55.203125,
+        "clientHeight": 55,
+        "scrollHeight": 251,
+        "color": "rgb(17, 24, 39)",
+        "bg": "rgba(0, 0, 0, 0)"
+      },
+      "footer": {
+        "x": 17,
+        "top": 400,
+        "bottom": 453,
+        "width": 356,
+        "height": 53,
+        "clientHeight": 52,
+        "scrollHeight": 52,
+        "color": "rgb(17, 24, 39)",
+        "bg": "rgba(0, 0, 0, 0)"
+      },
+      "danger": {
+        "x": 320.984375,
+        "top": 409,
+        "bottom": 453,
+        "width": 52.015625,
+        "height": 44,
+        "clientHeight": 42,
+        "scrollHeight": 42,
+        "color": "rgb(167, 52, 52)",
+        "bg": "rgb(255, 255, 255)"
+      },
+      "close": {
+        "x": 329,
+        "top": 252,
+        "bottom": 296,
+        "width": 44,
+        "height": 44,
+        "clientHeight": 44,
+        "scrollHeight": 44,
+        "color": "rgb(83, 103, 120)",
+        "bg": "rgba(0, 0, 0, 0)"
+      },
+      "overflow": false,
+      "dangerContrast": 6.595723421327189,
+      "closeContrast": 5.867376655919111,
+      "modalClose": {
+        "width": 44,
+        "height": 44,
+        "color": "rgb(83, 103, 120)",
+        "bg": "rgba(0, 0, 0, 0)"
+      },
+      "modalCloseContrast": 5.867376655919111
+    },
+    {
+      "width": 1440,
+      "height": 1000,
+      "sheet": {
+        "x": 360,
+        "top": 686.8125,
+        "bottom": 1000,
+        "width": 720,
+        "height": 313.1875,
+        "clientHeight": 311,
+        "scrollHeight": 311,
+        "color": "rgb(17, 24, 39)",
+        "bg": "rgb(255, 255, 255)"
+      },
+      "actions": {
+        "x": 12,
+        "top": 79,
+        "bottom": 123,
+        "width": 1416,
+        "height": 44,
+        "clientHeight": 44,
+        "scrollHeight": 44,
+        "color": "rgb(17, 24, 39)",
+        "bg": "rgba(0, 0, 0, 0)"
+      },
+      "body": {
+        "x": 377,
+        "top": 764.609375,
+        "bottom": 916,
+        "width": 686,
+        "height": 151.390625,
+        "clientHeight": 151,
+        "scrollHeight": 151,
+        "color": "rgb(17, 24, 39)",
+        "bg": "rgba(0, 0, 0, 0)"
+      },
+      "footer": {
+        "x": 377,
+        "top": 920,
+        "bottom": 973,
+        "width": 686,
+        "height": 53,
+        "clientHeight": 52,
+        "scrollHeight": 52,
+        "color": "rgb(17, 24, 39)",
+        "bg": "rgba(0, 0, 0, 0)"
+      },
+      "danger": {
+        "x": 1010.984375,
+        "top": 929,
+        "bottom": 973,
+        "width": 52.015625,
+        "height": 44,
+        "clientHeight": 42,
+        "scrollHeight": 42,
+        "color": "rgb(167, 52, 52)",
+        "bg": "rgb(255, 255, 255)"
+      },
+      "close": {
+        "x": 1019,
+        "top": 699.8125,
+        "bottom": 743.8125,
+        "width": 44,
+        "height": 44,
+        "clientHeight": 44,
+        "scrollHeight": 44,
+        "color": "rgb(83, 103, 120)",
+        "bg": "rgba(0, 0, 0, 0)"
+      },
+      "overflow": false,
+      "dangerContrast": 6.595723421327189,
+      "closeContrast": 5.867376655919111,
+      "modalClose": {
+        "width": 44,
+        "height": 44,
+        "color": "rgb(83, 103, 120)",
+        "bg": "rgba(0, 0, 0, 0)"
+      },
+      "modalCloseContrast": 5.867376655919111
+    }
+  ],
+  "errors": []
+}

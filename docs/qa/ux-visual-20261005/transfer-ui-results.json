@@ -1,0 +1,158 @@
+[
+  {
+    "check": "synthetic login user@example.invalid",
+    "passed": true
+  },
+  {
+    "check": "user desktop fits",
+    "passed": true
+  },
+  {
+    "check": "active target choices only",
+    "passed": true
+  },
+  {
+    "check": "required validation blocks empty request",
+    "passed": true
+  },
+  {
+    "check": "double request submits once",
+    "passed": true
+  },
+  {
+    "check": "pending keeps current unit and disables second request",
+    "passed": true
+  },
+  {
+    "check": "390px user fits",
+    "passed": true
+  },
+  {
+    "check": "named withdrawal dialog",
+    "passed": true
+  },
+  {
+    "check": "cancel does not write",
+    "passed": true
+  },
+  {
+    "check": "Escape does not write",
+    "passed": true
+  },
+  {
+    "check": "checkbox prevents unconfirmed write",
+    "passed": true
+  },
+  {
+    "check": "withdrawal result visible",
+    "passed": true
+  },
+  {
+    "check": "synthetic login admin@example.invalid",
+    "passed": true
+  },
+  {
+    "check": "admin desktop fits",
+    "passed": true
+  },
+  {
+    "check": "review requires reason",
+    "passed": true
+  },
+  {
+    "check": "review cancel keeps pending",
+    "passed": true
+  },
+  {
+    "check": "review queue empty after reject",
+    "passed": true
+  },
+  {
+    "check": "synthetic login user@example.invalid",
+    "passed": true
+  },
+  {
+    "check": "user sees review reason",
+    "passed": true
+  },
+  {
+    "check": "synthetic login admin@example.invalid",
+    "passed": true
+  },
+  {
+    "check": "double review submits once",
+    "passed": true
+  },
+  {
+    "check": "approval audit visible",
+    "passed": true
+  },
+  {
+    "check": "search has empty state",
+    "passed": true
+  },
+  {
+    "check": "status filter finds history",
+    "passed": true
+  },
+  {
+    "check": "direct dialog names account and units",
+    "passed": true
+  },
+  {
+    "check": "direct audit visible",
+    "passed": true
+  },
+  {
+    "check": "390px admin fits",
+    "passed": true
+  },
+  {
+    "check": "320px admin fits",
+    "passed": true
+  },
+  {
+    "check": "mobile buttons at least 44px",
+    "passed": true
+  },
+  {
+    "check": "read failure visibly disables actions",
+    "passed": true
+  },
+  {
+    "check": "retry restores form",
+    "passed": true
+  },
+  {
+    "check": "synthetic login user@example.invalid",
+    "passed": true
+  },
+  {
+    "check": "old login sees adjusted current unit",
+    "passed": true
+  },
+  {
+    "check": "mobile history fits",
+    "passed": true
+  },
+  {
+    "check": "back to map retains compact mobile route",
+    "passed": true
+  },
+  {
+    "check": "independent synthetic reviewer login",
+    "passed": true
+  },
+  {
+    "check": "independent reviewer changes logged-in user scope",
+    "passed": true
+  },
+  {
+    "check": "scope refresh removes old places and route",
+    "passed": true
+  },
+  {
+    "check": "browser no uncaught JavaScript exceptions",
+    "passed": true
+  }
+]
