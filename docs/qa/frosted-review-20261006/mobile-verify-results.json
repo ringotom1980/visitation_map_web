@@ -1,0 +1,706 @@
+{
+  "results": [
+    {
+      "check": "real MapLibre local synthetic style rendered",
+      "passed": true
+    },
+    {
+      "check": "compact portrait header <=110px",
+      "passed": true
+    },
+    {
+      "check": "account menu reveals admin and logout",
+      "passed": true
+    },
+    {
+      "check": "planning begins collapsed, map selectable",
+      "passed": true
+    },
+    {
+      "check": "zero selection finish disabled",
+      "passed": true
+    },
+    {
+      "check": "portrait 0: map >=60% viewport and no overflow",
+      "passed": true
+    },
+    {
+      "check": "portrait 0: selection retained",
+      "passed": true
+    },
+    {
+      "check": "portrait 0: expanded map remains visible",
+      "passed": true
+    },
+    {
+      "check": "portrait 0: route list internally scrollable",
+      "passed": true
+    },
+    {
+      "check": "portrait 0: collapse retains planning and selection",
+      "passed": true
+    },
+    {
+      "check": "landscape 0: map >=60% viewport and no overflow",
+      "passed": true
+    },
+    {
+      "check": "landscape 0: selection retained",
+      "passed": true
+    },
+    {
+      "check": "landscape 0: expanded map remains visible",
+      "passed": true
+    },
+    {
+      "check": "landscape 0: route list internally scrollable",
+      "passed": true
+    },
+    {
+      "check": "landscape 0: collapse retains planning and selection",
+      "passed": true
+    },
+    {
+      "check": "portrait 1: map >=60% viewport and no overflow",
+      "passed": true
+    },
+    {
+      "check": "portrait 1: selection retained",
+      "passed": true
+    },
+    {
+      "check": "portrait 1: expanded map remains visible",
+      "passed": true
+    },
+    {
+      "check": "portrait 1: route list internally scrollable",
+      "passed": true
+    },
+    {
+      "check": "portrait 1: collapse retains planning and selection",
+      "passed": true
+    },
+    {
+      "check": "landscape 1: map >=60% viewport and no overflow",
+      "passed": true
+    },
+    {
+      "check": "landscape 1: selection retained",
+      "passed": true
+    },
+    {
+      "check": "landscape 1: expanded map remains visible",
+      "passed": true
+    },
+    {
+      "check": "landscape 1: route list internally scrollable",
+      "passed": true
+    },
+    {
+      "check": "landscape 1: collapse retains planning and selection",
+      "passed": true
+    },
+    {
+      "check": "portrait 4: map >=60% viewport and no overflow",
+      "passed": true
+    },
+    {
+      "check": "portrait 4: selection retained",
+      "passed": true
+    },
+    {
+      "check": "portrait 4: expanded map remains visible",
+      "passed": true
+    },
+    {
+      "check": "portrait 4: route list internally scrollable",
+      "passed": true
+    },
+    {
+      "check": "portrait 4: collapse retains planning and selection",
+      "passed": true
+    },
+    {
+      "check": "landscape 4: map >=60% viewport and no overflow",
+      "passed": true
+    },
+    {
+      "check": "landscape 4: selection retained",
+      "passed": true
+    },
+    {
+      "check": "landscape 4: expanded map remains visible",
+      "passed": true
+    },
+    {
+      "check": "landscape 4: route list internally scrollable",
+      "passed": true
+    },
+    {
+      "check": "landscape 4: collapse retains planning and selection",
+      "passed": true
+    },
+    {
+      "check": "portrait 5: map >=60% viewport and no overflow",
+      "passed": true
+    },
+    {
+      "check": "portrait 5: selection retained",
+      "passed": true
+    },
+    {
+      "check": "portrait 5: expanded map remains visible",
+      "passed": true
+    },
+    {
+      "check": "portrait 5: route list internally scrollable",
+      "passed": true
+    },
+    {
+      "check": "portrait 5: collapse retains planning and selection",
+      "passed": true
+    },
+    {
+      "check": "landscape 5: map >=60% viewport and no overflow",
+      "passed": true
+    },
+    {
+      "check": "landscape 5: selection retained",
+      "passed": true
+    },
+    {
+      "check": "landscape 5: expanded map remains visible",
+      "passed": true
+    },
+    {
+      "check": "landscape 5: route list internally scrollable",
+      "passed": true
+    },
+    {
+      "check": "landscape 5: collapse retains planning and selection",
+      "passed": true
+    },
+    {
+      "check": "portrait 10: map >=60% viewport and no overflow",
+      "passed": true
+    },
+    {
+      "check": "portrait 10: selection retained",
+      "passed": true
+    },
+    {
+      "check": "portrait 10: expanded map remains visible",
+      "passed": true
+    },
+    {
+      "check": "portrait 10: route list internally scrollable",
+      "passed": true
+    },
+    {
+      "check": "portrait 10: collapse retains planning and selection",
+      "passed": true
+    },
+    {
+      "check": "landscape 10: map >=60% viewport and no overflow",
+      "passed": true
+    },
+    {
+      "check": "landscape 10: selection retained",
+      "passed": true
+    },
+    {
+      "check": "landscape 10: expanded map remains visible",
+      "passed": true
+    },
+    {
+      "check": "landscape 10: route list internally scrollable",
+      "passed": true
+    },
+    {
+      "check": "landscape 10: collapse retains planning and selection",
+      "passed": true
+    },
+    {
+      "check": "portrait 20: map >=60% viewport and no overflow",
+      "passed": true
+    },
+    {
+      "check": "portrait 20: selection retained",
+      "passed": true
+    },
+    {
+      "check": "portrait 20: expanded map remains visible",
+      "passed": true
+    },
+    {
+      "check": "portrait 20: route list internally scrollable",
+      "passed": true
+    },
+    {
+      "check": "portrait 20: collapse retains planning and selection",
+      "passed": true
+    },
+    {
+      "check": "landscape 20: map >=60% viewport and no overflow",
+      "passed": true
+    },
+    {
+      "check": "landscape 20: selection retained",
+      "passed": true
+    },
+    {
+      "check": "landscape 20: expanded map remains visible",
+      "passed": true
+    },
+    {
+      "check": "landscape 20: route list internally scrollable",
+      "passed": true
+    },
+    {
+      "check": "landscape 20: collapse retains planning and selection",
+      "passed": true
+    },
+    {
+      "check": "touch reorder moves second destination ahead of first",
+      "passed": true
+    },
+    {
+      "check": "remove only removes intended destination",
+      "passed": true
+    },
+    {
+      "check": "view location collapses without removing selection",
+      "passed": true
+    },
+    {
+      "check": "view location camera focuses on selected coordinate",
+      "passed": true
+    },
+    {
+      "check": "collapsed planning map supports touch pan",
+      "passed": true
+    },
+    {
+      "check": "blank map click retains planning and selection",
+      "passed": true
+    },
+    {
+      "check": "list can continue adding while planning",
+      "passed": true
+    },
+    {
+      "check": "list toggles selected item without leaving planning",
+      "passed": true
+    },
+    {
+      "check": "filter bounded and exposed map >=100px",
+      "passed": true
+    },
+    {
+      "check": "filter close preserves route",
+      "passed": true
+    },
+    {
+      "check": "keyboard-sized viewport search has scrollable results",
+      "passed": true
+    },
+    {
+      "check": "Safari visual viewport simulation keeps search results above keyboard",
+      "passed": true
+    },
+    {
+      "check": "compact route clears simulated safe area",
+      "passed": true
+    },
+    {
+      "check": "cancel clear retains 19 destinations",
+      "passed": true
+    },
+    {
+      "check": "confirmed clear retains only start and disables finish",
+      "passed": true
+    },
+    {
+      "check": "visible map marker click adds destination",
+      "passed": true
+    },
+    {
+      "check": "search adds existing place while keeping planning",
+      "passed": true
+    },
+    {
+      "check": "repeat search does not duplicate selected place",
+      "passed": true
+    },
+    {
+      "check": "exit preserves destinations and returns browse",
+      "passed": true
+    },
+    {
+      "check": "finish enters ready mode",
+      "passed": true
+    },
+    {
+      "check": "replan retains selections, starts collapsed",
+      "passed": true
+    },
+    {
+      "check": "320px 20-selection controls do not wrap or overflow",
+      "passed": true
+    },
+    {
+      "check": "desktop preserves map and route list",
+      "passed": true
+    },
+    {
+      "check": "account menu logout works through visible control",
+      "passed": true
+    },
+    {
+      "check": "logout then login works",
+      "passed": true
+    },
+    {
+      "check": "no browser runtime exceptions",
+      "passed": true
+    }
+  ],
+  "metrics": [
+    {
+      "label": "after-browse",
+      "viewport": [
+        390,
+        844
+      ],
+      "headerHeight": 107,
+      "mapHeight": 844,
+      "usableMapHeight": 685,
+      "usableMapPercent": 81,
+      "overflow": false
+    },
+    {
+      "label": "portrait-0-collapsed",
+      "viewport": [
+        390,
+        844
+      ],
+      "headerHeight": 107,
+      "mapHeight": 844,
+      "usableMapHeight": 605,
+      "usableMapPercent": 72,
+      "overflow": false
+    },
+    {
+      "label": "portrait-0-expanded",
+      "viewport": [
+        390,
+        844
+      ],
+      "headerHeight": 107,
+      "mapHeight": 844,
+      "usableMapHeight": 419.609375,
+      "usableMapPercent": 50,
+      "overflow": false
+    },
+    {
+      "label": "landscape-0-collapsed",
+      "viewport": [
+        844,
+        390
+      ],
+      "headerHeight": 53,
+      "mapHeight": 390,
+      "usableMapHeight": 235,
+      "usableMapPercent": 60,
+      "overflow": false
+    },
+    {
+      "label": "landscape-0-expanded",
+      "viewport": [
+        844,
+        390
+      ],
+      "headerHeight": 53,
+      "mapHeight": 390,
+      "usableMapHeight": 101.703125,
+      "usableMapPercent": 26,
+      "overflow": false
+    },
+    {
+      "label": "portrait-1-collapsed",
+      "viewport": [
+        390,
+        844
+      ],
+      "headerHeight": 107,
+      "mapHeight": 844,
+      "usableMapHeight": 605,
+      "usableMapPercent": 72,
+      "overflow": false
+    },
+    {
+      "label": "portrait-1-expanded",
+      "viewport": [
+        390,
+        844
+      ],
+      "headerHeight": 107,
+      "mapHeight": 844,
+      "usableMapHeight": 399,
+      "usableMapPercent": 47,
+      "overflow": false
+    },
+    {
+      "label": "landscape-1-collapsed",
+      "viewport": [
+        844,
+        390
+      ],
+      "headerHeight": 53,
+      "mapHeight": 390,
+      "usableMapHeight": 235,
+      "usableMapPercent": 60,
+      "overflow": false
+    },
+    {
+      "label": "landscape-1-expanded",
+      "viewport": [
+        844,
+        390
+      ],
+      "headerHeight": 53,
+      "mapHeight": 390,
+      "usableMapHeight": 101.703125,
+      "usableMapPercent": 26,
+      "overflow": false
+    },
+    {
+      "label": "portrait-4-collapsed",
+      "viewport": [
+        390,
+        844
+      ],
+      "headerHeight": 107,
+      "mapHeight": 844,
+      "usableMapHeight": 605,
+      "usableMapPercent": 72,
+      "overflow": false
+    },
+    {
+      "label": "portrait-4-expanded",
+      "viewport": [
+        390,
+        844
+      ],
+      "headerHeight": 107,
+      "mapHeight": 844,
+      "usableMapHeight": 279.890625,
+      "usableMapPercent": 33,
+      "overflow": false
+    },
+    {
+      "label": "landscape-4-collapsed",
+      "viewport": [
+        844,
+        390
+      ],
+      "headerHeight": 53,
+      "mapHeight": 390,
+      "usableMapHeight": 235,
+      "usableMapPercent": 60,
+      "overflow": false
+    },
+    {
+      "label": "landscape-4-expanded",
+      "viewport": [
+        844,
+        390
+      ],
+      "headerHeight": 53,
+      "mapHeight": 390,
+      "usableMapHeight": 101.703125,
+      "usableMapPercent": 26,
+      "overflow": false
+    },
+    {
+      "label": "portrait-5-collapsed",
+      "viewport": [
+        390,
+        844
+      ],
+      "headerHeight": 107,
+      "mapHeight": 844,
+      "usableMapHeight": 605,
+      "usableMapPercent": 72,
+      "overflow": false
+    },
+    {
+      "label": "portrait-5-expanded",
+      "viewport": [
+        390,
+        844
+      ],
+      "headerHeight": 107,
+      "mapHeight": 844,
+      "usableMapHeight": 279.890625,
+      "usableMapPercent": 33,
+      "overflow": false
+    },
+    {
+      "label": "landscape-5-collapsed",
+      "viewport": [
+        844,
+        390
+      ],
+      "headerHeight": 53,
+      "mapHeight": 390,
+      "usableMapHeight": 235,
+      "usableMapPercent": 60,
+      "overflow": false
+    },
+    {
+      "label": "landscape-5-expanded",
+      "viewport": [
+        844,
+        390
+      ],
+      "headerHeight": 53,
+      "mapHeight": 390,
+      "usableMapHeight": 101.703125,
+      "usableMapPercent": 26,
+      "overflow": false
+    },
+    {
+      "label": "portrait-10-collapsed",
+      "viewport": [
+        390,
+        844
+      ],
+      "headerHeight": 107,
+      "mapHeight": 844,
+      "usableMapHeight": 605,
+      "usableMapPercent": 72,
+      "overflow": false
+    },
+    {
+      "label": "portrait-10-expanded",
+      "viewport": [
+        390,
+        844
+      ],
+      "headerHeight": 107,
+      "mapHeight": 844,
+      "usableMapHeight": 279.890625,
+      "usableMapPercent": 33,
+      "overflow": false
+    },
+    {
+      "label": "landscape-10-collapsed",
+      "viewport": [
+        844,
+        390
+      ],
+      "headerHeight": 53,
+      "mapHeight": 390,
+      "usableMapHeight": 235,
+      "usableMapPercent": 60,
+      "overflow": false
+    },
+    {
+      "label": "landscape-10-expanded",
+      "viewport": [
+        844,
+        390
+      ],
+      "headerHeight": 53,
+      "mapHeight": 390,
+      "usableMapHeight": 101.703125,
+      "usableMapPercent": 26,
+      "overflow": false
+    },
+    {
+      "label": "portrait-20-collapsed",
+      "viewport": [
+        390,
+        844
+      ],
+      "headerHeight": 107,
+      "mapHeight": 844,
+      "usableMapHeight": 605,
+      "usableMapPercent": 72,
+      "overflow": false
+    },
+    {
+      "label": "portrait-20-expanded",
+      "viewport": [
+        390,
+        844
+      ],
+      "headerHeight": 107,
+      "mapHeight": 844,
+      "usableMapHeight": 279.890625,
+      "usableMapPercent": 33,
+      "overflow": false
+    },
+    {
+      "label": "landscape-20-collapsed",
+      "viewport": [
+        844,
+        390
+      ],
+      "headerHeight": 53,
+      "mapHeight": 390,
+      "usableMapHeight": 235,
+      "usableMapPercent": 60,
+      "overflow": false
+    },
+    {
+      "label": "landscape-20-expanded",
+      "viewport": [
+        844,
+        390
+      ],
+      "headerHeight": 53,
+      "mapHeight": 390,
+      "usableMapHeight": 101.703125,
+      "usableMapPercent": 26,
+      "overflow": false
+    },
+    {
+      "label": "list-selection",
+      "viewport": [
+        390,
+        844
+      ],
+      "headerHeight": 107,
+      "mapHeight": 844,
+      "usableMapHeight": 279.890625,
+      "usableMapPercent": 33,
+      "overflow": false
+    },
+    {
+      "label": "filter",
+      "viewport": [
+        390,
+        844
+      ],
+      "headerHeight": 107,
+      "mapHeight": 844,
+      "usableMapHeight": 279.890625,
+      "usableMapPercent": 33,
+      "overflow": false
+    },
+    {
+      "label": "desktop",
+      "viewport": [
+        1440,
+        1000
+      ],
+      "headerHeight": 69,
+      "mapHeight": 1000,
+      "usableMapHeight": 397,
+      "usableMapPercent": 40,
+      "overflow": false
+    }
+  ]
+}

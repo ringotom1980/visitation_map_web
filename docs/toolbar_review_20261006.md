@@ -1,4 +1,4 @@
-# 工具列修正（尚未發布，透明效果待圖）
+# 工具列修正（本機已完成三項，尚未發布）
 
 基線 b43c5b1e782a0cc7a9e34168e133b229b51ab9f8。沒有取得或看過使用者截圖；Library 403 下載阻擋已停止重試。本批只依隔離合成資料重現證據修正，產品差異為 Public/assets/css/service.css 的 app-page 限定樣式，以及 navbar.php 三處現有文字的 title 提示。資料、角色、事件、語義、部署／安全設定均未改；不含未推送報告提交 d67855b。
 
@@ -25,6 +25,6 @@
 
 geometry driver 為本輪執行快照，依賴 /opt/codex/cua_node/lib/node_modules/playwright、/usr/bin/chromium、已核對隔離資料的 127.0.0.1:43417 preview，輸出 /tmp/visitation-search-after；不能對正式站執行。完整 JSON 與 driver 同 QA 目錄。
 
-## 未完成
+## 霧面搜尋列已完成
 
-搜尋透明／霧面外觀仍未實作，等待可讀使用者截圖確認。父工具列目前不透明白底，單改子框無法看到地圖；不應以 opacity 淡化整個子樹。後續方案應有不透明預設，@supports 下加入 backdrop-filter／-webkit-backdrop-filter，並核對明暗／複雜底色對比。沒有聲稱已通過 Safari、真實裝置鍵盤或 unsupported fallback 渲染；沒有正式登入／資料測試。沒有部署。
+依使用者明確文字需求與合成頁面結構完成保守霧面效果，未再下載受阻圖片，也沒有看過使用者截圖。詳見 docs/frosted_review_20261006.md 及該次 QA；三项已在同一工作分支合併。Safari 前綴已加入，但真實 Safari／實機鍵盤未測。沒有正式登入／資料測試，沒有部署。

@@ -1,0 +1,174 @@
+{
+  "syntheticOnly": true,
+  "results": [
+    {
+      "check": "/login 320px no horizontal overflow",
+      "passed": true
+    },
+    {
+      "check": "/login 1440px no horizontal overflow",
+      "passed": true
+    },
+    {
+      "check": "/login has visible document",
+      "passed": true
+    },
+    {
+      "check": "/register 320px no horizontal overflow",
+      "passed": true
+    },
+    {
+      "check": "/register 1440px no horizontal overflow",
+      "passed": true
+    },
+    {
+      "check": "/register has visible document",
+      "passed": true
+    },
+    {
+      "check": "/forgot 320px no horizontal overflow",
+      "passed": true
+    },
+    {
+      "check": "/forgot 1440px no horizontal overflow",
+      "passed": true
+    },
+    {
+      "check": "/forgot has visible document",
+      "passed": true
+    },
+    {
+      "check": "/reset 320px no horizontal overflow",
+      "passed": true
+    },
+    {
+      "check": "/reset 1440px no horizontal overflow",
+      "passed": true
+    },
+    {
+      "check": "/reset has visible document",
+      "passed": true
+    },
+    {
+      "check": "/device-verify 320px no horizontal overflow",
+      "passed": true
+    },
+    {
+      "check": "/device-verify 1440px no horizontal overflow",
+      "passed": true
+    },
+    {
+      "check": "/device-verify has visible document",
+      "passed": true
+    },
+    {
+      "check": "/admin 320px no horizontal overflow",
+      "passed": true
+    },
+    {
+      "check": "/admin 1440px no horizontal overflow",
+      "passed": true
+    },
+    {
+      "check": "/admin has visible document",
+      "passed": true
+    },
+    {
+      "check": "/admin/accounts 320px no horizontal overflow",
+      "passed": true
+    },
+    {
+      "check": "/admin/accounts 1440px no horizontal overflow",
+      "passed": true
+    },
+    {
+      "check": "/admin/accounts has visible document",
+      "passed": true
+    },
+    {
+      "check": "/admin/accounts?view=authorization 320px no horizontal overflow",
+      "passed": true
+    },
+    {
+      "check": "/admin/accounts?view=authorization 1440px no horizontal overflow",
+      "passed": true
+    },
+    {
+      "check": "/admin/accounts?view=authorization has visible document",
+      "passed": true
+    },
+    {
+      "check": "/admin/transfers 320px no horizontal overflow",
+      "passed": true
+    },
+    {
+      "check": "/admin/transfers 1440px no horizontal overflow",
+      "passed": true
+    },
+    {
+      "check": "/admin/transfers has visible document",
+      "passed": true
+    },
+    {
+      "check": "/admin/security 320px no horizontal overflow",
+      "passed": true
+    },
+    {
+      "check": "/admin/security 1440px no horizontal overflow",
+      "passed": true
+    },
+    {
+      "check": "/admin/security has visible document",
+      "passed": true
+    },
+    {
+      "check": "/profile 320px no horizontal overflow",
+      "passed": true
+    },
+    {
+      "check": "/profile 1440px no horizontal overflow",
+      "passed": true
+    },
+    {
+      "check": "/profile has visible document",
+      "passed": true
+    },
+    {
+      "check": "/app 320px no horizontal overflow",
+      "passed": true
+    },
+    {
+      "check": "/app 1440px no horizontal overflow",
+      "passed": true
+    },
+    {
+      "check": "/app has visible document",
+      "passed": true
+    },
+    {
+      "check": "site smoke no runtime exceptions",
+      "passed": true
+    }
+  ],
+  "errors": [],
+  "colorSamples": [
+    {
+      "selector": "map-action-btn",
+      "color": "rgb(17, 24, 39)",
+      "background": "rgb(245, 245, 245)",
+      "fontSize": "13px"
+    },
+    {
+      "selector": "place-list-item__meta",
+      "color": "rgb(107, 114, 128)",
+      "background": "rgb(255, 255, 255)",
+      "fontSize": "12px"
+    },
+    {
+      "selector": "place-list-item__addr",
+      "color": "rgb(107, 114, 128)",
+      "background": "rgb(255, 255, 255)",
+      "fontSize": "12px"
+    }
+  ]
+}

@@ -1,0 +1,29 @@
+[
+  {
+    "viewport": [
+      320,
+      568
+    ],
+    "overflow": false,
+    "searchWidth": 296,
+    "menuRight": 308
+  },
+  {
+    "viewport": [
+      568,
+      320
+    ],
+    "overflow": false,
+    "searchWidth": 280,
+    "menuRight": 556
+  },
+  {
+    "viewport": [
+      1440,
+      1000
+    ],
+    "overflow": false,
+    "searchWidth": 492.984375,
+    "menuRight": 1420
+  }
+]

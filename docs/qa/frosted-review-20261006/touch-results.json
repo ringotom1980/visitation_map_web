@@ -1,0 +1,65 @@
+{
+  "syntheticOnly": true,
+  "checks": [
+    {
+      "fallback": false,
+      "name": "transparent outer target tap opens list",
+      "passed": true
+    },
+    {
+      "fallback": false,
+      "name": "list touch close works",
+      "passed": true
+    },
+    {
+      "fallback": false,
+      "name": "touch account opens",
+      "passed": true
+    },
+    {
+      "fallback": false,
+      "name": "Escape returns account focus",
+      "passed": true
+    },
+    {
+      "fallback": false,
+      "name": "keyboard selects suggestion",
+      "passed": true
+    },
+    {
+      "fallback": false,
+      "name": "touch closes selected info",
+      "passed": true
+    },
+    {
+      "fallback": true,
+      "name": "transparent outer target tap opens list",
+      "passed": true
+    },
+    {
+      "fallback": true,
+      "name": "list touch close works",
+      "passed": true
+    },
+    {
+      "fallback": true,
+      "name": "touch account opens",
+      "passed": true
+    },
+    {
+      "fallback": true,
+      "name": "Escape returns account focus",
+      "passed": true
+    },
+    {
+      "fallback": true,
+      "name": "keyboard selects suggestion",
+      "passed": true
+    },
+    {
+      "fallback": true,
+      "name": "touch closes selected info",
+      "passed": true
+    }
+  ]
+}

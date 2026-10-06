@@ -1,0 +1,668 @@
+{
+  "syntheticOnly": true,
+  "fallbackSimulatedByDisablingSupportsRule": true,
+  "checks": [
+    {
+      "name": "frosted 390 light input and placeholder >=4.5",
+      "passed": true
+    },
+    {
+      "name": "frosted 390 light title and account >=4.5",
+      "passed": true
+    },
+    {
+      "name": "frosted 390 light text and ancestors fully opaque",
+      "passed": true
+    },
+    {
+      "name": "frosted 390 light height unchanged",
+      "passed": true
+    },
+    {
+      "name": "frosted 390 light no overflow",
+      "passed": true
+    },
+    {
+      "name": "frosted 390 light proper backdrop and map placement",
+      "passed": true
+    },
+    {
+      "name": "frosted 390 dark input and placeholder >=4.5",
+      "passed": true
+    },
+    {
+      "name": "frosted 390 dark title and account >=4.5",
+      "passed": true
+    },
+    {
+      "name": "frosted 390 dark text and ancestors fully opaque",
+      "passed": true
+    },
+    {
+      "name": "frosted 390 dark height unchanged",
+      "passed": true
+    },
+    {
+      "name": "frosted 390 dark no overflow",
+      "passed": true
+    },
+    {
+      "name": "frosted 390 dark proper backdrop and map placement",
+      "passed": true
+    },
+    {
+      "name": "frosted 390 complex input and placeholder >=4.5",
+      "passed": true
+    },
+    {
+      "name": "frosted 390 complex title and account >=4.5",
+      "passed": true
+    },
+    {
+      "name": "frosted 390 complex text and ancestors fully opaque",
+      "passed": true
+    },
+    {
+      "name": "frosted 390 complex height unchanged",
+      "passed": true
+    },
+    {
+      "name": "frosted 390 complex no overflow",
+      "passed": true
+    },
+    {
+      "name": "frosted 390 complex proper backdrop and map placement",
+      "passed": true
+    },
+    {
+      "name": "false 390 suggestions remain opaque",
+      "passed": true
+    },
+    {
+      "name": "false 390 suggestion selects through correct layer",
+      "passed": true
+    },
+    {
+      "name": "false 390 account remains opaque",
+      "passed": true
+    },
+    {
+      "name": "false 390 account Escape returns focus",
+      "passed": true
+    },
+    {
+      "name": "frosted 1440 light input and placeholder >=4.5",
+      "passed": true
+    },
+    {
+      "name": "frosted 1440 light title and account >=4.5",
+      "passed": true
+    },
+    {
+      "name": "frosted 1440 light text and ancestors fully opaque",
+      "passed": true
+    },
+    {
+      "name": "frosted 1440 light height unchanged",
+      "passed": true
+    },
+    {
+      "name": "frosted 1440 light no overflow",
+      "passed": true
+    },
+    {
+      "name": "frosted 1440 light proper backdrop and map placement",
+      "passed": true
+    },
+    {
+      "name": "frosted 1440 dark input and placeholder >=4.5",
+      "passed": true
+    },
+    {
+      "name": "frosted 1440 dark title and account >=4.5",
+      "passed": true
+    },
+    {
+      "name": "frosted 1440 dark text and ancestors fully opaque",
+      "passed": true
+    },
+    {
+      "name": "frosted 1440 dark height unchanged",
+      "passed": true
+    },
+    {
+      "name": "frosted 1440 dark no overflow",
+      "passed": true
+    },
+    {
+      "name": "frosted 1440 dark proper backdrop and map placement",
+      "passed": true
+    },
+    {
+      "name": "frosted 1440 complex input and placeholder >=4.5",
+      "passed": true
+    },
+    {
+      "name": "frosted 1440 complex title and account >=4.5",
+      "passed": true
+    },
+    {
+      "name": "frosted 1440 complex text and ancestors fully opaque",
+      "passed": true
+    },
+    {
+      "name": "frosted 1440 complex height unchanged",
+      "passed": true
+    },
+    {
+      "name": "frosted 1440 complex no overflow",
+      "passed": true
+    },
+    {
+      "name": "frosted 1440 complex proper backdrop and map placement",
+      "passed": true
+    },
+    {
+      "name": "false 1440 suggestions remain opaque",
+      "passed": true
+    },
+    {
+      "name": "false 1440 suggestion selects through correct layer",
+      "passed": true
+    },
+    {
+      "name": "fallback 390 light input and placeholder >=4.5",
+      "passed": true
+    },
+    {
+      "name": "fallback 390 light title and account >=4.5",
+      "passed": true
+    },
+    {
+      "name": "fallback 390 light text and ancestors fully opaque",
+      "passed": true
+    },
+    {
+      "name": "fallback 390 light height unchanged",
+      "passed": true
+    },
+    {
+      "name": "fallback 390 light no overflow",
+      "passed": true
+    },
+    {
+      "name": "fallback 390 light proper backdrop and map placement",
+      "passed": true
+    },
+    {
+      "name": "fallback 390 dark input and placeholder >=4.5",
+      "passed": true
+    },
+    {
+      "name": "fallback 390 dark title and account >=4.5",
+      "passed": true
+    },
+    {
+      "name": "fallback 390 dark text and ancestors fully opaque",
+      "passed": true
+    },
+    {
+      "name": "fallback 390 dark height unchanged",
+      "passed": true
+    },
+    {
+      "name": "fallback 390 dark no overflow",
+      "passed": true
+    },
+    {
+      "name": "fallback 390 dark proper backdrop and map placement",
+      "passed": true
+    },
+    {
+      "name": "fallback 390 complex input and placeholder >=4.5",
+      "passed": true
+    },
+    {
+      "name": "fallback 390 complex title and account >=4.5",
+      "passed": true
+    },
+    {
+      "name": "fallback 390 complex text and ancestors fully opaque",
+      "passed": true
+    },
+    {
+      "name": "fallback 390 complex height unchanged",
+      "passed": true
+    },
+    {
+      "name": "fallback 390 complex no overflow",
+      "passed": true
+    },
+    {
+      "name": "fallback 390 complex proper backdrop and map placement",
+      "passed": true
+    },
+    {
+      "name": "true 390 suggestions remain opaque",
+      "passed": true
+    },
+    {
+      "name": "true 390 suggestion selects through correct layer",
+      "passed": true
+    },
+    {
+      "name": "true 390 account remains opaque",
+      "passed": true
+    },
+    {
+      "name": "true 390 account Escape returns focus",
+      "passed": true
+    },
+    {
+      "name": "fallback 1440 light input and placeholder >=4.5",
+      "passed": true
+    },
+    {
+      "name": "fallback 1440 light title and account >=4.5",
+      "passed": true
+    },
+    {
+      "name": "fallback 1440 light text and ancestors fully opaque",
+      "passed": true
+    },
+    {
+      "name": "fallback 1440 light height unchanged",
+      "passed": true
+    },
+    {
+      "name": "fallback 1440 light no overflow",
+      "passed": true
+    },
+    {
+      "name": "fallback 1440 light proper backdrop and map placement",
+      "passed": true
+    },
+    {
+      "name": "fallback 1440 dark input and placeholder >=4.5",
+      "passed": true
+    },
+    {
+      "name": "fallback 1440 dark title and account >=4.5",
+      "passed": true
+    },
+    {
+      "name": "fallback 1440 dark text and ancestors fully opaque",
+      "passed": true
+    },
+    {
+      "name": "fallback 1440 dark height unchanged",
+      "passed": true
+    },
+    {
+      "name": "fallback 1440 dark no overflow",
+      "passed": true
+    },
+    {
+      "name": "fallback 1440 dark proper backdrop and map placement",
+      "passed": true
+    },
+    {
+      "name": "fallback 1440 complex input and placeholder >=4.5",
+      "passed": true
+    },
+    {
+      "name": "fallback 1440 complex title and account >=4.5",
+      "passed": true
+    },
+    {
+      "name": "fallback 1440 complex text and ancestors fully opaque",
+      "passed": true
+    },
+    {
+      "name": "fallback 1440 complex height unchanged",
+      "passed": true
+    },
+    {
+      "name": "fallback 1440 complex no overflow",
+      "passed": true
+    },
+    {
+      "name": "fallback 1440 complex proper backdrop and map placement",
+      "passed": true
+    },
+    {
+      "name": "true 1440 suggestions remain opaque",
+      "passed": true
+    },
+    {
+      "name": "true 1440 suggestion selects through correct layer",
+      "passed": true
+    }
+  ],
+  "metrics": [
+    {
+      "toolbarBg": "rgba(255, 255, 255, 0.8)",
+      "searchBg": "rgba(243, 246, 247, 0.78)",
+      "input": "rgb(32, 51, 68)",
+      "placeholder": "rgb(67, 93, 109)",
+      "placeholderOpacity": "1",
+      "account": "rgb(36, 91, 96)",
+      "title": "rgb(24, 60, 71)",
+      "toolbarOpacity": "1",
+      "inputOpacity": "1",
+      "searchOpacity": "1",
+      "filter": "blur(8px)",
+      "toolbarHeight": 107,
+      "mapTop": 0,
+      "mainTop": 107,
+      "overflow": false,
+      "mode": "light",
+      "fallback": false,
+      "viewport": [
+        390,
+        844
+      ],
+      "inputContrastWorst": 11.015595592972126,
+      "placeholderContrastWorst": 5.8930596161387045,
+      "titleContrastWorst": 7.362224260661873,
+      "accountContrastWorst": 4.771846823317433
+    },
+    {
+      "toolbarBg": "rgba(255, 255, 255, 0.8)",
+      "searchBg": "rgba(243, 246, 247, 0.78)",
+      "input": "rgb(32, 51, 68)",
+      "placeholder": "rgb(67, 93, 109)",
+      "placeholderOpacity": "1",
+      "account": "rgb(36, 91, 96)",
+      "title": "rgb(24, 60, 71)",
+      "toolbarOpacity": "1",
+      "inputOpacity": "1",
+      "searchOpacity": "1",
+      "filter": "blur(8px)",
+      "toolbarHeight": 107,
+      "mapTop": 0,
+      "mainTop": 107,
+      "overflow": false,
+      "mode": "dark",
+      "fallback": false,
+      "viewport": [
+        390,
+        844
+      ],
+      "inputContrastWorst": 11.015595592972126,
+      "placeholderContrastWorst": 5.8930596161387045,
+      "titleContrastWorst": 7.362224260661873,
+      "accountContrastWorst": 4.771846823317433
+    },
+    {
+      "toolbarBg": "rgba(255, 255, 255, 0.8)",
+      "searchBg": "rgba(243, 246, 247, 0.78)",
+      "input": "rgb(32, 51, 68)",
+      "placeholder": "rgb(67, 93, 109)",
+      "placeholderOpacity": "1",
+      "account": "rgb(36, 91, 96)",
+      "title": "rgb(24, 60, 71)",
+      "toolbarOpacity": "1",
+      "inputOpacity": "1",
+      "searchOpacity": "1",
+      "filter": "blur(8px)",
+      "toolbarHeight": 107,
+      "mapTop": 0,
+      "mainTop": 107,
+      "overflow": false,
+      "mode": "complex",
+      "fallback": false,
+      "viewport": [
+        390,
+        844
+      ],
+      "inputContrastWorst": 11.015595592972126,
+      "placeholderContrastWorst": 5.8930596161387045,
+      "titleContrastWorst": 7.362224260661873,
+      "accountContrastWorst": 4.771846823317433
+    },
+    {
+      "toolbarBg": "rgba(255, 255, 255, 0.8)",
+      "searchBg": "rgba(243, 246, 247, 0.78)",
+      "input": "rgb(32, 51, 68)",
+      "placeholder": "rgb(67, 93, 109)",
+      "placeholderOpacity": "1",
+      "account": "rgb(36, 91, 96)",
+      "title": "rgb(24, 60, 71)",
+      "toolbarOpacity": "1",
+      "inputOpacity": "1",
+      "searchOpacity": "1",
+      "filter": "blur(8px)",
+      "toolbarHeight": 69,
+      "mapTop": 0,
+      "mainTop": 69,
+      "overflow": false,
+      "mode": "light",
+      "fallback": false,
+      "viewport": [
+        1440,
+        1000
+      ],
+      "inputContrastWorst": 11.015595592972126,
+      "placeholderContrastWorst": 5.8930596161387045,
+      "titleContrastWorst": 7.362224260661873,
+      "accountContrastWorst": 4.771846823317433
+    },
+    {
+      "toolbarBg": "rgba(255, 255, 255, 0.8)",
+      "searchBg": "rgba(243, 246, 247, 0.78)",
+      "input": "rgb(32, 51, 68)",
+      "placeholder": "rgb(67, 93, 109)",
+      "placeholderOpacity": "1",
+      "account": "rgb(36, 91, 96)",
+      "title": "rgb(24, 60, 71)",
+      "toolbarOpacity": "1",
+      "inputOpacity": "1",
+      "searchOpacity": "1",
+      "filter": "blur(8px)",
+      "toolbarHeight": 69,
+      "mapTop": 0,
+      "mainTop": 69,
+      "overflow": false,
+      "mode": "dark",
+      "fallback": false,
+      "viewport": [
+        1440,
+        1000
+      ],
+      "inputContrastWorst": 11.015595592972126,
+      "placeholderContrastWorst": 5.8930596161387045,
+      "titleContrastWorst": 7.362224260661873,
+      "accountContrastWorst": 4.771846823317433
+    },
+    {
+      "toolbarBg": "rgba(255, 255, 255, 0.8)",
+      "searchBg": "rgba(243, 246, 247, 0.78)",
+      "input": "rgb(32, 51, 68)",
+      "placeholder": "rgb(67, 93, 109)",
+      "placeholderOpacity": "1",
+      "account": "rgb(36, 91, 96)",
+      "title": "rgb(24, 60, 71)",
+      "toolbarOpacity": "1",
+      "inputOpacity": "1",
+      "searchOpacity": "1",
+      "filter": "blur(8px)",
+      "toolbarHeight": 69,
+      "mapTop": 0,
+      "mainTop": 69,
+      "overflow": false,
+      "mode": "complex",
+      "fallback": false,
+      "viewport": [
+        1440,
+        1000
+      ],
+      "inputContrastWorst": 11.015595592972126,
+      "placeholderContrastWorst": 5.8930596161387045,
+      "titleContrastWorst": 7.362224260661873,
+      "accountContrastWorst": 4.771846823317433
+    },
+    {
+      "toolbarBg": "rgb(255, 255, 255)",
+      "searchBg": "rgb(243, 246, 247)",
+      "input": "rgb(32, 51, 68)",
+      "placeholder": "rgb(67, 93, 109)",
+      "placeholderOpacity": "1",
+      "account": "rgb(36, 91, 96)",
+      "title": "rgb(24, 60, 71)",
+      "toolbarOpacity": "1",
+      "inputOpacity": "1",
+      "searchOpacity": "1",
+      "filter": "none",
+      "toolbarHeight": 107,
+      "mapTop": 107,
+      "mainTop": 107,
+      "overflow": false,
+      "mode": "light",
+      "fallback": true,
+      "viewport": [
+        390,
+        844
+      ],
+      "inputContrastWorst": 11.947678559836712,
+      "placeholderContrastWorst": 6.391699970585342,
+      "titleContrastWorst": 11.823206241618077,
+      "accountContrastWorst": 7.663245121036285
+    },
+    {
+      "toolbarBg": "rgb(255, 255, 255)",
+      "searchBg": "rgb(243, 246, 247)",
+      "input": "rgb(32, 51, 68)",
+      "placeholder": "rgb(67, 93, 109)",
+      "placeholderOpacity": "1",
+      "account": "rgb(36, 91, 96)",
+      "title": "rgb(24, 60, 71)",
+      "toolbarOpacity": "1",
+      "inputOpacity": "1",
+      "searchOpacity": "1",
+      "filter": "none",
+      "toolbarHeight": 107,
+      "mapTop": 107,
+      "mainTop": 107,
+      "overflow": false,
+      "mode": "dark",
+      "fallback": true,
+      "viewport": [
+        390,
+        844
+      ],
+      "inputContrastWorst": 11.947678559836712,
+      "placeholderContrastWorst": 6.391699970585342,
+      "titleContrastWorst": 11.823206241618077,
+      "accountContrastWorst": 7.663245121036285
+    },
+    {
+      "toolbarBg": "rgb(255, 255, 255)",
+      "searchBg": "rgb(243, 246, 247)",
+      "input": "rgb(32, 51, 68)",
+      "placeholder": "rgb(67, 93, 109)",
+      "placeholderOpacity": "1",
+      "account": "rgb(36, 91, 96)",
+      "title": "rgb(24, 60, 71)",
+      "toolbarOpacity": "1",
+      "inputOpacity": "1",
+      "searchOpacity": "1",
+      "filter": "none",
+      "toolbarHeight": 107,
+      "mapTop": 107,
+      "mainTop": 107,
+      "overflow": false,
+      "mode": "complex",
+      "fallback": true,
+      "viewport": [
+        390,
+        844
+      ],
+      "inputContrastWorst": 11.947678559836712,
+      "placeholderContrastWorst": 6.391699970585342,
+      "titleContrastWorst": 11.823206241618077,
+      "accountContrastWorst": 7.663245121036285
+    },
+    {
+      "toolbarBg": "rgb(255, 255, 255)",
+      "searchBg": "rgb(243, 246, 247)",
+      "input": "rgb(32, 51, 68)",
+      "placeholder": "rgb(67, 93, 109)",
+      "placeholderOpacity": "1",
+      "account": "rgb(36, 91, 96)",
+      "title": "rgb(24, 60, 71)",
+      "toolbarOpacity": "1",
+      "inputOpacity": "1",
+      "searchOpacity": "1",
+      "filter": "none",
+      "toolbarHeight": 69,
+      "mapTop": 69,
+      "mainTop": 69,
+      "overflow": false,
+      "mode": "light",
+      "fallback": true,
+      "viewport": [
+        1440,
+        1000
+      ],
+      "inputContrastWorst": 11.947678559836712,
+      "placeholderContrastWorst": 6.391699970585342,
+      "titleContrastWorst": 11.823206241618077,
+      "accountContrastWorst": 7.663245121036285
+    },
+    {
+      "toolbarBg": "rgb(255, 255, 255)",
+      "searchBg": "rgb(243, 246, 247)",
+      "input": "rgb(32, 51, 68)",
+      "placeholder": "rgb(67, 93, 109)",
+      "placeholderOpacity": "1",
+      "account": "rgb(36, 91, 96)",
+      "title": "rgb(24, 60, 71)",
+      "toolbarOpacity": "1",
+      "inputOpacity": "1",
+      "searchOpacity": "1",
+      "filter": "none",
+      "toolbarHeight": 69,
+      "mapTop": 69,
+      "mainTop": 69,
+      "overflow": false,
+      "mode": "dark",
+      "fallback": true,
+      "viewport": [
+        1440,
+        1000
+      ],
+      "inputContrastWorst": 11.947678559836712,
+      "placeholderContrastWorst": 6.391699970585342,
+      "titleContrastWorst": 11.823206241618077,
+      "accountContrastWorst": 7.663245121036285
+    },
+    {
+      "toolbarBg": "rgb(255, 255, 255)",
+      "searchBg": "rgb(243, 246, 247)",
+      "input": "rgb(32, 51, 68)",
+      "placeholder": "rgb(67, 93, 109)",
+      "placeholderOpacity": "1",
+      "account": "rgb(36, 91, 96)",
+      "title": "rgb(24, 60, 71)",
+      "toolbarOpacity": "1",
+      "inputOpacity": "1",
+      "searchOpacity": "1",
+      "filter": "none",
+      "toolbarHeight": 69,
+      "mapTop": 69,
+      "mainTop": 69,
+      "overflow": false,
+      "mode": "complex",
+      "fallback": true,
+      "viewport": [
+        1440,
+        1000
+      ],
+      "inputContrastWorst": 11.947678559836712,
+      "placeholderContrastWorst": 6.391699970585342,
+      "titleContrastWorst": 11.823206241618077,
+      "accountContrastWorst": 7.663245121036285
+    }
+  ]
+}

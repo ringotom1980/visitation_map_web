@@ -1,0 +1,965 @@
+{
+  "syntheticOnly": true,
+  "results": [
+    {
+      "toolbar": {
+        "left": 0,
+        "right": 901,
+        "width": 901,
+        "height": 69,
+        "top": 0,
+        "bottom": 69
+      },
+      "search": {
+        "left": 229.40625,
+        "right": 446.546875,
+        "width": 217.140625,
+        "height": 44,
+        "top": 12,
+        "bottom": 56
+      },
+      "account": {
+        "left": 466.546875,
+        "right": 881,
+        "width": 414.453125,
+        "height": 44,
+        "top": 12,
+        "bottom": 56
+      },
+      "controls": [
+        {
+          "left": 534.015625,
+          "right": 606.015625,
+          "width": 72,
+          "height": 44,
+          "top": 12,
+          "bottom": 56
+        },
+        {
+          "left": 681.5,
+          "right": 753.5,
+          "width": 72,
+          "height": 44,
+          "top": 12,
+          "bottom": 56
+        },
+        {
+          "left": 828.984375,
+          "right": 881,
+          "width": 52.015625,
+          "height": 44,
+          "top": 12,
+          "bottom": 56
+        }
+      ],
+      "text": [
+        {
+          "title": "目前單位：示範服務中心",
+          "text": "目前單位：示範服務中心",
+          "width": 59,
+          "overflow": "ellipsis"
+        },
+        {
+          "title": "admin@example.invalid",
+          "text": "admin@example.invalid",
+          "width": 59,
+          "overflow": "ellipsis"
+        },
+        {
+          "title": "目前登入：示範管理者",
+          "text": "目前登入：示範管理者",
+          "width": 59,
+          "overflow": "ellipsis"
+        }
+      ],
+      "documentOverflow": false,
+      "role": "admin",
+      "long": false,
+      "viewport": [
+        901,
+        768
+      ],
+      "passed": true
+    },
+    {
+      "toolbar": {
+        "left": 0,
+        "right": 901,
+        "width": 901,
+        "height": 69,
+        "top": 0,
+        "bottom": 69
+      },
+      "search": {
+        "left": 229.40625,
+        "right": 446.546875,
+        "width": 217.140625,
+        "height": 44,
+        "top": 12,
+        "bottom": 56
+      },
+      "account": {
+        "left": 466.546875,
+        "right": 881,
+        "width": 414.453125,
+        "height": 44,
+        "top": 12,
+        "bottom": 56
+      },
+      "controls": [
+        {
+          "left": 534.015625,
+          "right": 606.015625,
+          "width": 72,
+          "height": 44,
+          "top": 12,
+          "bottom": 56
+        },
+        {
+          "left": 681.5,
+          "right": 753.5,
+          "width": 72,
+          "height": 44,
+          "top": 12,
+          "bottom": 56
+        },
+        {
+          "left": 828.984375,
+          "right": 881,
+          "width": 52.015625,
+          "height": 44,
+          "top": 12,
+          "bottom": 56
+        }
+      ],
+      "text": [
+        {
+          "title": "合成測試超長帳戶與單位名稱・持續文字",
+          "text": "合成測試超長帳戶與單位名稱・持續文字",
+          "width": 59,
+          "overflow": "ellipsis"
+        },
+        {
+          "title": "合成測試超長帳戶與單位名稱・持續文字",
+          "text": "合成測試超長帳戶與單位名稱・持續文字",
+          "width": 59,
+          "overflow": "ellipsis"
+        },
+        {
+          "title": "合成測試超長帳戶與單位名稱・持續文字",
+          "text": "合成測試超長帳戶與單位名稱・持續文字",
+          "width": 59,
+          "overflow": "ellipsis"
+        }
+      ],
+      "documentOverflow": false,
+      "role": "admin",
+      "long": true,
+      "viewport": [
+        901,
+        768
+      ],
+      "passed": true
+    },
+    {
+      "toolbar": {
+        "left": 0,
+        "right": 1024,
+        "width": 1024,
+        "height": 69,
+        "top": 0,
+        "bottom": 69
+      },
+      "search": {
+        "left": 256.46875,
+        "right": 512.96875,
+        "width": 256.5,
+        "height": 44,
+        "top": 12,
+        "bottom": 56
+      },
+      "account": {
+        "left": 532.96875,
+        "right": 1004,
+        "width": 471.03125,
+        "height": 44,
+        "top": 12,
+        "bottom": 56
+      },
+      "controls": [
+        {
+          "left": 619.296875,
+          "right": 691.296875,
+          "width": 72,
+          "height": 44,
+          "top": 12,
+          "bottom": 56
+        },
+        {
+          "left": 785.640625,
+          "right": 857.640625,
+          "width": 72,
+          "height": 44,
+          "top": 12,
+          "bottom": 56
+        },
+        {
+          "left": 951.984375,
+          "right": 1004,
+          "width": 52.015625,
+          "height": 44,
+          "top": 12,
+          "bottom": 56
+        }
+      ],
+      "text": [
+        {
+          "title": "目前單位：示範服務中心",
+          "text": "目前單位：示範服務中心",
+          "width": 78,
+          "overflow": "ellipsis"
+        },
+        {
+          "title": "admin@example.invalid",
+          "text": "admin@example.invalid",
+          "width": 78,
+          "overflow": "ellipsis"
+        },
+        {
+          "title": "目前登入：示範管理者",
+          "text": "目前登入：示範管理者",
+          "width": 78,
+          "overflow": "ellipsis"
+        }
+      ],
+      "documentOverflow": false,
+      "role": "admin",
+      "long": false,
+      "viewport": [
+        1024,
+        768
+      ],
+      "passed": true
+    },
+    {
+      "toolbar": {
+        "left": 0,
+        "right": 1024,
+        "width": 1024,
+        "height": 69,
+        "top": 0,
+        "bottom": 69
+      },
+      "search": {
+        "left": 256.46875,
+        "right": 512.96875,
+        "width": 256.5,
+        "height": 44,
+        "top": 12,
+        "bottom": 56
+      },
+      "account": {
+        "left": 532.96875,
+        "right": 1004,
+        "width": 471.03125,
+        "height": 44,
+        "top": 12,
+        "bottom": 56
+      },
+      "controls": [
+        {
+          "left": 619.296875,
+          "right": 691.296875,
+          "width": 72,
+          "height": 44,
+          "top": 12,
+          "bottom": 56
+        },
+        {
+          "left": 785.640625,
+          "right": 857.640625,
+          "width": 72,
+          "height": 44,
+          "top": 12,
+          "bottom": 56
+        },
+        {
+          "left": 951.984375,
+          "right": 1004,
+          "width": 52.015625,
+          "height": 44,
+          "top": 12,
+          "bottom": 56
+        }
+      ],
+      "text": [
+        {
+          "title": "合成測試超長帳戶與單位名稱・持續文字",
+          "text": "合成測試超長帳戶與單位名稱・持續文字",
+          "width": 78,
+          "overflow": "ellipsis"
+        },
+        {
+          "title": "合成測試超長帳戶與單位名稱・持續文字",
+          "text": "合成測試超長帳戶與單位名稱・持續文字",
+          "width": 78,
+          "overflow": "ellipsis"
+        },
+        {
+          "title": "合成測試超長帳戶與單位名稱・持續文字",
+          "text": "合成測試超長帳戶與單位名稱・持續文字",
+          "width": 78,
+          "overflow": "ellipsis"
+        }
+      ],
+      "documentOverflow": false,
+      "role": "admin",
+      "long": true,
+      "viewport": [
+        1024,
+        768
+      ],
+      "passed": true
+    },
+    {
+      "toolbar": {
+        "left": 0,
+        "right": 1440,
+        "width": 1440,
+        "height": 69,
+        "top": 0,
+        "bottom": 69
+      },
+      "search": {
+        "left": 287.015625,
+        "right": 780,
+        "width": 492.984375,
+        "height": 44,
+        "top": 12,
+        "bottom": 56
+      },
+      "account": {
+        "left": 800,
+        "right": 1420,
+        "width": 620,
+        "height": 44,
+        "top": 12,
+        "bottom": 56
+      },
+      "controls": [
+        {
+          "left": 935.984375,
+          "right": 1007.984375,
+          "width": 72,
+          "height": 44,
+          "top": 12,
+          "bottom": 56
+        },
+        {
+          "left": 1151.984375,
+          "right": 1223.984375,
+          "width": 72,
+          "height": 44,
+          "top": 12,
+          "bottom": 56
+        },
+        {
+          "left": 1367.984375,
+          "right": 1420,
+          "width": 52.015625,
+          "height": 44,
+          "top": 12,
+          "bottom": 56
+        }
+      ],
+      "text": [
+        {
+          "title": "目前單位：示範服務中心",
+          "text": "目前單位：示範服務中心",
+          "width": 128,
+          "overflow": "ellipsis"
+        },
+        {
+          "title": "admin@example.invalid",
+          "text": "admin@example.invalid",
+          "width": 128,
+          "overflow": "ellipsis"
+        },
+        {
+          "title": "目前登入：示範管理者",
+          "text": "目前登入：示範管理者",
+          "width": 128,
+          "overflow": "ellipsis"
+        }
+      ],
+      "documentOverflow": false,
+      "role": "admin",
+      "long": false,
+      "viewport": [
+        1440,
+        1000
+      ],
+      "passed": true
+    },
+    {
+      "toolbar": {
+        "left": 0,
+        "right": 1440,
+        "width": 1440,
+        "height": 69,
+        "top": 0,
+        "bottom": 69
+      },
+      "search": {
+        "left": 287.015625,
+        "right": 780,
+        "width": 492.984375,
+        "height": 44,
+        "top": 12,
+        "bottom": 56
+      },
+      "account": {
+        "left": 800,
+        "right": 1420,
+        "width": 620,
+        "height": 44,
+        "top": 12,
+        "bottom": 56
+      },
+      "controls": [
+        {
+          "left": 935.984375,
+          "right": 1007.984375,
+          "width": 72,
+          "height": 44,
+          "top": 12,
+          "bottom": 56
+        },
+        {
+          "left": 1151.984375,
+          "right": 1223.984375,
+          "width": 72,
+          "height": 44,
+          "top": 12,
+          "bottom": 56
+        },
+        {
+          "left": 1367.984375,
+          "right": 1420,
+          "width": 52.015625,
+          "height": 44,
+          "top": 12,
+          "bottom": 56
+        }
+      ],
+      "text": [
+        {
+          "title": "合成測試超長帳戶與單位名稱・持續文字",
+          "text": "合成測試超長帳戶與單位名稱・持續文字",
+          "width": 128,
+          "overflow": "ellipsis"
+        },
+        {
+          "title": "合成測試超長帳戶與單位名稱・持續文字",
+          "text": "合成測試超長帳戶與單位名稱・持續文字",
+          "width": 128,
+          "overflow": "ellipsis"
+        },
+        {
+          "title": "合成測試超長帳戶與單位名稱・持續文字",
+          "text": "合成測試超長帳戶與單位名稱・持續文字",
+          "width": 128,
+          "overflow": "ellipsis"
+        }
+      ],
+      "documentOverflow": false,
+      "role": "admin",
+      "long": true,
+      "viewport": [
+        1440,
+        1000
+      ],
+      "passed": true
+    },
+    {
+      "toolbar": {
+        "left": 0,
+        "right": 901,
+        "width": 901,
+        "height": 69,
+        "top": 0,
+        "bottom": 69
+      },
+      "search": {
+        "left": 229.40625,
+        "right": 446.546875,
+        "width": 217.140625,
+        "height": 44,
+        "top": 12,
+        "bottom": 56
+      },
+      "account": {
+        "left": 466.546875,
+        "right": 881,
+        "width": 414.453125,
+        "height": 44,
+        "top": 12,
+        "bottom": 56
+      },
+      "controls": [
+        {
+          "left": 511.1875,
+          "right": 583.1875,
+          "width": 72,
+          "height": 44,
+          "top": 12,
+          "bottom": 56
+        },
+        {
+          "left": 591.1875,
+          "right": 731.6875,
+          "width": 140.5,
+          "height": 44,
+          "top": 12,
+          "bottom": 56
+        },
+        {
+          "left": 828.984375,
+          "right": 881,
+          "width": 52.015625,
+          "height": 44,
+          "top": 12,
+          "bottom": 56
+        }
+      ],
+      "text": [
+        {
+          "title": "目前單位：示範服務中心",
+          "text": "目前單位：示範服務中心",
+          "width": 37,
+          "overflow": "ellipsis"
+        },
+        {
+          "title": "user@example.invalid",
+          "text": "user@example.invalid",
+          "width": 37,
+          "overflow": "ellipsis"
+        },
+        {
+          "title": "目前登入：示範承辦人",
+          "text": "目前登入：示範承辦人",
+          "width": 37,
+          "overflow": "ellipsis"
+        }
+      ],
+      "documentOverflow": false,
+      "role": "user",
+      "long": false,
+      "viewport": [
+        901,
+        768
+      ],
+      "passed": true
+    },
+    {
+      "toolbar": {
+        "left": 0,
+        "right": 901,
+        "width": 901,
+        "height": 69,
+        "top": 0,
+        "bottom": 69
+      },
+      "search": {
+        "left": 229.40625,
+        "right": 446.546875,
+        "width": 217.140625,
+        "height": 44,
+        "top": 12,
+        "bottom": 56
+      },
+      "account": {
+        "left": 466.546875,
+        "right": 881,
+        "width": 414.453125,
+        "height": 44,
+        "top": 12,
+        "bottom": 56
+      },
+      "controls": [
+        {
+          "left": 511.1875,
+          "right": 583.1875,
+          "width": 72,
+          "height": 44,
+          "top": 12,
+          "bottom": 56
+        },
+        {
+          "left": 591.1875,
+          "right": 731.6875,
+          "width": 140.5,
+          "height": 44,
+          "top": 12,
+          "bottom": 56
+        },
+        {
+          "left": 828.984375,
+          "right": 881,
+          "width": 52.015625,
+          "height": 44,
+          "top": 12,
+          "bottom": 56
+        }
+      ],
+      "text": [
+        {
+          "title": "合成測試超長帳戶與單位名稱・持續文字",
+          "text": "合成測試超長帳戶與單位名稱・持續文字",
+          "width": 37,
+          "overflow": "ellipsis"
+        },
+        {
+          "title": "合成測試超長帳戶與單位名稱・持續文字",
+          "text": "合成測試超長帳戶與單位名稱・持續文字",
+          "width": 37,
+          "overflow": "ellipsis"
+        },
+        {
+          "title": "合成測試超長帳戶與單位名稱・持續文字",
+          "text": "合成測試超長帳戶與單位名稱・持續文字",
+          "width": 37,
+          "overflow": "ellipsis"
+        }
+      ],
+      "documentOverflow": false,
+      "role": "user",
+      "long": true,
+      "viewport": [
+        901,
+        768
+      ],
+      "passed": true
+    },
+    {
+      "toolbar": {
+        "left": 0,
+        "right": 1024,
+        "width": 1024,
+        "height": 69,
+        "top": 0,
+        "bottom": 69
+      },
+      "search": {
+        "left": 256.46875,
+        "right": 512.96875,
+        "width": 256.5,
+        "height": 44,
+        "top": 12,
+        "bottom": 56
+      },
+      "account": {
+        "left": 532.96875,
+        "right": 1004,
+        "width": 471.03125,
+        "height": 44,
+        "top": 12,
+        "bottom": 56
+      },
+      "controls": [
+        {
+          "left": 596.46875,
+          "right": 668.46875,
+          "width": 72,
+          "height": 44,
+          "top": 12,
+          "bottom": 56
+        },
+        {
+          "left": 676.46875,
+          "right": 816.96875,
+          "width": 140.5,
+          "height": 44,
+          "top": 12,
+          "bottom": 56
+        },
+        {
+          "left": 951.984375,
+          "right": 1004,
+          "width": 52.015625,
+          "height": 44,
+          "top": 12,
+          "bottom": 56
+        }
+      ],
+      "text": [
+        {
+          "title": "目前單位：示範服務中心",
+          "text": "目前單位：示範服務中心",
+          "width": 56,
+          "overflow": "ellipsis"
+        },
+        {
+          "title": "user@example.invalid",
+          "text": "user@example.invalid",
+          "width": 56,
+          "overflow": "ellipsis"
+        },
+        {
+          "title": "目前登入：示範承辦人",
+          "text": "目前登入：示範承辦人",
+          "width": 56,
+          "overflow": "ellipsis"
+        }
+      ],
+      "documentOverflow": false,
+      "role": "user",
+      "long": false,
+      "viewport": [
+        1024,
+        768
+      ],
+      "passed": true
+    },
+    {
+      "toolbar": {
+        "left": 0,
+        "right": 1024,
+        "width": 1024,
+        "height": 69,
+        "top": 0,
+        "bottom": 69
+      },
+      "search": {
+        "left": 256.46875,
+        "right": 512.96875,
+        "width": 256.5,
+        "height": 44,
+        "top": 12,
+        "bottom": 56
+      },
+      "account": {
+        "left": 532.96875,
+        "right": 1004,
+        "width": 471.03125,
+        "height": 44,
+        "top": 12,
+        "bottom": 56
+      },
+      "controls": [
+        {
+          "left": 596.46875,
+          "right": 668.46875,
+          "width": 72,
+          "height": 44,
+          "top": 12,
+          "bottom": 56
+        },
+        {
+          "left": 676.46875,
+          "right": 816.96875,
+          "width": 140.5,
+          "height": 44,
+          "top": 12,
+          "bottom": 56
+        },
+        {
+          "left": 951.984375,
+          "right": 1004,
+          "width": 52.015625,
+          "height": 44,
+          "top": 12,
+          "bottom": 56
+        }
+      ],
+      "text": [
+        {
+          "title": "合成測試超長帳戶與單位名稱・持續文字",
+          "text": "合成測試超長帳戶與單位名稱・持續文字",
+          "width": 56,
+          "overflow": "ellipsis"
+        },
+        {
+          "title": "合成測試超長帳戶與單位名稱・持續文字",
+          "text": "合成測試超長帳戶與單位名稱・持續文字",
+          "width": 56,
+          "overflow": "ellipsis"
+        },
+        {
+          "title": "合成測試超長帳戶與單位名稱・持續文字",
+          "text": "合成測試超長帳戶與單位名稱・持續文字",
+          "width": 56,
+          "overflow": "ellipsis"
+        }
+      ],
+      "documentOverflow": false,
+      "role": "user",
+      "long": true,
+      "viewport": [
+        1024,
+        768
+      ],
+      "passed": true
+    },
+    {
+      "toolbar": {
+        "left": 0,
+        "right": 1440,
+        "width": 1440,
+        "height": 69,
+        "top": 0,
+        "bottom": 69
+      },
+      "search": {
+        "left": 287.015625,
+        "right": 780,
+        "width": 492.984375,
+        "height": 44,
+        "top": 12,
+        "bottom": 56
+      },
+      "account": {
+        "left": 800,
+        "right": 1420,
+        "width": 620,
+        "height": 44,
+        "top": 12,
+        "bottom": 56
+      },
+      "controls": [
+        {
+          "left": 913.15625,
+          "right": 985.15625,
+          "width": 72,
+          "height": 44,
+          "top": 12,
+          "bottom": 56
+        },
+        {
+          "left": 993.15625,
+          "right": 1133.65625,
+          "width": 140.5,
+          "height": 44,
+          "top": 12,
+          "bottom": 56
+        },
+        {
+          "left": 1367.984375,
+          "right": 1420,
+          "width": 52.015625,
+          "height": 44,
+          "top": 12,
+          "bottom": 56
+        }
+      ],
+      "text": [
+        {
+          "title": "目前單位：示範服務中心",
+          "text": "目前單位：示範服務中心",
+          "width": 105,
+          "overflow": "ellipsis"
+        },
+        {
+          "title": "user@example.invalid",
+          "text": "user@example.invalid",
+          "width": 105,
+          "overflow": "ellipsis"
+        },
+        {
+          "title": "目前登入：示範承辦人",
+          "text": "目前登入：示範承辦人",
+          "width": 105,
+          "overflow": "ellipsis"
+        }
+      ],
+      "documentOverflow": false,
+      "role": "user",
+      "long": false,
+      "viewport": [
+        1440,
+        1000
+      ],
+      "passed": true
+    },
+    {
+      "toolbar": {
+        "left": 0,
+        "right": 1440,
+        "width": 1440,
+        "height": 69,
+        "top": 0,
+        "bottom": 69
+      },
+      "search": {
+        "left": 287.015625,
+        "right": 780,
+        "width": 492.984375,
+        "height": 44,
+        "top": 12,
+        "bottom": 56
+      },
+      "account": {
+        "left": 800,
+        "right": 1420,
+        "width": 620,
+        "height": 44,
+        "top": 12,
+        "bottom": 56
+      },
+      "controls": [
+        {
+          "left": 913.15625,
+          "right": 985.15625,
+          "width": 72,
+          "height": 44,
+          "top": 12,
+          "bottom": 56
+        },
+        {
+          "left": 993.15625,
+          "right": 1133.65625,
+          "width": 140.5,
+          "height": 44,
+          "top": 12,
+          "bottom": 56
+        },
+        {
+          "left": 1367.984375,
+          "right": 1420,
+          "width": 52.015625,
+          "height": 44,
+          "top": 12,
+          "bottom": 56
+        }
+      ],
+      "text": [
+        {
+          "title": "合成測試超長帳戶與單位名稱・持續文字",
+          "text": "合成測試超長帳戶與單位名稱・持續文字",
+          "width": 105,
+          "overflow": "ellipsis"
+        },
+        {
+          "title": "合成測試超長帳戶與單位名稱・持續文字",
+          "text": "合成測試超長帳戶與單位名稱・持續文字",
+          "width": 105,
+          "overflow": "ellipsis"
+        },
+        {
+          "title": "合成測試超長帳戶與單位名稱・持續文字",
+          "text": "合成測試超長帳戶與單位名稱・持續文字",
+          "width": 105,
+          "overflow": "ellipsis"
+        }
+      ],
+      "documentOverflow": false,
+      "role": "user",
+      "long": true,
+      "viewport": [
+        1440,
+        1000
+      ],
+      "passed": true
+    }
+  ]
+}

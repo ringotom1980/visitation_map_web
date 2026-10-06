@@ -125,6 +125,27 @@ button,input,select,textarea{font-size:16px}button,a,input,select,textarea{touch
   }
 }
 
+/* Opaque defaults remain usable when backdrop filtering is unavailable. */
+.app-page .search-bar__input { color: #203344; }
+.app-page .search-bar__input::placeholder { color: #435d6d; opacity: 1; }
+@supports ((backdrop-filter: blur(8px)) or (-webkit-backdrop-filter: blur(8px))) {
+  .app-page .app-main { overflow: visible; }
+  .app-page .app-map {
+    top: calc(-1 * var(--toolbar-h));
+    height: calc(100% + var(--toolbar-h));
+  }
+  .app-page .app-toolbar {
+    background: rgba(255, 255, 255, .8);
+    -webkit-backdrop-filter: blur(10px);
+    backdrop-filter: blur(10px);
+  }
+  .app-page .search-bar {
+    background: rgba(243, 246, 247, .78);
+    -webkit-backdrop-filter: blur(8px);
+    backdrop-filter: blur(8px);
+  }
+}
+
 /* Place inspection: keep controls visible while the content scrolls. */
 .app-page .btn-danger {
   color: #a73434;
