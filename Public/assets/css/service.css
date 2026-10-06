@@ -103,19 +103,26 @@ button,input,select,textarea{font-size:16px}button,a,input,select,textarea{touch
   outline: 2px solid #245b60; outline-offset: 1px;
 }
 @media (min-width: 901px) {
-  .app-page .app-toolbar__left { max-width: 28%; min-width: 0; }
+  .app-page .app-toolbar__left { max-width: 22%; min-width: 0; }
   .app-page .app-title { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
   .app-page .app-toolbar__center { min-width: 180px; }
-  .app-page .app-toolbar__right { width: min(38vw, 480px); min-width: 0; }
+  .app-page .app-toolbar__right { width: min(46vw, 620px); min-width: 0; }
   .app-page .account-menu { width: 100%; min-width: 0; }
   .app-page .account-menu > summary { display: none; }
   .app-page .account-menu[open] .account-menu__items {
-    position: static; display: flex; flex-direction: row; flex-wrap: wrap;
+    position: static; display: flex; flex-direction: row; flex-wrap: nowrap;
     align-items: center; gap: 4px 8px; width: 100%; min-width: 0;
     max-width: none; max-height: none; overflow: visible;
     padding: 0; background: transparent; border: 0; border-radius: 0; box-shadow: none;
   }
-  .app-page .account-menu .service-nav-link { max-width: 100%; }
+  .app-page .account-menu a.service-nav-link,
+  .app-page .account-menu #btn-logout { flex: none; white-space: nowrap !important; }
+  .app-page .account-menu div.service-nav-link,
+  .app-page .account-menu #nav-user {
+    flex: 1 1 0; display: block !important; min-width: 0; max-width: 100%;
+    white-space: nowrap !important; overflow: hidden; text-overflow: ellipsis;
+    height: 44px; box-sizing: border-box; line-height: 28px; padding: 8px 0;
+  }
 }
 
 /* Place inspection: keep controls visible while the content scrolls. */

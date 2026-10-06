@@ -37,12 +37,12 @@
     <details class="account-menu">
       <summary aria-label="帳戶與管理功能">帳戶 ▾</summary>
       <div class="account-menu__items">
-        <div class="service-nav-link">目前單位：<?= htmlspecialchars(current_user()['organization_name']??'未指定',ENT_QUOTES,'UTF-8') ?></div>
+        <div class="service-nav-link" title="目前單位：<?= htmlspecialchars(current_user()['organization_name']??'未指定',ENT_QUOTES,'UTF-8') ?>">目前單位：<?= htmlspecialchars(current_user()['organization_name']??'未指定',ENT_QUOTES,'UTF-8') ?></div>
         <a class="service-nav-link" href="<?= route_url('profile') ?>">個人資料</a>
         <?php if (!is_admin()): ?><a class="service-nav-link" href="<?= route_url('profile') ?>#request-section">單位異動申請 / 進度</a><?php endif; ?>
-        <div class="service-nav-link"><?= htmlspecialchars(current_user()['email'],ENT_QUOTES,'UTF-8') ?></div>
+        <div class="service-nav-link" title="<?= htmlspecialchars(current_user()['email'],ENT_QUOTES,'UTF-8') ?>"><?= htmlspecialchars(current_user()['email'],ENT_QUOTES,'UTF-8') ?></div>
     <?php if (is_admin()): ?><a class="service-nav-link" href="<?= route_url('admin') ?>">管理後台</a><?php endif; ?>
-    <div id="nav-user" style="font-size:13px;color:#374151;white-space:nowrap;">
+    <div id="nav-user" title="目前登入：<?= htmlspecialchars(current_user()['name']??'',ENT_QUOTES,'UTF-8') ?>" style="font-size:13px;color:#374151;white-space:nowrap;">
       目前登入：<span id="nav-user-name">—</span>
     </div>
     <button id="btn-logout" type="button" class="btn btn-outline">
