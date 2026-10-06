@@ -55,6 +55,69 @@ button,input,select,textarea{font-size:16px}button,a,input,select,textarea{touch
  .app-page .place-list-panel,.app-page .filter-panel__drawer{height:calc(var(--visual-height,100dvh) * .47);max-height:calc(var(--visual-height,100dvh) * .47)}
 }
 
+/* Toolbar geometry: independent 44px targets with a flatter visual surface. */
+.app-page .app-toolbar { align-items: center; }
+.app-page .app-toolbar__left,
+.app-page .app-toolbar__right { align-self: center; }
+.app-page .app-toolbar__center { min-width: 0; }
+.app-page .account-menu > summary {
+  display: flex; align-items: center; justify-content: center;
+  min-width: 60px; min-height: 44px; color: #245b60; font-size: 14px;
+  cursor: pointer; list-style: none;
+}
+.app-page .account-menu__items { display: none; }
+.app-page .account-menu[open] .account-menu__items {
+  display: flex; position: absolute; right: 0; top: calc(100% + 4px);
+  z-index: 4000; flex-direction: column; align-items: stretch;
+  min-width: 180px; width: max-content; max-width: calc(100vw - 24px);
+  max-height: calc(var(--visual-height, 100dvh) - var(--toolbar-h, 107px) - 16px);
+  overflow: auto; overscroll-behavior: contain; box-sizing: border-box;
+  padding: 12px; background: #fff; border: 1px solid #c6d3db;
+  border-radius: 10px; box-shadow: 0 6px 24px #183c4733;
+}
+.app-page .account-menu .service-nav-link,
+.app-page .account-menu #nav-user {
+  white-space: normal !important; overflow-wrap: anywhere; min-width: 0;
+}
+.app-page .account-menu #nav-user {
+  display: block !important; font-size: 13px !important; line-height: 1.6; padding: 6px 0;
+}
+.app-page .account-menu .service-nav-link,
+.app-page .account-menu #btn-logout { min-height: 44px; }
+.app-page .my-suggest {
+  max-height: calc(var(--visual-height, 100dvh) - var(--toolbar-h, 107px) - 16px);
+  overflow-y: auto; overscroll-behavior: contain;
+}
+.app-page .map-top-actions .map-action-btn {
+  position: relative; isolation: isolate; height: 44px; min-height: 44px;
+  min-width: 44px; background: transparent; border: 0; box-shadow: none;
+  line-height: normal;
+}
+.app-page .map-top-actions .map-action-btn::before {
+  content: ""; position: absolute; inset: 5px 0; z-index: -1;
+  pointer-events: none; background: #fff; border: 1px solid #becfd6;
+  border-radius: 999px; box-shadow: 0 2px 8px #183c471a;
+}
+.app-page .map-top-actions .map-action-btn:hover::before { background: #f3f6f7; }
+.app-page .map-top-actions .map-action-btn:focus-visible {
+  outline: 2px solid #245b60; outline-offset: 1px;
+}
+@media (min-width: 901px) {
+  .app-page .app-toolbar__left { max-width: 28%; min-width: 0; }
+  .app-page .app-title { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .app-page .app-toolbar__center { min-width: 180px; }
+  .app-page .app-toolbar__right { width: min(38vw, 480px); min-width: 0; }
+  .app-page .account-menu { width: 100%; min-width: 0; }
+  .app-page .account-menu > summary { display: none; }
+  .app-page .account-menu[open] .account-menu__items {
+    position: static; display: flex; flex-direction: row; flex-wrap: wrap;
+    align-items: center; gap: 4px 8px; width: 100%; min-width: 0;
+    max-width: none; max-height: none; overflow: visible;
+    padding: 0; background: transparent; border: 0; border-radius: 0; box-shadow: none;
+  }
+  .app-page .account-menu .service-nav-link { max-width: 100%; }
+}
+
 /* Place inspection: keep controls visible while the content scrolls. */
 .app-page .btn-danger {
   color: #a73434;

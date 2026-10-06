@@ -1,0 +1,441 @@
+{
+  "syntheticOnly": true,
+  "checks": [
+    {
+      "name": "320x568 centers aligned",
+      "passed": true
+    },
+    {
+      "name": "320x568 suggestions within viewport",
+      "passed": true
+    },
+    {
+      "name": "320x568 menu within viewport",
+      "passed": true
+    },
+    {
+      "name": "320x568 no horizontal document overflow",
+      "passed": true
+    },
+    {
+      "name": "320x568 button 0 target44",
+      "passed": true
+    },
+    {
+      "name": "320x568 button 0 visual34",
+      "passed": true
+    },
+    {
+      "name": "320x568 button 0 outer edge clickable",
+      "passed": true
+    },
+    {
+      "name": "320x568 button 1 target44",
+      "passed": true
+    },
+    {
+      "name": "320x568 button 1 visual34",
+      "passed": true
+    },
+    {
+      "name": "320x568 button 1 outer edge clickable",
+      "passed": true
+    },
+    {
+      "name": "320x568 button 2 target44",
+      "passed": true
+    },
+    {
+      "name": "320x568 button 2 visual34",
+      "passed": true
+    },
+    {
+      "name": "320x568 button 2 outer edge clickable",
+      "passed": true
+    },
+    {
+      "name": "320x568 button 3 target44",
+      "passed": true
+    },
+    {
+      "name": "320x568 button 3 visual34",
+      "passed": true
+    },
+    {
+      "name": "320x568 button 3 outer edge clickable",
+      "passed": true
+    },
+    {
+      "name": "320x568 hitboxes do not overlap",
+      "passed": true
+    },
+    {
+      "name": "390x844 centers aligned",
+      "passed": true
+    },
+    {
+      "name": "390x844 suggestions within viewport",
+      "passed": true
+    },
+    {
+      "name": "390x844 menu within viewport",
+      "passed": true
+    },
+    {
+      "name": "390x844 no horizontal document overflow",
+      "passed": true
+    },
+    {
+      "name": "390x844 button 0 target44",
+      "passed": true
+    },
+    {
+      "name": "390x844 button 0 visual34",
+      "passed": true
+    },
+    {
+      "name": "390x844 button 0 outer edge clickable",
+      "passed": true
+    },
+    {
+      "name": "390x844 button 1 target44",
+      "passed": true
+    },
+    {
+      "name": "390x844 button 1 visual34",
+      "passed": true
+    },
+    {
+      "name": "390x844 button 1 outer edge clickable",
+      "passed": true
+    },
+    {
+      "name": "390x844 button 2 target44",
+      "passed": true
+    },
+    {
+      "name": "390x844 button 2 visual34",
+      "passed": true
+    },
+    {
+      "name": "390x844 button 2 outer edge clickable",
+      "passed": true
+    },
+    {
+      "name": "390x844 button 3 target44",
+      "passed": true
+    },
+    {
+      "name": "390x844 button 3 visual34",
+      "passed": true
+    },
+    {
+      "name": "390x844 button 3 outer edge clickable",
+      "passed": true
+    },
+    {
+      "name": "390x844 hitboxes do not overlap",
+      "passed": true
+    },
+    {
+      "name": "568x320 centers aligned",
+      "passed": true
+    },
+    {
+      "name": "568x320 suggestions within viewport",
+      "passed": true
+    },
+    {
+      "name": "568x320 menu within viewport",
+      "passed": true
+    },
+    {
+      "name": "568x320 no horizontal document overflow",
+      "passed": true
+    },
+    {
+      "name": "568x320 button 0 target44",
+      "passed": true
+    },
+    {
+      "name": "568x320 button 0 visual34",
+      "passed": true
+    },
+    {
+      "name": "568x320 button 0 outer edge clickable",
+      "passed": true
+    },
+    {
+      "name": "568x320 button 1 target44",
+      "passed": true
+    },
+    {
+      "name": "568x320 button 1 visual34",
+      "passed": true
+    },
+    {
+      "name": "568x320 button 1 outer edge clickable",
+      "passed": true
+    },
+    {
+      "name": "568x320 button 2 target44",
+      "passed": true
+    },
+    {
+      "name": "568x320 button 2 visual34",
+      "passed": true
+    },
+    {
+      "name": "568x320 button 2 outer edge clickable",
+      "passed": true
+    },
+    {
+      "name": "568x320 button 3 target44",
+      "passed": true
+    },
+    {
+      "name": "568x320 button 3 visual34",
+      "passed": true
+    },
+    {
+      "name": "568x320 button 3 outer edge clickable",
+      "passed": true
+    },
+    {
+      "name": "568x320 hitboxes do not overlap",
+      "passed": true
+    },
+    {
+      "name": "844x390 centers aligned",
+      "passed": true
+    },
+    {
+      "name": "844x390 suggestions within viewport",
+      "passed": true
+    },
+    {
+      "name": "844x390 menu within viewport",
+      "passed": true
+    },
+    {
+      "name": "844x390 no horizontal document overflow",
+      "passed": true
+    },
+    {
+      "name": "844x390 button 0 target44",
+      "passed": true
+    },
+    {
+      "name": "844x390 button 0 visual34",
+      "passed": true
+    },
+    {
+      "name": "844x390 button 0 outer edge clickable",
+      "passed": true
+    },
+    {
+      "name": "844x390 button 1 target44",
+      "passed": true
+    },
+    {
+      "name": "844x390 button 1 visual34",
+      "passed": true
+    },
+    {
+      "name": "844x390 button 1 outer edge clickable",
+      "passed": true
+    },
+    {
+      "name": "844x390 button 2 target44",
+      "passed": true
+    },
+    {
+      "name": "844x390 button 2 visual34",
+      "passed": true
+    },
+    {
+      "name": "844x390 button 2 outer edge clickable",
+      "passed": true
+    },
+    {
+      "name": "844x390 button 3 target44",
+      "passed": true
+    },
+    {
+      "name": "844x390 button 3 visual34",
+      "passed": true
+    },
+    {
+      "name": "844x390 button 3 outer edge clickable",
+      "passed": true
+    },
+    {
+      "name": "844x390 hitboxes do not overlap",
+      "passed": true
+    },
+    {
+      "name": "1024x768 centers aligned",
+      "passed": true
+    },
+    {
+      "name": "1024x768 suggestions within viewport",
+      "passed": true
+    },
+    {
+      "name": "1024x768 no horizontal document overflow",
+      "passed": true
+    },
+    {
+      "name": "1024x768 button 0 target44",
+      "passed": true
+    },
+    {
+      "name": "1024x768 button 0 visual34",
+      "passed": true
+    },
+    {
+      "name": "1024x768 button 0 outer edge clickable",
+      "passed": true
+    },
+    {
+      "name": "1024x768 button 1 target44",
+      "passed": true
+    },
+    {
+      "name": "1024x768 button 1 visual34",
+      "passed": true
+    },
+    {
+      "name": "1024x768 button 1 outer edge clickable",
+      "passed": true
+    },
+    {
+      "name": "1024x768 button 2 target44",
+      "passed": true
+    },
+    {
+      "name": "1024x768 button 2 visual34",
+      "passed": true
+    },
+    {
+      "name": "1024x768 button 2 outer edge clickable",
+      "passed": true
+    },
+    {
+      "name": "1024x768 button 3 target44",
+      "passed": true
+    },
+    {
+      "name": "1024x768 button 3 visual34",
+      "passed": true
+    },
+    {
+      "name": "1024x768 button 3 outer edge clickable",
+      "passed": true
+    },
+    {
+      "name": "1024x768 hitboxes do not overlap",
+      "passed": true
+    },
+    {
+      "name": "1440x1000 centers aligned",
+      "passed": true
+    },
+    {
+      "name": "1440x1000 suggestions within viewport",
+      "passed": true
+    },
+    {
+      "name": "1440x1000 no horizontal document overflow",
+      "passed": true
+    },
+    {
+      "name": "1440x1000 button 0 target44",
+      "passed": true
+    },
+    {
+      "name": "1440x1000 button 0 visual34",
+      "passed": true
+    },
+    {
+      "name": "1440x1000 button 0 outer edge clickable",
+      "passed": true
+    },
+    {
+      "name": "1440x1000 button 1 target44",
+      "passed": true
+    },
+    {
+      "name": "1440x1000 button 1 visual34",
+      "passed": true
+    },
+    {
+      "name": "1440x1000 button 1 outer edge clickable",
+      "passed": true
+    },
+    {
+      "name": "1440x1000 button 2 target44",
+      "passed": true
+    },
+    {
+      "name": "1440x1000 button 2 visual34",
+      "passed": true
+    },
+    {
+      "name": "1440x1000 button 2 outer edge clickable",
+      "passed": true
+    },
+    {
+      "name": "1440x1000 button 3 target44",
+      "passed": true
+    },
+    {
+      "name": "1440x1000 button 3 visual34",
+      "passed": true
+    },
+    {
+      "name": "1440x1000 button 3 outer edge clickable",
+      "passed": true
+    },
+    {
+      "name": "1440x1000 hitboxes do not overlap",
+      "passed": true
+    },
+    {
+      "name": "320,568 long account stays within width",
+      "passed": true
+    },
+    {
+      "name": "320,568 long account search width >=180",
+      "passed": true
+    },
+    {
+      "name": "568,320 long account stays within width",
+      "passed": true
+    },
+    {
+      "name": "568,320 long account search width >=180",
+      "passed": true
+    },
+    {
+      "name": "1440,1000 long account stays within width",
+      "passed": true
+    },
+    {
+      "name": "1440,1000 long account search width >=180",
+      "passed": true
+    },
+    {
+      "name": "scrollable last search suggestion selects place",
+      "passed": true
+    },
+    {
+      "name": "account Escape closes and restores focus",
+      "passed": true
+    },
+    {
+      "name": "map still pans beneath toolbar",
+      "passed": true
+    }
+  ]
+}
