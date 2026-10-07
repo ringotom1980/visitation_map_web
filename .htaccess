@@ -1,0 +1,8 @@
+# UNAPPLIED: parent adjustment before any secret or business deployment.
+Options -Indexes
+AuthMerging Off
+Require all granted
+RewriteEngine On
+RewriteRule (^|/)\. - [F,END]
+RewriteRule ^shared(/|$) - [F,END,NC]
+RewriteRule !^runtime(/|$) - [F,END]
