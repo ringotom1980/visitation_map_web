@@ -1,0 +1,7 @@
+# Formal runtime; public application routes, metadata/config denied.
+Options -Indexes
+AuthMerging Off
+Require all granted
+RewriteEngine On
+RewriteRule (^|/)\. - [F,END]
+RewriteRule !^Public(/|$) - [F,END]
