@@ -1,1 +1,12 @@
+Options -Indexes
+AuthMerging Off
 Require all denied
+RewriteEngine On
+RewriteRule (^|/)\. - [F,END]
+<Files "shared-check.php">
+    AuthMerging Off
+    <RequireAll>
+    Require method GET HEAD
+    Require expr "%{REQUEST_URI} == '/_git_stage/visitation-probe/shared-check.php'"
+    </RequireAll>
+</Files>
