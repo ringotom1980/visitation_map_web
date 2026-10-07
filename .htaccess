@@ -1,0 +1,15 @@
+# Review-only alternative: same permitted URI/methods, no whole-directory grant.
+Options -Indexes
+AuthMerging Off
+Require all denied
+RewriteEngine On
+RewriteRule (^|/)\. - [F,END]
+SetEnvIf Request_URI "^/visitation-release/runtime/topology-check\.php$" HJ_SYNTHETIC_PROBE_PATH_OK
+SetEnvIf Request_Method "^(GET|HEAD)$" HJ_SYNTHETIC_PROBE_METHOD_OK
+<Files "topology-check.php">
+    AuthMerging Off
+    <RequireAll>
+        Require env HJ_SYNTHETIC_PROBE_PATH_OK
+        Require env HJ_SYNTHETIC_PROBE_METHOD_OK
+    </RequireAll>
+</Files>
