@@ -1,0 +1,26 @@
+/**
+ * Path: Public/assets/css/remember_login.css
+ * 說明: 登入頁「記住帳號」外掛樣式（只做微調，不破壞原 login.css）
+ */
+
+.remember-row {
+  display: flex;
+  align-items: center;
+  justify-content: flex-start;
+  margin: 6px 0 12px;
+}
+
+.remember-check {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  cursor: pointer;
+  user-select: none;
+  font-size: 14px;
+  line-height: 1.2;
+}
+
+.remember-check input[type="checkbox"] {
+  width: 16px;
+  height: 16px;
+}

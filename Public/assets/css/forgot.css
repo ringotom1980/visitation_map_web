@@ -1,0 +1,11 @@
+/**
+ * Path: Public/assets/css/forgot.css
+ * 說明: 忘記密碼頁補充樣式（沿用 login.css）
+ */
+
+.forgot-note {
+  margin: 0 0 12px;
+  font-size: 13px;
+  color: #6b7280;
+  line-height: 1.5;
+}

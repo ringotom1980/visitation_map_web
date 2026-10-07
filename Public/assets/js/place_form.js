@@ -1,0 +1,514 @@
+// Path: Public/assets/js/place_form.js
+// 說明: 新增/編輯標記 Modal 表單控制器（從 app.js 拆出）
+// - 接手 open/close modal、回填、驗證、送出（PlacesApi.create/update）
+// - 管理「列管鄉鎮市區」下拉與 hidden 欄位（managed_district / managed_town_code / managed_county_code）
+
+(function (global) {
+    'use strict';
+
+    var PlaceForm = {
+        // 外部依賴（由 app.js 注入）
+        _MapModule: null,
+        _PlacesApi: null,
+        _apiRequest: null,
+
+        // DOM
+        _form: null,
+        _modalId: 'modal-place-form',
+
+        _selectTown: null,
+        _hidDistrict: null,
+        _hidTownCode: null,
+        _hidCountyCode: null,
+
+        // state
+        _me: null,
+        _townOptionsLoaded: false,
+        _townLoadPromise: null,
+        _townRetry: null,
+        _createLatLng: null,
+
+        init: function (deps) {
+            deps = deps || {};
+            this._MapModule = deps.MapModule || global.MapModule || null;
+            this._PlacesApi = deps.PlacesApi || global.PlacesApi || null;
+            this._apiRequest = deps.apiRequest || global.apiRequest || null;
+
+            this._form = document.getElementById('place-form');
+
+            this._selectTown = document.getElementById('place-managed-district-select');
+            this._hidDistrict = document.getElementById('place-managed-district');
+            this._hidTownCode = document.getElementById('place-managed-town-code');
+            this._hidCountyCode = document.getElementById('place-managed-county-code');
+
+            // 綁定：選單選到哪一筆，就同步 hidden 三欄
+            if (this._selectTown) {
+                this._selectTown.addEventListener('change', this._onTownChanged.bind(this));
+                this._townRetry = document.createElement('button');
+                this._townRetry.type = 'button';
+                this._townRetry.className = 'btn btn-outline';
+                this._townRetry.textContent = '重新載入鄉鎮市區';
+                this._townRetry.hidden = true;
+                this._selectTown.insertAdjacentElement('afterend', this._townRetry);
+                this._townRetry.addEventListener('click', function () {
+                    PlaceForm._ensureTownOptionsLoaded().then(function () { PlaceForm._syncSelectFromHidden(); });
+                });
+            }
+
+            // 全站委派：點 backdrop / data-modal-close 關閉
+            document.body.addEventListener('click', function (evt) {
+                var t = evt.target;
+                if (!t) return;
+
+                if (t.matches && (t.matches('[data-modal-close]') || t.matches('.modal__backdrop'))) {
+                    var id = t.getAttribute('data-modal-close') || 'modal-place-form';
+                    PlaceForm.closeModal(id);
+                    if (PlaceForm._MapModule && PlaceForm._MapModule.clearTempNewPlaceLatLng) {
+                        PlaceForm._MapModule.clearTempNewPlaceLatLng();
+                    }
+                    if (PlaceForm._MapModule && PlaceForm._MapModule.clearSearchPin) {
+                        PlaceForm._MapModule.clearSearchPin();
+                    }
+                }
+            });
+            document.addEventListener('keydown', function (event) {
+                var modal = document.getElementById('modal-place-form');
+                if (!modal || !modal.classList.contains('modal--open')) return;
+                if (event.key === 'Escape') {
+                    event.preventDefault();
+                    PlaceForm.closeModal('modal-place-form');
+                }
+                if (event.key === 'Tab') {
+                    var controls = Array.from(modal.querySelectorAll('button:not(:disabled),input:not([type="hidden"]),select,textarea'))
+                        .filter(function (element) { return element.getClientRects().length > 0; });
+                    var first = controls[0], last = controls[controls.length - 1];
+                    if (event.shiftKey && document.activeElement === first) { event.preventDefault(); last.focus(); }
+                    else if (!event.shiftKey && document.activeElement === last) { event.preventDefault(); first.focus(); }
+                }
+            });
+        },
+
+        // 由 app.js 注入 me（避免 place_form.js 自己再打一次 /auth/me 造成競態）
+        setMe: function (me) {
+            this._me = me || null;
+        },
+
+        // 新增：由 app.js 的長按事件呼叫
+        openForCreate: function (latLng, address) {
+            if (!this._form) return;
+
+            if (this._form.reset) this._form.reset();
+            this._createLatLng = this._normalizeLatLng(latLng);
+
+            // 預設值
+            this._setValue('place-id', '');
+            this._setValue('place-address-text', address || '');
+
+            var over65 = document.getElementById('place-beneficiary-over65');
+            if (over65) over65.value = 'N';
+
+            var titleEl = document.getElementById('modal-place-title');
+            if (titleEl) titleEl.textContent = '新增標記';
+            // ✅ 更新座標功能：新增模式不顯示
+            if (window.PlaceCoordUpdate && typeof window.PlaceCoordUpdate.onOpenCreate === 'function') {
+                window.PlaceCoordUpdate.onOpenCreate();
+            }
+
+            // 清空列管 hidden
+            this._setTownHidden('', '', '');
+
+            // 確保選單載入（若尚未載入）
+            return this._ensureTownOptionsLoaded().finally(function () {
+                PlaceForm._syncSelectFromHidden(); // 讓 UI 跟 hidden 同步（目前是空）
+                PlaceForm.openModal('modal-place-form');
+            });
+        },
+
+        // 編輯：由 app.js 的「編輯」按鈕呼叫
+        openForEdit: function (place) {
+            if (!place) return;
+            this._createLatLng = null;
+
+            // 回填表單欄位
+            this._setValue('place-id', place.id);
+            this._setValue('place-serviceman-name', place.serviceman_name || place.soldier_name || '');
+            this._setValue('place-category', place.category || '');
+            this._setValue('place-visit-name', place.visit_name || '');
+            this._setValue('place-visit-target', place.visit_target || place.target_name || '');
+            this._setValue('place-condolence-order-no', place.condolence_order_no || '');
+
+            var over65 = document.getElementById('place-beneficiary-over65');
+            if (over65) over65.value = (place.beneficiary_over65 || 'N');
+
+            this._setValue('place-address-text', place.address_text || place.address || '');
+            this._setValue('place-note', place.note || '');
+            // ✅ 更新座標功能：編輯模式顯示 + 預填
+            if (window.PlaceCoordUpdate && typeof window.PlaceCoordUpdate.onOpenEdit === 'function') {
+                window.PlaceCoordUpdate.onOpenEdit(place);
+            }
+
+            // 列管：三欄回填（後端若還沒有 town_code / county_code，也不會壞，會是空字串）
+            this._setTownHidden(
+                (place.managed_district || ''),
+                (place.managed_town_code || ''),
+                (place.managed_county_code || '')
+            );
+
+            var titleEl = document.getElementById('modal-place-title');
+            if (titleEl) titleEl.textContent = '編輯標記';
+
+            return this._ensureTownOptionsLoaded().finally(function () {
+                PlaceForm._syncSelectFromHidden();
+                PlaceForm.openModal('modal-place-form');
+            });
+        },
+
+        // 儲存：由 app.js 的「儲存」按鈕呼叫
+        submit: async function (currentPlaceForEditFallback) {
+            if (!this._form || this._submitting) return;
+            if (!this._form.reportValidity()) return;
+            if (!this._PlacesApi) {
+                alert('PlacesApi 未載入，無法儲存');
+                return;
+            }
+
+            var formData = new FormData(this._form);
+            var id = (formData.get('id') || '').toString().trim();
+
+            // 注意：列管欄位一律從 hidden 取（select 只是 UI）
+            var payload = {
+                serviceman_name: (formData.get('serviceman_name') || '').toString().trim(),
+                category: (formData.get('category') || '').toString().trim(),
+                visit_name: (formData.get('visit_name') || '').toString().trim(),
+                visit_target: (formData.get('visit_target') || '').toString().trim(),
+                condolence_order_no: (formData.get('condolence_order_no') || '').toString().trim(),
+                beneficiary_over65: (formData.get('beneficiary_over65') || 'N').toString().trim().toUpperCase(),
+
+                managed_district: (formData.get('managed_district') || '').toString().trim(),
+                managed_town_code: (formData.get('managed_town_code') || '').toString().trim(),
+                managed_county_code: (formData.get('managed_county_code') || '').toString().trim(),
+
+                address_text: (formData.get('address_text') || '').toString().trim(),
+                note: (formData.get('note') || '').toString().trim()
+            };
+
+            // alias 相容（你原本就有）
+            payload.soldier_name = payload.serviceman_name;
+            payload.target_name = payload.visit_target;
+            payload.address = payload.address_text;
+
+            // 基本驗證
+            if (!payload.serviceman_name || !payload.category) {
+                alert('官兵姓名與類別為必填欄位。');
+                return;
+            }
+            if (!payload.visit_name) {
+                alert('受益人姓名為必填欄位。');
+                return;
+            }
+            if (!payload.condolence_order_no) {
+                alert('撫卹令號為必填欄位。');
+                return;
+            }
+
+            if (payload.beneficiary_over65 !== 'Y' && payload.beneficiary_over65 !== 'N') {
+                payload.beneficiary_over65 = 'N';
+            }
+
+            if (!payload.managed_town_code) {
+                if (this._selectTown) {
+                    this._selectTown.setCustomValidity('請選擇列管鄉鎮市區');
+                    this._selectTown.reportValidity();
+                } else {
+                    alert('請選擇列管鄉鎮市區');
+                }
+                return;
+            }
+
+            var latLng = (this._MapModule && this._MapModule.getTempNewPlaceLatLng)
+                ? this._MapModule.getTempNewPlaceLatLng()
+                : null;
+
+            this._submitting = true;
+            var saveButton = document.getElementById('btn-place-save');
+            if (saveButton) { saveButton.disabled = true; saveButton.textContent = '儲存中…'; }
+            try {
+                if (id) {
+                    // 編輯：lat/lng 若沒有新點就沿用 currentPlace
+                    var base = currentPlaceForEditFallback || null;
+
+                    var baseLat = base ? (base.lat !== undefined ? base.lat : base.latitude) : null;
+                    var baseLng = base ? (base.lng !== undefined ? base.lng : base.longitude) : null;
+
+                    payload.lat = latLng ? latLng.lat() : (baseLat !== null ? baseLat : null);
+                    payload.lng = latLng ? latLng.lng() : (baseLng !== null ? baseLng : null);
+
+                    if (payload.lat === null || payload.lng === null) {
+                        alert('編輯時缺少座標資訊，請在地圖上重新長按選擇位置後再儲存。');
+                        return;
+                    }
+
+                    await this._PlacesApi.update(id, payload);
+                } else {
+                    latLng = latLng || this._createLatLng;
+                    if (!latLng) {
+                        alert('請在地圖上長按選擇位置後再儲存。');
+                        return;
+                    }
+                    payload.lat = latLng.lat();
+                    payload.lng = latLng.lng();
+
+                    await this._PlacesApi.create(payload);
+                }
+
+                this.closeModal('modal-place-form', true);
+                if (this._MapModule && this._MapModule.clearTempNewPlaceLatLng) {
+                    this._MapModule.clearTempNewPlaceLatLng();
+                }
+                if (this._MapModule && this._MapModule.clearSearchPin) {
+                    this._MapModule.clearSearchPin();
+                }
+                this._createLatLng = null;
+
+                // 交由 app.js 決定要不要 refreshPlaces（比較乾淨）
+                document.dispatchEvent(new CustomEvent('placeForm:saved'));
+            } catch (err) {
+                console.error(err);
+                var msg = (err && err.message) ? err.message : '儲存失敗';
+                if (global.showAppToast) global.showAppToast(msg, 'error');
+                else alert(msg);
+            } finally {
+                this._submitting = false;
+                if (saveButton) { saveButton.disabled = false; saveButton.textContent = '儲存'; }
+            }
+        },
+
+        // ========== Modal open/close（把 iOS body lock 一起搬來）==========
+        _scrollY: 0,
+
+        openModal: function (id) {
+            var el = document.getElementById(id);
+            if (!el) return;
+
+            el.classList.add('modal--open');
+            this._returnFocus = document.activeElement;
+            el.setAttribute('aria-hidden', 'false');
+
+            document.body.classList.add('is-modal-open');
+            this._lockBodyScroll();
+            var first = el.querySelector('input:not([type="hidden"]),select,button');
+            if (first) first.focus();
+        },
+
+        closeModal: function (id, completed) {
+            if (this._submitting && !completed) return;
+            var el = document.getElementById(id);
+            if (!el) return;
+
+            el.classList.remove('modal--open');
+            el.setAttribute('aria-hidden', 'true');
+
+            document.body.classList.remove('is-modal-open');
+            this._unlockBodyScroll();
+            // ✅ 更新座標功能：關閉時重置狀態
+            if (window.PlaceCoordUpdate && typeof window.PlaceCoordUpdate.onModalClosed === 'function') {
+                window.PlaceCoordUpdate.onModalClosed();
+            }
+            this._createLatLng = null;
+            if (this._returnFocus && this._returnFocus.isConnected) this._returnFocus.focus();
+
+        },
+
+        _normalizeLatLng: function (latLng) {
+            if (!latLng) return null;
+
+            var lat = null;
+            var lng = null;
+
+            if (typeof latLng.lat === 'function' && typeof latLng.lng === 'function') {
+                lat = Number(latLng.lat());
+                lng = Number(latLng.lng());
+            } else if (latLng.lat !== undefined && latLng.lng !== undefined) {
+                lat = Number(latLng.lat);
+                lng = Number(latLng.lng);
+            }
+
+            if (!isFinite(lat) || !isFinite(lng)) return null;
+
+            return {
+                lat: function () { return lat; },
+                lng: function () { return lng; }
+            };
+        },
+
+        _lockBodyScroll: function () {
+            this._scrollY = window.scrollY || document.documentElement.scrollTop || 0;
+            document.body.style.position = 'fixed';
+            document.body.style.top = (-this._scrollY) + 'px';
+            document.body.style.left = '0';
+            document.body.style.right = '0';
+            document.body.style.width = '100%';
+        },
+
+        _unlockBodyScroll: function () {
+            document.body.style.position = '';
+            document.body.style.top = '';
+            document.body.style.left = '';
+            document.body.style.right = '';
+            document.body.style.width = '';
+            window.scrollTo(0, this._scrollY || 0);
+        },
+
+        // ========== 列管鄉鎮市區選單 ==========
+        _ensureTownOptionsLoaded: function () {
+            var self = this;
+
+            if (!self._selectTown) return Promise.resolve();
+            if (self._townOptionsLoaded) return Promise.resolve();
+            if (self._townLoadPromise) return self._townLoadPromise;
+
+            // 沒有 apiRequest 或後端 endpoint 就先降級：只顯示「未提供」
+            if (!self._apiRequest) {
+                self._setSelectOptions([{ value: '', label: '（無法載入選單）' }]);
+                self._townOptionsLoaded = true;
+                return Promise.resolve();
+            }
+
+            if (self._townRetry) { self._townRetry.disabled = true; self._townRetry.textContent = '載入中…'; }
+            self._townLoadPromise = self._apiRequest('/managed_towns/list', 'GET')
+                .then(function (json) {
+                    // 期待格式：{ success:true, data:[{town_code,town_name,county_code,county_name}] }
+                    if (!json || !json.success || !Array.isArray(json.data)) throw new Error('鄉鎮市區回傳格式錯誤');
+                    var list = json.data;
+                    if (self._townRetry) self._townRetry.hidden = true;
+
+                    if (!list.length) {
+                        self._setSelectOptions([{ value: '', label: '（此單位無可選鄉鎮市區）' }]);
+                        self._townOptionsLoaded = true;
+                        return;
+                    }
+
+                    var opts = [{ value: '', label: '請選擇' }];
+                    list.forEach(function (it) {
+                        var townCode = (it.town_code || '').toString();
+                        var townName = (it.town_name || '').toString();
+                        var countyCode = (it.county_code || '').toString();
+                        var countyName = (it.county_name || '').toString();
+
+                        // option value 用 town_code（穩定），顯示用名稱
+                        opts.push({
+                            value: townCode,
+                            label: (countyName ? (countyName + ' ') : '') + townName,
+                            town_name: townName,
+                            county_code: countyCode
+                        });
+                    });
+
+                    self._setSelectOptions(opts);
+                    self._townOptionsLoaded = true;
+                    self._syncSelectFromHidden();
+                })
+                .catch(function (err) {
+                    console.warn('managed_towns/list fail:', err);
+                    self._setSelectOptions([{ value: '', label: '（載入失敗，請重試）' }]);
+                    self._townOptionsLoaded = false;
+                    if (self._townRetry) self._townRetry.hidden = false;
+                }).finally(function () {
+                    self._townLoadPromise = null;
+                    if (self._townRetry) { self._townRetry.disabled = false; self._townRetry.textContent = '重新載入鄉鎮市區'; }
+                });
+            return self._townLoadPromise;
+        },
+
+        _setSelectOptions: function (opts) {
+            if (!this._selectTown) return;
+
+            this._selectTown.innerHTML = '';
+            (opts || []).forEach(function (o) {
+                var op = document.createElement('option');
+                op.value = o.value;
+                op.textContent = o.label;
+
+                // 附加資料（給 change 時同步 hidden 用）
+                if (o.town_name !== undefined) op.dataset.townName = o.town_name;
+                if (o.county_code !== undefined) op.dataset.countyCode = o.county_code;
+
+                this._selectTown.appendChild(op);
+            }, this);
+        },
+
+        _onTownChanged: function () {
+            if (!this._selectTown) return;
+
+            var val = this._selectTown.value || '';
+            var sel = this._selectTown.options[this._selectTown.selectedIndex];
+
+            // town_code = val
+            var townCode = val;
+            var townName = (sel && sel.dataset && sel.dataset.townName) ? sel.dataset.townName : '';
+            var countyCode = (sel && sel.dataset && sel.dataset.countyCode) ? sel.dataset.countyCode : '';
+
+            // managed_district 顯示名稱（你目前 places 表格顯示的是這個）
+            this._setTownHidden(townName, townCode, countyCode);
+            // ✅ 一旦使用者有變更選單，就清掉先前的必填錯誤訊息
+            this._selectTown.setCustomValidity('');
+        },
+
+        _setTownHidden: function (district, townCode, countyCode) {
+            if (this._hidDistrict) this._hidDistrict.value = district || '';
+            if (this._hidTownCode) this._hidTownCode.value = townCode || '';
+            if (this._hidCountyCode) this._hidCountyCode.value = countyCode || '';
+        },
+
+        _syncSelectFromHidden: function () {
+            if (!this._selectTown) return;
+
+            var townCode = this._hidTownCode ? String(this._hidTownCode.value || '') : '';
+            var district = this._hidDistrict ? String(this._hidDistrict.value || '') : '';
+
+            // ① 有 town_code → 直接用（最佳情況）
+            if (townCode) {
+                this._selectTown.value = townCode;
+
+                // 若成功對到 option
+                if (this._selectTown.value === townCode) {
+                    this._onTownChanged();
+                    return;
+                }
+            }
+
+            // ② 沒有 town_code，但有 managed_district → 用名稱反找
+            if (district) {
+                for (var i = 0; i < this._selectTown.options.length; i++) {
+                    var opt = this._selectTown.options[i];
+                    if ((opt.dataset.townName || '') === district) {
+                        this._selectTown.selectedIndex = i;
+                        this._onTownChanged();
+                        return;
+                    }
+                }
+
+                // ③ 找不到（舊資料 or 不在可選清單）→ 插入顯示用 option
+                var op = document.createElement('option');
+                op.value = '';
+                op.textContent = district + '（既有資料）';
+                op.selected = true;
+                op.disabled = true;
+
+                this._selectTown.insertBefore(op, this._selectTown.firstChild);
+                return;
+            }
+
+            // ④ 真的完全沒資料（才回到預設）
+            this._selectTown.value = '';
+        },
+
+        _setValue: function (id, v) {
+            var el = document.getElementById(id);
+            if (!el) return;
+            el.value = (v === undefined || v === null) ? '' : String(v);
+        }
+    };
+
+    global.PlaceForm = PlaceForm;
+})(window);

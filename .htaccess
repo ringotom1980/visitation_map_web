@@ -1,0 +1,17 @@
+# Isolated login HTML preview only; approval required before publication.
+Options -Indexes
+AuthMerging Off
+Require all denied
+RewriteEngine On
+RewriteRule (^|/)\. - [F,END]
+RewriteCond %{QUERY_STRING} !^$
+RewriteRule ^Public/index\.php$ - [F,END]
+SetEnvIf Request_URI "^/visitation-release/runtime/Public/index\.php$" HJ_LOGIN_PREVIEW_PATH_OK
+SetEnvIf Request_Method "^(GET|HEAD)$" HJ_LOGIN_PREVIEW_METHOD_OK
+<Files "index.php">
+    AuthMerging Off
+    <RequireAll>
+        Require env HJ_LOGIN_PREVIEW_PATH_OK
+        Require env HJ_LOGIN_PREVIEW_METHOD_OK
+    </RequireAll>
+</Files>
