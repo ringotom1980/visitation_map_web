@@ -50,4 +50,5 @@ function env(string $key, $default = null)
 }
 
 $root = dirname(__DIR__);
+require_once $root . '/shared_paths.php';
 load_env($root . '/.env');

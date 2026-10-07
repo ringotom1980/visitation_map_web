@@ -1,0 +1,37 @@
+# Install as .github/workflows/hostinger-runtime.yml only in approved transition.
+name: Publish visitation Hostinger runtime
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+permissions:
+  contents: write
+concurrency:
+  group: visitation-hostinger-runtime
+  cancel-in-progress: false
+jobs:
+  publish:
+    if: github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - name: Require PHP 8.3 or newer
+        run: php -r 'if (PHP_VERSION_ID < 80300) { exit(1); }'
+      - name: Generate reviewed production runtime and lint PHP
+        run: >-
+          python3 deploy/hostinger/formal_runtime.py
+          --repo . --ref "$GITHUB_SHA"
+          --output "$RUNNER_TEMP/runtime"
+          --manifest "$RUNNER_TEMP/runtime-manifest.json"
+          --review deploy/hostinger/config-review.json
+      - name: Retain non-public audit manifest
+        uses: actions/upload-artifact@v4
+        with:
+          name: visitation-runtime-manifest
+          path: ${{ runner.temp }}/runtime-manifest.json
+      - name: Push fast-forward runtime-only branch
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: python3 deploy/hostinger/publish_runtime.py --output "$RUNNER_TEMP/runtime"

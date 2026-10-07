@@ -1,10 +1,13 @@
-name: Deploy to Hostinger via FTP
+name: Manual old-folder FTPS recovery (disabled for main push)
 
 on:
-  push:
-    branches:
-      - main
   workflow_dispatch:
+    inputs:
+      recovery_ref:
+        description: 'Explicit verified source for old-folder recovery only'
+        required: true
+        default: 'aecd3d649ec7db33ceabafae132228cac745f133'
+        type: string
 
 jobs:
   ftp-deploy:
@@ -15,6 +18,7 @@ jobs:
         uses: actions/checkout@v4
         with:
           persist-credentials: false
+          ref: ${{ inputs.recovery_ref }}
 
       - name: Validate PHP syntax before publishing
         run: find config Public -name '*.php' -print0 | xargs -0 -n1 php -l

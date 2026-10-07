@@ -1,0 +1,11 @@
+{
+  "review_basis": "Visitation-only formal transition; reviewed source config hash gate",
+  "sha256": {
+    "config/app.php": "92181b4c512855fecd2ad57ba891292a5d3305a880eedc6e4c9b1c6d367e79f2",
+    "config/auth.php": "3d208e3c64670b4154d265b7086ae4757b09f543dd4d2e921c4a5b9ad7dcdade",
+    "config/bootstrap.php": "781cf232990e1aca3ecfa6066b395fe9f9d3db22c2554d2bc836db1071f55223",
+    "config/db.php": "9f3f34d2f8122b6cd4c9d68f7201e3e68bad6ccbea9786416aa960f46c1c67c0",
+    "config/permissions.php": "54048571701af18f513a03e660a61aba788c4ca7f859036a545d2cc62e0185d9",
+    "shared_paths.php": "20fe32791d78c1b17fdc41148e7c4ec8e1f1952c710401d3c85c2a08e956a9cd"
+  }
+}
