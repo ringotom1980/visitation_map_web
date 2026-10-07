@@ -1,12 +1,15 @@
+# Review-only alternative: same permitted URI/methods, no whole-directory grant.
 Options -Indexes
 AuthMerging Off
 Require all denied
 RewriteEngine On
 RewriteRule (^|/)\. - [F,END]
+SetEnvIf Request_URI "^/_git_stage/visitation-probe/shared-check\.php$" HJ_SYNTHETIC_PROBE_PATH_OK
+SetEnvIf Request_Method "^(GET|HEAD)$" HJ_SYNTHETIC_PROBE_METHOD_OK
 <Files "shared-check.php">
     AuthMerging Off
     <RequireAll>
-    Require method GET HEAD
-    Require expr "%{REQUEST_URI} == '/_git_stage/visitation-probe/shared-check.php'"
+        Require env HJ_SYNTHETIC_PROBE_PATH_OK
+        Require env HJ_SYNTHETIC_PROBE_METHOD_OK
     </RequireAll>
 </Files>
