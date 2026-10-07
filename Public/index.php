@@ -1,4 +1,5 @@
 <?php
+// Native Git delivery verification: no application behavior change.
 
 /**
  * Path: Public/index.php
