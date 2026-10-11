@@ -26,6 +26,10 @@ if (!isset($pageExternalCss) || !is_array($pageExternalCss)) {
 
   <link rel="icon" type="image/png" href="<?= asset_url('assets/img/logo.png') ?>">
 
+  <link rel="apple-touch-icon" sizes="180x180" href="/assets/img/apple-touch-icon-180.png">
+  <link rel="apple-touch-icon" sizes="167x167" href="/assets/img/apple-touch-icon-167.png">
+  <link rel="apple-touch-icon" sizes="152x152" href="/assets/img/apple-touch-icon-152.png">
+
   <!-- 共用樣式（固定載入；各頁請勿重複塞進 $pageCss） -->
   <link rel="stylesheet" href="<?= asset_url('assets/css/base.css') ?>">
 
