@@ -17,6 +17,9 @@
         _modalId: 'modal-place-form',
 
         _selectTown: null,
+        _selectCounty: null,
+        _townItems: [],
+        _openSequence: 0,
         _hidDistrict: null,
         _hidTownCode: null,
         _hidCountyCode: null,
@@ -36,6 +39,12 @@
 
             this._form = document.getElementById('place-form');
 
+            this._selectCounty = document.getElementById('place-managed-county-select');
+            if (this._selectCounty) this._selectCounty.addEventListener('change', function () {
+                PlaceForm._setTownHidden('', '', '');
+                PlaceForm._renderCountyTowns(PlaceForm._selectCounty.value);
+                PlaceForm._selectTown.setCustomValidity('');
+            });
             this._selectTown = document.getElementById('place-managed-district-select');
             this._hidDistrict = document.getElementById('place-managed-district');
             this._hidTownCode = document.getElementById('place-managed-town-code');
@@ -79,7 +88,7 @@
                     PlaceForm.closeModal('modal-place-form');
                 }
                 if (event.key === 'Tab') {
-                    var controls = Array.from(modal.querySelectorAll('button:not(:disabled),input:not([type="hidden"]),select,textarea'))
+                    var controls = Array.from(modal.querySelectorAll('button:not(:disabled),input:not([type="hidden"]):not(:disabled),select:not(:disabled),textarea:not(:disabled)'))
                         .filter(function (element) { return element.getClientRects().length > 0; });
                     var first = controls[0], last = controls[controls.length - 1];
                     if (event.shiftKey && document.activeElement === first) { event.preventDefault(); last.focus(); }
@@ -100,6 +109,8 @@
             if (this._form.reset) this._form.reset();
             this._createLatLng = this._normalizeLatLng(latLng);
 
+            var sequence = ++this._openSequence;
+
             // 預設值
             this._setValue('place-id', '');
             this._setValue('place-address-text', address || '');
@@ -119,6 +130,7 @@
 
             // 確保選單載入（若尚未載入）
             return this._ensureTownOptionsLoaded().finally(function () {
+                if (sequence !== PlaceForm._openSequence) return;
                 PlaceForm._syncSelectFromHidden(); // 讓 UI 跟 hidden 同步（目前是空）
                 PlaceForm.openModal('modal-place-form');
             });
@@ -128,6 +140,7 @@
         openForEdit: function (place) {
             if (!place) return;
             this._createLatLng = null;
+            var sequence = ++this._openSequence;
 
             // 回填表單欄位
             this._setValue('place-id', place.id);
@@ -158,6 +171,7 @@
             if (titleEl) titleEl.textContent = '編輯標記';
 
             return this._ensureTownOptionsLoaded().finally(function () {
+                if (sequence !== PlaceForm._openSequence) return;
                 PlaceForm._syncSelectFromHidden();
                 PlaceForm.openModal('modal-place-form');
             });
@@ -305,6 +319,7 @@
             var el = document.getElementById(id);
             if (!el) return;
 
+            this._openSequence++;
             el.classList.remove('modal--open');
             el.setAttribute('aria-hidden', 'true');
 
@@ -380,6 +395,8 @@
                     // 期待格式：{ success:true, data:[{town_code,town_name,county_code,county_name}] }
                     if (!json || !json.success || !Array.isArray(json.data)) throw new Error('鄉鎮市區回傳格式錯誤');
                     var list = json.data;
+                    self._townItems = list;
+                    self._renderCounties();
                     if (self._townRetry) self._townRetry.hidden = true;
 
                     if (!list.length) {
@@ -388,23 +405,7 @@
                         return;
                     }
 
-                    var opts = [{ value: '', label: '請選擇' }];
-                    list.forEach(function (it) {
-                        var townCode = (it.town_code || '').toString();
-                        var townName = (it.town_name || '').toString();
-                        var countyCode = (it.county_code || '').toString();
-                        var countyName = (it.county_name || '').toString();
-
-                        // option value 用 town_code（穩定），顯示用名稱
-                        opts.push({
-                            value: townCode,
-                            label: (countyName ? (countyName + ' ') : '') + townName,
-                            town_name: townName,
-                            county_code: countyCode
-                        });
-                    });
-
-                    self._setSelectOptions(opts);
+                    self._renderCountyTowns(self._selectCounty ? self._selectCounty.value : '');
                     self._townOptionsLoaded = true;
                     self._syncSelectFromHidden();
                 })
@@ -418,6 +419,31 @@
                     if (self._townRetry) { self._townRetry.disabled = false; self._townRetry.textContent = '重新載入鄉鎮市區'; }
                 });
             return self._townLoadPromise;
+        },
+
+        _renderCounties: function () {
+            if (!this._selectCounty) return;
+            this._selectCounty.innerHTML = '';
+            this._selectCounty.add(new Option('請先選擇縣市', ''));
+            var seen = new Set();
+            this._townItems.forEach(function (item) {
+                var code = String(item.county_code || '');
+                if (!code || seen.has(code)) return;
+                seen.add(code);
+                this._selectCounty.add(new Option(item.county_name || code, code));
+            }, this);
+            this._selectCounty.disabled = !seen.size;
+        },
+
+        _renderCountyTowns: function (county) {
+            var opts = [{value:'', label: county ? '請選擇鄉鎮市區' : '請先選擇縣市'}];
+            this._townItems.forEach(function (item) {
+                if (String(item.county_code || '') !== county) return;
+                opts.push({value:String(item.town_code), label:item.town_name,
+                    town_name:item.town_name, county_code:String(item.county_code)});
+            });
+            this._setSelectOptions(opts);
+            this._selectTown.disabled = !county;
         },
 
         _setSelectOptions: function (opts) {
@@ -465,6 +491,17 @@
 
             var townCode = this._hidTownCode ? String(this._hidTownCode.value || '') : '';
             var district = this._hidDistrict ? String(this._hidDistrict.value || '') : '';
+            var county = this._hidCountyCode ? this._hidCountyCode.value : '';
+            var match = this._townItems.find(function (item) { return townCode ? String(item.town_code) === townCode : (item.town_name === district && (!county || String(item.county_code) === county)); });
+            if (match) county = String(match.county_code || '');
+            this._renderCounties();
+            if (county && this._selectCounty && !Array.from(this._selectCounty.options).some(function (o) {return o.value === county;})) {
+                this._selectCounty.add(new Option('既有縣市（原資料）', county));
+                this._selectCounty.disabled = false;
+            }
+            if (this._selectCounty) this._selectCounty.value = county;
+            this._renderCountyTowns(county);
+            this._selectTown.setCustomValidity('');
 
             // ① 有 town_code → 直接用（最佳情況）
             if (townCode) {
@@ -491,7 +528,8 @@
                 // ③ 找不到（舊資料 or 不在可選清單）→ 插入顯示用 option
                 var op = document.createElement('option');
                 op.value = '';
-                op.textContent = district + '（既有資料）';
+                op.textContent = district + '（既有資料，請重新選擇）';
+                this._selectTown.disabled = false;
                 op.selected = true;
                 op.disabled = true;
 

@@ -131,3 +131,26 @@
   opacity: 0.85;
   padding: 6px 0;
 }
+
+/* Region menus expand in the scrollable drawer, never over the map or footer. */
+.region-multi { min-width: 0; }
+.region-multi__trigger, .region-multi__body input[type="search"], .region-cascade select {
+  box-sizing: border-box; width: 100%; min-height: 48px; padding: 12px 14px;
+  border: 1px solid #cadbdc; border-radius: 12px; background: #fff; color: #204f55;
+  font: inherit; font-size: 16px;
+}
+.region-multi__trigger { text-align: left; overflow-wrap: anywhere; cursor: pointer; }
+.region-multi__trigger[aria-expanded="true"] { border-color: #286168; background: #f1f8f8; }
+.region-multi__body { margin-top: 8px; padding: 12px; border: 1px solid #d9e6e6; border-radius: 14px; background: #fff; box-shadow: 0 6px 18px #204f5510; }
+.region-multi__body[hidden], .region-multi__options [hidden] { display: none !important; }
+.region-multi__options { max-height: 240px; overflow: auto; display: grid; gap: 4px; margin-top: 8px; }
+.region-multi__options .filter-checkitem { min-height: 44px; padding: 4px 8px; border-radius: 8px; box-sizing: border-box; }
+.region-multi__options .filter-checkitem:has(input:checked) { background: #edf6f5; }
+.region-multi__options .filter-checktext { white-space: normal; overflow-wrap: anywhere; line-height: 1.5; }
+.region-multi__options input { flex-shrink: 0; accent-color: #286168; }
+.region-multi__actions { display: flex; gap: 8px; margin-top: 8px; }
+.region-multi__actions button { min-height: 44px; padding: 8px 14px; border: 1px solid #cadbdc; border-radius: 8px; background: #f5f9f9; color: #204f55; font: inherit; cursor: pointer; }
+.region-multi__status { margin-top: 8px; font-size: 13px; color: #526d72; }
+.region-multi :focus-visible, .region-cascade select:focus-visible { outline: 3px solid #36858e; outline-offset: 2px; }
+.region-cascade select:disabled { background: #eef1f2; color: #68787b; cursor: not-allowed; }
+@media (prefers-reduced-motion: reduce) { .region-multi *, .region-cascade * { transition: none !important; animation: none !important; } }

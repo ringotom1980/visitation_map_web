@@ -84,6 +84,70 @@
     });
   }
 
+  // Native checkboxes retain multi-select semantics and keyboard interaction.
+  function makeRegionDropdown(container, label) {
+    var wrapper = document.createElement('div');
+    wrapper.className = 'region-multi';
+    var trigger = document.createElement('button');
+    trigger.type = 'button'; trigger.className = 'region-multi__trigger';
+    trigger.setAttribute('aria-expanded', 'false');
+    var body = document.createElement('div');
+    body.id = container.id + '-dropdown'; body.hidden = true;
+    body.className = 'region-multi__body';
+    trigger.setAttribute('aria-controls', body.id);
+    var search = document.createElement('input');
+    search.type = 'search'; search.placeholder = '搜尋鄉鎮市區';
+    search.setAttribute('aria-label', label + '：搜尋選項');
+    var actions = document.createElement('div'); actions.className = 'region-multi__actions';
+    var status = document.createElement('div'); status.className = 'region-multi__status';
+    status.setAttribute('role', 'status');
+    container.before(wrapper); wrapper.append(trigger, body);
+    body.append(search, actions, container, status);
+    container.className = 'region-multi__options';
+    function refresh() {
+      var query = search.value.trim().toLocaleLowerCase();
+      var rows = container.querySelectorAll('.filter-checkitem');
+      var count = 0, selected = [];
+      rows.forEach(function (row) {
+        var input = row.querySelector('input');
+        if (input.checked) selected.push(row.textContent.trim());
+        row.hidden = row.textContent.toLocaleLowerCase().indexOf(query) === -1;
+        if (!row.hidden) count++;
+      });
+      trigger.textContent = '⌖ ' + (selected.length ? selected.slice(0, 2).join('、') + (selected.length > 2 ? '…' : '') + '（' + selected.length + '）' : '不限鄉鎮市區') + ' ▾';
+      trigger.setAttribute('aria-label', label + '：' + (selected.length ? '已選 ' + selected.length + ' 個，' + selected.join('、') : '不限'));
+      status.textContent = rows.length ? (count ? '顯示 ' + count + ' 個選項・已選 ' + selected.length + ' 個' : '找不到符合的鄉鎮市區') : '';
+    }
+    function close(returnFocus) { body.hidden = true; trigger.setAttribute('aria-expanded', 'false'); if (returnFocus) trigger.focus(); }
+    trigger.addEventListener('click', function () {
+      if (!body.hidden) { close(false); return; }
+      document.dispatchEvent(new CustomEvent('regionDropdown:open', {detail: wrapper}));
+      body.hidden = false; trigger.setAttribute('aria-expanded', 'true'); search.focus();
+    });
+    wrapper.addEventListener('keydown', function (event) {
+      if (event.key === 'Escape' && !body.hidden) { event.preventDefault(); event.stopPropagation(); close(true); }
+    });
+    document.addEventListener('click', function (event) { if (!wrapper.contains(event.target)) close(false); });
+    document.addEventListener('keyup', function (event) { if (event.key === 'Tab' && !wrapper.contains(document.activeElement)) close(false); });
+    document.addEventListener('regionDropdown:open', function (event) { if (event.detail !== wrapper) close(false); });
+    search.addEventListener('input', refresh);
+    container.addEventListener('change', refresh);
+    ['全選', '清除'].forEach(function (text, index) {
+      var button = document.createElement('button'); button.type = 'button'; button.textContent = text;
+      button.addEventListener('click', function () {
+        container.querySelectorAll('input[type="checkbox"]').forEach(function (input) { input.checked = index === 0; });
+        container.dispatchEvent(new Event('change', {bubbles:true}));
+        var first = container.querySelector('input[type="checkbox"]');
+        if (first) first.dispatchEvent(new Event('change', {bubbles:true}));
+        refresh();
+      });
+      actions.appendChild(button);
+    });
+    container._refreshRegion = refresh;
+    new MutationObserver(refresh).observe(container, {childList:true});
+    refresh();
+  }
+
   function getCheckedValues(container) {
     var list = [];
     var nodes = container.querySelectorAll('input[type="checkbox"]');
@@ -126,6 +190,9 @@
     var elCat = $('filter-category');
     var elOver65 = $('filter-over65');
 
+    if (elReside) makeRegionDropdown(elReside, '居住鄉鎮市區');
+    if (elManaged) makeRegionDropdown(elManaged, '列管鄉鎮市區');
+
     var elCntV = $('filter-count-visible');
     var elCntD = $('filter-count-dimmed');
 
@@ -150,6 +217,13 @@
     document.addEventListener('mapPanel:open', function (e) { if (e.detail.panel !== 'filter') closePanel(); });
     document.addEventListener('keydown', function (e) { if (e.key === 'Escape' && panel.classList.contains('is-open')) { closePanel(); btnOpen.focus(); } });
     if (btnClose) btnClose.addEventListener('click', closePanel);
+    if (panel) panel.addEventListener('keydown', function (event) {
+      if (event.key !== 'Tab' || !panel.classList.contains('is-open')) return;
+      var controls = Array.from(panel.querySelectorAll('button:not(:disabled),input:not(:disabled)')).filter(function (el) { return el.getClientRects().length > 0; });
+      var first = controls[0], last = controls[controls.length - 1];
+      if (event.shiftKey && document.activeElement === first) { event.preventDefault(); last.focus(); }
+      else if (!event.shiftKey && document.activeElement === last) { event.preventDefault(); first.focus(); }
+    });
 
     if (panel) {
       panel.addEventListener('click', function (e) {
@@ -265,6 +339,7 @@
         if (elCat) setAllUnchecked(elCat);
         if (elOver65) setSingleChecked(elOver65, 'ALL');
         window.FilterCore.clear();
+        [elReside, elManaged].forEach(function (el) { if (el && el._refreshRegion) el._refreshRegion(); });
       });
     }
 

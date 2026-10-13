@@ -453,10 +453,16 @@ $mapConfig = [
                 </select>
               </div>
 
-              <div class="form-row">
+              <div class="form-row region-cascade">
+                <label for="place-managed-county-select">列管縣市</label>
+                <select id="place-managed-county-select" disabled required aria-required="true" aria-describedby="place-region-help">
+                  <option value="">請先選擇縣市</option>
+                </select>
+              </div>
+              <div class="form-row region-cascade">
                 <label for="place-managed-district-select">列管鄉鎮市區</label>
 
-                <select id="place-managed-district-select" required aria-required="true">
+                <select id="place-managed-district-select" disabled required aria-required="true">
                   <option value="">載入中...</option>
                 </select>
 
@@ -465,7 +471,7 @@ $mapConfig = [
                 <input id="place-managed-town-code" name="managed_town_code" type="hidden" />
                 <input id="place-managed-county-code" name="managed_county_code" type="hidden" />
 
-                <small class="form-help">選單內容會依你所屬單位限制。</small>
+                <small id="place-region-help" class="form-help">先選縣市，再選鄉鎮市區；選項依所屬單位限制。</small>
               </div>
 
               <div class="form-row">
